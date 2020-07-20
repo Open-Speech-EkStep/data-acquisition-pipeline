@@ -1,0 +1,3 @@
+pandas
+pytube3
+PyYAML
