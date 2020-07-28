@@ -3,3 +3,5 @@ google-cloud-core
 google-cloud-storage
 gswrap
 pyyaml
+moviepy
+pandas
