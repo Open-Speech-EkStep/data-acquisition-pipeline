@@ -1,0 +1,5 @@
+youtube-dl
+google-cloud-core
+google-cloud-storage
+gswrap
+pyyaml
