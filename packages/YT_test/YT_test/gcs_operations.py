@@ -1,8 +1,15 @@
-from os import listdir
-from os.path import isfile, join
-import gswrap
-# [START storage_upload_file]
 from google.cloud import storage
+import os
+import json
+
+def set_gcs_credentials(dictionary):
+    json_object = json.dumps(dictionary, indent=4)
+
+    # Writing to sample.json
+    with open("credentials.json", "w") as outfile:
+        outfile.write(json_object)
+
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'credentials.json'
 
 
 def upload_blob(bucket_name, source_file_name, destination_blob_name):
@@ -42,12 +49,12 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
         )
     )
 
+
 def check_blob(bucket_name, file_prefix):
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     stats = storage.Blob(bucket=bucket, name=file_prefix).exists(storage_client)
     return stats
-
 
 
 if __name__ == "__main__":

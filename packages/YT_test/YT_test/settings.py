@@ -8,7 +8,7 @@
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
 BOT_NAME = 'YT_test'
-
+GCS_CREDS={"DUMMY":24242}
 SPIDER_MODULES = ['YT_test.spiders']
 NEWSPIDER_MODULE = 'YT_test.spiders'
 ITEM_PIPELINES = {'YT_test.pipelines.YTPipeline': 1}

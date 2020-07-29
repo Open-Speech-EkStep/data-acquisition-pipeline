@@ -9,24 +9,11 @@
 from .gcs_operations import *
 from .pipeline_config import *
 import glob
-import json
 import os
 import subprocess
 import moviepy.editor
 import yaml
 import pandas as pd
-
-dictionary = {
-    }
-
-# Serializing json
-json_object = json.dumps(dictionary, indent=4)
-
-# Writing to sample.json
-with open("credentials.json", "w") as outfile:
-    outfile.write(json_object)
-
-os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'credentials.json'
 
 
 class YTPipeline:
@@ -90,6 +77,8 @@ class YTPipeline:
         return metadata
 
     def process_item(self, item, spider):
+        print("**********Setting Bucket Credentials**********")
+        set_gcs_credentials(item["Gcs_Credentials"])
         print(
             "**********************************************YOUTUBE DOWNLOAD STARTS*****************************************************************")
         batch_count = 0
