@@ -1,8 +1,12 @@
+mode = 'file'  # [channel,file]
 bucket = 'ekstepspeechrecognition-dev'
 channel_url = 'https://www.youtube.com/channel/UCXxvQMEypJB2s4V4-0dP_uw'
 match_title_string = ''
 reject_title_string = ''
 channel_blob_path = 'scrapydump'
 archive_blob_path = 'archive'
-source_name = 'John_Hall'
+source_name = 'Josh_Talk'  # Scraped Data file path(CSV)
 batch_num = 50
+scraped_data_blob_path = "scraped_data"
+file_speaker_name_column = "speaker_name"
+file_url_name_column = "url"
