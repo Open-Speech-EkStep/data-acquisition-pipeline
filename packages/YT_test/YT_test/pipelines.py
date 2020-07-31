@@ -128,7 +128,7 @@ class YTPipeline:
                 print("Attempt to download videos with batch size of ", last_video_batch_count)
                 try:
                     os.system(
-                        '/app/python/bin/youtube-dl -f bestvideo[ext=mp4] -ciw -o "%(title)s_:file-id%(id)s.%(ext)s" -v --batch-file {0}  --restrict-filenames --download-archive {1} --proxy "" --abort-on-error '.format(
+                        '/app/python/bin/youtube-dl -f bestvideo[ext=mp4] -ciw -o "file-id%(id)s.%(ext)s" -v --batch-file {0}  --restrict-filenames --download-archive {1} --proxy "" --abort-on-error '.format(
                             self.VIDEO_BATCH_FILE_NAME, self.ARCHIVE_FILE_NAME))
                 finally:
                     video_info = {}
@@ -147,7 +147,7 @@ class YTPipeline:
                             video_info['duration'] = video_duration
                             video_info['raw_file_name'] = file
                             if check_speaker:
-                                video_info['name'] = self.get_speaker(scraped_data,video_id)
+                                video_info['name'] = self.get_speaker(scraped_data, video_id)
                             else:
                                 video_info['name'] = None
                             video_info['gender'] = None
