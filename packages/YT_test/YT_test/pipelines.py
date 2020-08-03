@@ -128,7 +128,7 @@ class YTPipeline:
         return channel_blob_path + '/' + scraped_data_blob_path + '/' + source_name + '.csv'
 
     def get_speaker(self, scraped_data, video_id):
-        return scraped_data[scraped_data.file_url_name_column == video_id].iloc[0][file_speaker_name_column]
+        return scraped_data[scraped_data[file_url_name_column] == video_id].iloc[0][file_speaker_name_column]
 
     def process_item(self, item, spider):
         print("**********Setting Bucket Credentials**********")
