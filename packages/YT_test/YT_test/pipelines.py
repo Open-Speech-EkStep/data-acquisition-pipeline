@@ -15,7 +15,6 @@ import subprocess
 import moviepy.editor
 import pandas as pd
 
-
 class YTPipeline:
     FILE_FORMAT = 'mp4'
     ARCHIVE_FILE_NAME = 'archive.txt'
@@ -66,7 +65,6 @@ class YTPipeline:
         os.remove(file)
         upload_blob(bucket, meta_file_name, channel_blob_path + '/' + source_name + '/' + meta_file_name)
         os.remove(meta_file_name)
-        upload_blob(bucket, self.ARCHIVE_FILE_NAME, self.get_archive_file_path())
         return self
 
     # def start(self):
@@ -84,8 +82,10 @@ class YTPipeline:
                 print("Source scraped file has been downloaded from bucket {0} to local path...".format(bucket))
                 self.scraped_data = self.create_playlist(source_name + ".csv", file_url_name_column)
                 self.check_speaker = True
-        else:
+        elif mode == "channel":
             self.create_channel_playlist(channel_url)
+        else:
+            raise Exception("Invalid mode")
 
     def get_archive(self):
         if check_blob(bucket, self.get_archive_file_path()):
@@ -156,6 +156,7 @@ class YTPipeline:
                         for file in audio_paths:
                             self.metadata(file)
                             self.upload(file)
+                        upload_blob(bucket, self.ARCHIVE_FILE_NAME, self.get_archive_file_path())
                         print("Uploaded files till now: ", self.batch_count)
                 last_video_batch_count = self.get_video_batch()
             print("Last Batch has no more videos to be downloaded,so finishing downloads...")
