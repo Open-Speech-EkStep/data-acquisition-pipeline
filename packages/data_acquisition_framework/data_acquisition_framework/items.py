@@ -6,7 +6,7 @@
 import scrapy
 
 
-class YtTestItem(scrapy.Item):
+class DataAcquisitionFrameworkItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
     pass

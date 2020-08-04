@@ -1,10 +1,12 @@
-import scrapy
 import json
 
-class ExampleSpider(scrapy.Spider):
-    name = 'YT_test'
+import scrapy
+
+
+class DatacollectorYoutubeSpider(scrapy.Spider):
+    name = 'datacollector_youtube'
     allowed_domains = ['youtube.com']
-    start_urls = ['https://youtube.com/']
+    start_urls = ['http://youtube.com/']
 
     def parse(self, response):
         gcs_credentials = json.loads(self.settings['GCS_CREDS'])["Credentials"]

@@ -6,5 +6,5 @@ setup(
     name         = 'project',
     version      = '1.0',
     packages     = find_packages(),
-    entry_points = {'scrapy': ['settings = YT_test.settings']},
+    entry_points = {'scrapy': ['settings = data_acquisition_framework.settings']},
 )
