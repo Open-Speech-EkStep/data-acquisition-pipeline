@@ -11,7 +11,7 @@ BOT_NAME = 'data_acquisition_framework'
 GCS_CREDS = '{"Credentials": 24242}'
 SPIDER_MODULES = ['data_acquisition_framework.spiders']
 NEWSPIDER_MODULE = 'data_acquisition_framework.spiders'
-ITEM_PIPELINES = {'data_acquisition_framework.pipelines.YTPipeline': 1}
+ITEM_PIPELINES = {'data_acquisition_framework.pipelines.YoutubePipeline': 1}
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 # USER_AGENT = 'data_acquisition_framework (+http://www.yourdomain.com)'
