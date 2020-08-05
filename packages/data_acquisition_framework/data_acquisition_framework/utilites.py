@@ -26,7 +26,7 @@ def create_metadata(video_info, yml):
                 'type': yml['type'],
                 'source': yml['source'],  # --------
                 'experiment_use': yml['experiment_use'],  # check
-                'utterances_file_list': yml['utterances_file_list'],
+                'utterances_files_list': yml['utterances_files_list'],
                 'source_url': video_info['source_url'],
                 'speaker_gender': video_info['gender'],
                 'source_website': yml['source_website'],  # --------
