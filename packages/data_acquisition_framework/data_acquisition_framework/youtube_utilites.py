@@ -22,8 +22,11 @@ def check_mode(ob):
             ob.scraped_data = create_playlist(ob, source_name + ".csv", file_url_name_column)
             ob.check_speaker = True
             return ob.check_speaker
-    elif mode == "channel":
-        create_channel_playlist(ob, channel_url)
+        else:
+            raise Exception("{0} File doesn't exists on the given location: {1}".format(source_name + ".csv",
+                                                                                        get_scraped_file_path()))
+    if mode == "channel":
+        ob.scrape_links()
         return False
     else:
         raise Exception("Invalid mode")

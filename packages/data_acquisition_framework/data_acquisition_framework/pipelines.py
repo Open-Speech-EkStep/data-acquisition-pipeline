@@ -28,6 +28,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
         self.check_speaker = False
 
     def scrape_links(self):
+        create_channel_playlist(self, channel_url)
         return self
 
     def create_download_batch(self):
