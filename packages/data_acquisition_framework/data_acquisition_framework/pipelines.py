@@ -36,7 +36,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
 
     def download_files(self):
         os.system(
-            '/app/python/bin/youtube-dl -f bestvideo[ext=mp4] -ciw -o "file-id%(id)s.%(ext)s" -v --batch-file {0}  --restrict-filenames --download-archive {1} --proxy "" --abort-on-error '.format(
+            '/app/python/bin/youtube-dl -f bestvideo[ext=mp4] -ciw -o "file-id%(id)s.%(ext)s" --batch-file {0}  --restrict-filenames --download-archive {1} --proxy "" --abort-on-error '.format(
                 self.VIDEO_BATCH_FILE_NAME, self.ARCHIVE_FILE_NAME))
         return self
 
