@@ -48,7 +48,7 @@ def create_playlist(ob, source_file, file_url_name_column):
 
 def create_channel_playlist(ob, channel_url):
     os.system(
-        '/app/python/bin/youtube-dl {0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" > {3} '.format(
+        ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" > {3} '.format(
             channel_url, match_title_string, reject_title_string, ob.FULL_PLAYLIST_FILE_NAME))
 
 

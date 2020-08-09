@@ -24,6 +24,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
         self.scraped_data = None
         self.yml_config = config_yaml()['downloader']
         self.check_speaker = False
+        self.youtube_call = "/app/python/bin/youtube-dl " if "scrapinghub" in os.path.abspath("~") else "youtube-dl "
 
     def scrape_links(self):
         create_channel_playlist(self, channel_url)
@@ -34,7 +35,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
 
     def download_files(self):
         downloader_output = subprocess.run(
-            '/app/python/bin/youtube-dl -f bestvideo[ext=mp4] -ciw -o "file-id%(id)s.%(ext)s" --batch-file {0}  --restrict-filenames --download-archive {1} --proxy "" --abort-on-error '.format(
+            self.youtube_call + '-f bestvideo[ext=mp4] -ciw -o "file-id%(id)s.%(ext)s" --batch-file {0}  --restrict-filenames --download-archive {1} --proxy "" --abort-on-error '.format(
                 self.VIDEO_BATCH_FILE_NAME, self.ARCHIVE_FILE_NAME), shell=True, capture_output=True)
         check_and_log_download_output(self, downloader_output)
         return self
