@@ -1,8 +1,12 @@
+import logging
 import subprocess
-import os
-from .pipeline_config import *
-from .gcs_operations import *
+
 import pandas as pd
+
+from .gcs_operations import *
+from .pipeline_config import *
+
+logging.basicConfig(level=logging.DEBUG)
 
 
 def get_video_batch(ob):
@@ -18,18 +22,20 @@ def check_mode(ob):
     if mode == "file":
         if check_blob(bucket, get_scraped_file_path()):
             download_blob(bucket, get_scraped_file_path(), source_name + ".csv")
-            print("Source scraped file has been downloaded from bucket {0} to local path...".format(bucket))
+            logging.info(str("Source scraped file has been downloaded from bucket {0} to local path...".format(bucket)))
             ob.scraped_data = create_playlist(ob, source_name + ".csv", file_url_name_column)
             ob.check_speaker = True
             return ob.check_speaker
         else:
-            raise Exception("{0} File doesn't exists on the given location: {1}".format(source_name + ".csv",
-                                                                                        get_scraped_file_path()))
+            logging.error(str("{0} File doesn't exists on the given location: {1}".format(source_name + ".csv",
+                                                                                      get_scraped_file_path())))
+            exit()
     if mode == "channel":
         ob.scrape_links()
         return False
     else:
-        raise Exception("Invalid mode")
+        logging.error("Invalid mode")
+        exit()
 
 
 def create_playlist(ob, source_file, file_url_name_column):
@@ -66,9 +72,30 @@ def get_speaker(scraped_data, video_id):
 def get_archive(ob):
     if check_blob(bucket, get_archive_file_path(ob)):
         download_blob(bucket, get_archive_file_path(ob), ob.ARCHIVE_FILE_NAME)
-        print("Archive file has been downloaded from bucket {0} to local path...".format(bucket))
+        logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(bucket)))
         num_downloaded = sum(1 for line in open(ob.ARCHIVE_FILE_NAME))
-        print("Count of Previously downloaded files are : ", num_downloaded)
+        logging.info(str("Count of Previously downloaded files are : {0}".format(num_downloaded)))
     else:
         os.system('touch {0}'.format(ob.ARCHIVE_FILE_NAME))
-        print("No Archive file has been found on bucket...Downloading all files...")
+        logging.info("No Archive file has been found on bucket...Downloading all files...")
+
+
+def check_and_log_download_output(ob, downloader_output):
+    if downloader_output.stderr:
+        formatted_error = str(downloader_output.stderr.decode("utf-8"))
+        logging.error(formatted_error)
+        if ": YouTube said: Unable to extract video data" in formatted_error:
+            video_id = formatted_error.split(":")[1].strip()
+            remove_rejected_video(ob, video_id)
+            logging.info(str("Video I'd {0} removed from playlist and won't be downloaded".format(video_id)))
+        if "HTTP Error 429" in formatted_error:
+            logging.error("Too many Requests... \nAborting..... \nPlease Re-Deploy")
+            exit()
+    else:
+        formatted_output = downloader_output.stdout.decode("utf-8").split("\n")
+        for _ in formatted_output:
+            logging.info(str(_))
+
+
+def remove_rejected_video(ob, video_id):
+    os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, ob.FULL_PLAYLIST_FILE_NAME))

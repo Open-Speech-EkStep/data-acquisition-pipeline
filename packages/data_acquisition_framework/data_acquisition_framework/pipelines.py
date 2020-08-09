@@ -4,15 +4,13 @@
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
 
-# useful for handling different item types with a single interface
+import glob
+
+import moviepy.editor
+
+from .data_acquisition_pipeline import DataAcqusitionPipeline
 from .utilites import *
 from .youtube_utilites import *
-from .pipeline_config import *
-from .data_acquisition_pipeline import DataAcqusitionPipeline
-import glob
-import os
-import moviepy.editor
-import pandas as pd
 
 
 class YoutubePipeline(DataAcqusitionPipeline):
@@ -35,9 +33,10 @@ class YoutubePipeline(DataAcqusitionPipeline):
         return get_video_batch(self)
 
     def download_files(self):
-        os.system(
+        downloader_output = subprocess.run(
             '/app/python/bin/youtube-dl -f bestvideo[ext=mp4] -ciw -o "file-id%(id)s.%(ext)s" --batch-file {0}  --restrict-filenames --download-archive {1} --proxy "" --abort-on-error '.format(
-                self.VIDEO_BATCH_FILE_NAME, self.ARCHIVE_FILE_NAME))
+                self.VIDEO_BATCH_FILE_NAME, self.ARCHIVE_FILE_NAME), shell=True, capture_output=True)
+        check_and_log_download_output(self, downloader_output)
         return self
 
     def extract_metadata(self, file):
@@ -77,20 +76,20 @@ class YoutubePipeline(DataAcqusitionPipeline):
     #         .upload_to_bucket()
 
     def process_item(self, item, spider):
-        print("**********Setting Bucket Credentials**********")
+        logging.info("**********Setting Bucket Credentials**********")
         set_gcs_credentials(item["Gcs_Credentials"])
-        print("**********Bucket Credentials Set**********")
+        logging.info("**********Bucket Credentials Set**********")
         self.check_speaker = True if check_mode(self) else False
-        print("*************YOUTUBE DOWNLOAD STARTS*************")
-        print("Downloading videos for source : ", source_name)
+        logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
+        logging.info(str("Downloading videos for source : {0}".format(source_name)))
         try:
             get_archive(self)
         finally:
             playlist_count = get_playlist_count(self)
-            print("Total playlist count with valid videos is ", playlist_count)
+            logging.info(str("Total playlist count with valid videos is {0}".format(playlist_count)))
             last_video_batch_count = self.create_download_batch()
             while last_video_batch_count > 0:
-                print("Attempt to download videos with batch size of ", last_video_batch_count)
+                logging.info(str("Attempt to download videos with batch size of {0}".format(last_video_batch_count)))
                 try:
                     self.download_files()
                 finally:
@@ -98,12 +97,12 @@ class YoutubePipeline(DataAcqusitionPipeline):
                     audio_files_count = len(audio_paths)
                     if audio_files_count > 0:
                         self.batch_count += audio_files_count
-                        print("Uploading {0} files to gcs bucket...".format(audio_files_count))
+                        logging.info(str("Uploading {0} files to gcs bucket...".format(audio_files_count)))
                         for file in audio_paths:
                             self.extract_metadata(file)
                             self.upload_to_bucket(file)
                         upload_blob(bucket, self.ARCHIVE_FILE_NAME, get_archive_file_path(self))
-                        print("Uploaded files till now: ", self.batch_count)
+                        logging.info(str("Uploaded files till now: {0}".format(self.batch_count)))
                 last_video_batch_count = self.create_download_batch()
-            print("Last Batch has no more videos to be downloaded,so finishing downloads...")
-            print("Total Uploaded files for this run was : ", self.batch_count)
+            logging.info("Last Batch has no more videos to be downloaded,so finishing downloads...")
+            logging.info(str("Total Uploaded files for this run was : {0}".format(self.batch_count)))
