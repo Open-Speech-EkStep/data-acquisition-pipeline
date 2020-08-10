@@ -83,7 +83,8 @@ def get_archive(ob):
 def check_and_log_download_output(ob, downloader_output):
     if downloader_output.stderr:
         formatted_error = str(downloader_output.stderr.decode("utf-8"))
-        logging.error(formatted_error)
+        if not ("WARNING" in formatted_error):
+            logging.error(formatted_error)
         if ": YouTube said: Unable to extract video data" in formatted_error:
             video_id = formatted_error.split(":")[1].strip()
             remove_rejected_video(ob, video_id)
@@ -91,7 +92,7 @@ def check_and_log_download_output(ob, downloader_output):
         if "HTTP Error 429" in formatted_error:
             logging.error("Too many Requests... \nAborting..... \nPlease Re-Deploy")
             exit()
-    else:
+
         formatted_output = downloader_output.stdout.decode("utf-8").split("\n")
         for _ in formatted_output:
             logging.info(str(_))

@@ -35,7 +35,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
 
     def download_files(self):
         downloader_output = subprocess.run(
-            self.youtube_call + '-f bestvideo[ext=mp4] -ciw -o "file-id%(id)s.%(ext)s" --batch-file {0}  --restrict-filenames --download-archive {1} --proxy "" --abort-on-error '.format(
+            self.youtube_call + '-f "best[ext=mp4]" -o "%(duration)sfile-id%(id)s.%(ext)s" --batch-file {0}  --restrict-filenames --download-archive {1} --proxy "" --abort-on-error '.format(
                 self.VIDEO_BATCH_FILE_NAME, self.ARCHIVE_FILE_NAME), shell=True, capture_output=True)
         check_and_log_download_output(self, downloader_output)
         return self
@@ -45,8 +45,8 @@ class YoutubePipeline(DataAcqusitionPipeline):
         meta_file_name = file.replace('mp4', 'csv')
         video_id = file.split('file-id')[-1][:-4]
         source_url = ("https://www.youtube.com/watch?v=") + video_id
-        video = moviepy.editor.VideoFileClip(file)
-        video_duration = int(video.duration) / 60
+        # video = moviepy.editor.VideoFileClip(file)
+        video_duration = int(file.split('file-id')[0]) / 60
         video_info['duration'] = video_duration
         video_info['raw_file_name'] = file
         if self.check_speaker:
