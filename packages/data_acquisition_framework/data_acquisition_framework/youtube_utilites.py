@@ -92,10 +92,9 @@ def check_and_log_download_output(ob, downloader_output):
         if "HTTP Error 429" in formatted_error:
             logging.error("Too many Requests... \nAborting..... \nPlease Re-Deploy")
             exit()
-
-        formatted_output = downloader_output.stdout.decode("utf-8").split("\n")
-        for _ in formatted_output:
-            logging.info(str(_))
+    formatted_output = downloader_output.stdout.decode("utf-8").split("\n")
+    for _ in formatted_output:
+        logging.info(str(_))
 
 
 def remove_rejected_video(ob, video_id):
