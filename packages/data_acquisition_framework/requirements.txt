@@ -6,4 +6,4 @@ pyyaml
 moviepy
 pandas
 itemadapter
-audioread
+tinytag

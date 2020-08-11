@@ -1,9 +1,10 @@
-import os
+import logging
+
 import yaml
+from tinytag import TinyTag
+
 from .gcs_operations import *
 from .pipeline_config import *
-import logging
-import audioread
 
 ARCHIVE_FILE_NAME = 'archive.txt'
 logging.basicConfig(level=logging.DEBUG)
@@ -11,7 +12,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 def config_yaml():
     config_path = os.path.dirname(os.path.realpath(__file__))
-    print(os.listdir(config_path))
+    logging.info(os.listdir(config_path))
     config_file = config_path + '/config.py'
     config_yaml_file = config_file.replace('.py', '.yaml')
     os.rename(config_file, config_yaml_file)
@@ -50,9 +51,9 @@ def create_metadata(video_info, yml):
 
 def set_gcs_creds(gcs_credentials_string):
     gcs_credentials = json.loads(gcs_credentials_string)["Credentials"]
-    print("**********Setting Bucket Credentials**********")
+    logging.info("**********Setting Bucket Credentials**********")
     set_gcs_credentials(gcs_credentials)
-    print("**********Bucket Credentials Set**********")
+    logging.info("**********Bucket Credentials Set**********")
 
 
 def get_archive_file_path():
@@ -81,7 +82,7 @@ def retrieve_archive_from_local():
             lines = f.readlines()
         return [line.replace('\n', '') for line in lines]
     else:
-        print("No archive.txt is found.....")
+        logging.info("No archive.txt is found.....")
         return []
 
 
@@ -97,7 +98,7 @@ def upload_media_and_metadata_to_bucket(file):
     upload_blob(bucket, meta_file_name, channel_blob_path + '/' + source_name + '/' + meta_file_name)
     os.remove(meta_file_name)
 
+
 def get_mp3_duration(file):
-    with audioread.audio_open(file) as f:
-        totalsec = f.duration
-        return int(totalsec) / 60
+    tag = TinyTag.get(file)
+    return round(tag.duration, 3) / 60

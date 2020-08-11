@@ -4,22 +4,18 @@
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
 
+import glob
+from contextlib import suppress
+
+import moviepy.editor
+from itemadapter import ItemAdapter
 # useful for handling different item types with a single interface
-from io import BytesIO
-from scrapy.utils.project import get_project_settings
 from scrapy.http import Request
+from scrapy.pipelines.files import FilesPipeline
+
+from .data_acquisition_pipeline import DataAcqusitionPipeline
 from .utilites import *
 from .youtube_utilites import *
-from .pipeline_config import *
-from .data_acquisition_pipeline import DataAcqusitionPipeline
-import glob
-import os
-import moviepy.editor
-import audioread
-import pandas as pd
-from contextlib import suppress
-from itemadapter import ItemAdapter
-from scrapy.pipelines.files import FilesPipeline
 
 
 class YoutubePipeline(DataAcqusitionPipeline):
@@ -181,7 +177,7 @@ class MediaPipeline(FilesPipeline):
             video = moviepy.editor.VideoFileClip(file)
             video_duration = int(video.duration) / 60
         elif FILE_FORMAT == 'mp3':
-            video_duration = 101   # TODO To use a third party module
+            video_duration = get_mp3_duration(file)
         video_info['duration'] = video_duration
         video_info['raw_file_name'] = file
         video_info['name'] = None
