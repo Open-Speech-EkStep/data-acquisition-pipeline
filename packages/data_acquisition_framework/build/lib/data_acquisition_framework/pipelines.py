@@ -181,7 +181,7 @@ class MediaPipeline(FilesPipeline):
             video = moviepy.editor.VideoFileClip(file)
             video_duration = int(video.duration) / 60
         elif FILE_FORMAT == 'mp3':
-            video_duration = 101   # TODO To use a third party module
+            video_duration = get_mp3_duration(file)  # TODO To use a third party module
         video_info['duration'] = video_duration
         video_info['raw_file_name'] = file
         video_info['name'] = None

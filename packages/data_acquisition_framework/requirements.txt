@@ -5,3 +5,5 @@ gswrap
 pyyaml
 moviepy
 pandas
+itemadapter
+audioread
