@@ -16,7 +16,7 @@ GCS_CREDS = '{"Credentials": 24242}'
 # set_gcs_credentials("abc")
 SPIDER_MODULES = ['data_acquisition_framework.spiders']
 NEWSPIDER_MODULE = 'data_acquisition_framework.spiders'
-ITEM_PIPELINES = {'data_acquisition_framework.pipelines.MediaPipeline': 2}
+# ITEM_PIPELINES = {'data_acquisition_framework.pipelines.MediaPipeline': 2}
 # ITEM_PIPELINES = {'data_acquisition_framework.pipelines.YoutubePipeline': 2}
 FILES_STORE = '.'
 # FILES_STORE = 'gs://ekstepspeechrecognition-dev/scrapydump/music4programming/'

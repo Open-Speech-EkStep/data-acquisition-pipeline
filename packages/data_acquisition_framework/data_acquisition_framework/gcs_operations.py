@@ -6,10 +6,10 @@ def set_gcs_credentials(dictionary):
     json_object = json.dumps(dictionary, indent=4)
 
     # Writing to sample.json
-    with open("credentials.json", "w") as outfile:
+    with open("temp.json", "w") as outfile:
         outfile.write(json_object)
     print("Setting GOOGLE_APPLICATION_CREDENTIALS ....")
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'credentials.json'
+    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'temp.json'
 
 
 def upload_blob(bucket_name, source_file_name, destination_blob_name):

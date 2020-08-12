@@ -2,6 +2,7 @@ import logging
 import subprocess
 
 import pandas as pd
+from pandas.io.common import EmptyDataError
 
 from .gcs_operations import *
 from .pipeline_config import *
@@ -10,12 +11,14 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def get_video_batch(ob):
-    os.system(
-        "cat {0} {1} | sed 's/youtube //g' | sort |uniq -c |awk '$1==1' | cut -c9- | head -{2} > {3} ".format(
-            ob.FULL_PLAYLIST_FILE_NAME, ob.ARCHIVE_FILE_NAME, batch_num, ob.VIDEO_BATCH_FILE_NAME))
-    return int(subprocess.check_output(
-        "cat {0} | wc -l".format(ob.VIDEO_BATCH_FILE_NAME), shell=True).decode("utf-8").split('\n')[
-                   0])
+    FULL_PLAYLIST = pd.read_csv(ob.FULL_PLAYLIST_FILE_NAME, header=None)
+    try:
+        ARCHIVE_FILE = pd.read_csv(ob.ARCHIVE_FILE_NAME, delimiter=' ', header=None)[1]
+    except EmptyDataError:
+        ARCHIVE_FILE = pd.DataFrame(columns=[1])
+    VIDEO_BATCH = FULL_PLAYLIST[FULL_PLAYLIST.merge(ARCHIVE_FILE, left_on=0, right_on=1, how='left')[1].isnull()].head(batch_num)
+    VIDEO_BATCH.to_csv(ob.VIDEO_BATCH_FILE_NAME, header=False, index=False)
+    return int(VIDEO_BATCH.count()[0])
 
 
 def check_mode(ob):
@@ -28,7 +31,7 @@ def check_mode(ob):
             return ob.check_speaker
         else:
             logging.error(str("{0} File doesn't exists on the given location: {1}".format(source_name + ".csv",
-                                                                                      get_scraped_file_path())))
+                                                                                          get_scraped_file_path())))
             exit()
     if mode == "channel":
         ob.scrape_links()
@@ -57,16 +60,12 @@ def get_playlist_count(ob):
         "cat {0} | wc -l".format(ob.FULL_PLAYLIST_FILE_NAME), shell=True).decode("utf-8").split('\n')[0])
 
 
-
 def get_scraped_file_path():
     return channel_blob_path + '/' + scraped_data_blob_path + '/' + source_name + '.csv'
 
 
 def get_speaker(scraped_data, video_id):
     return scraped_data[scraped_data[file_url_name_column] == video_id].iloc[0][file_speaker_name_column]
-
-
-
 
 
 def check_and_log_download_output(ob, downloader_output):

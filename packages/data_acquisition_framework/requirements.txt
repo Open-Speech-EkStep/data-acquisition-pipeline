@@ -4,6 +4,7 @@ google-cloud-storage
 gswrap
 pyyaml
 moviepy
-pandas
+pandas==0.25.3
+pandas_datareader
 itemadapter
 tinytag

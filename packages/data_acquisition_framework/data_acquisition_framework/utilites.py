@@ -2,7 +2,7 @@ import logging
 
 import yaml
 from tinytag import TinyTag
-
+import shutil
 from .gcs_operations import *
 from .pipeline_config import *
 
@@ -15,7 +15,7 @@ def config_yaml():
     logging.info(os.listdir(config_path))
     config_file = config_path + '/config.py'
     config_yaml_file = config_file.replace('.py', '.yaml')
-    os.rename(config_file, config_yaml_file)
+    shutil.copyfile(config_file, config_yaml_file)
     with open(config_yaml_file) as file:
         yml = yaml.load(file, Loader=yaml.FullLoader)
     return yml
