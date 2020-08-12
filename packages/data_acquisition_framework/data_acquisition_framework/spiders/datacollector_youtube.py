@@ -17,7 +17,7 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
     def from_crawler(cls, crawler, *args, **kwargs):
         spider = cls(
             *args,
-            my_setting=crawler.settings.get("GCS_CREDS"),
+            my_setting=crawler.settings.get("GCS_CREDS") if "scrapinghub" in os.path.abspath("~") else open("./credentials.json").read(),
             **kwargs
         )
         spider._set_crawler(crawler)
