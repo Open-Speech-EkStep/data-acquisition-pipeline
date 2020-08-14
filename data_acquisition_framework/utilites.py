@@ -36,7 +36,7 @@ def create_metadata(video_info, yml):
                 'experiment_use': yml['experiment_use'],  # check
                 'utterances_files_list': yml['utterances_files_list'],
                 'source_url': video_info['source_url'],
-                'speaker_gender': yml['speaker_gender'] if yml['speaker_gender'] else video_info['gender'],
+                'speaker_gender': str(yml['speaker_gender']).lower() if yml['speaker_gender'] else video_info['gender'],
                 'source_website': yml['source_website'],  # --------
                 'experiment_name': yml['experiment_name'],
                 'mother_tongue': yml['mother_tongue'],

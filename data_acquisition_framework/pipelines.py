@@ -63,7 +63,10 @@ class YoutubePipeline(DataAcqusitionPipeline):
             video_info['name'] = get_speaker(self.scraped_data, video_id)
         else:
             video_info['name'] = None
-        video_info['gender'] = None
+        if self.check_speaker:
+            video_info['gender'] = get_gender(self.scraped_data, video_id)
+        else:
+            video_info['gender'] = None
         video_info['source_url'] = source_url
         metadata = create_metadata(video_info, self.yml_config)
         metadata_df = pd.DataFrame([metadata])

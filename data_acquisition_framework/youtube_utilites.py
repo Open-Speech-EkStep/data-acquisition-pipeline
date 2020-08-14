@@ -69,6 +69,10 @@ def get_speaker(scraped_data, video_id):
     return scraped_data[scraped_data[file_url_name_column] == video_id].iloc[0][file_speaker_name_column]
 
 
+def get_gender(scraped_data, video_id):
+    return str(scraped_data[scraped_data[file_url_name_column] == video_id].iloc[0][file_speaker_gender_column]).lower()
+
+
 def check_and_log_download_output(ob, downloader_output):
     if downloader_output.stderr:
         formatted_error = str(downloader_output.stderr.decode("utf-8"))
