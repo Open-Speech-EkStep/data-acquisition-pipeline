@@ -4,7 +4,7 @@ mode = 'channel'  # [channel,file]
 bucket = 'ekstepspeechrecognition-dev'
 channel_blob_path = 'scrapydump'
 archive_blob_path = 'archive'
-source_name = 'music4programming'  # Scraped Data file name(CSV)
+source_name = 'Demo_Source'  # Scraped Data file name(CSV)
 batch_num = 5  # keep batch small on free tier
 scraped_data_blob_path = "scraped_data"
 
@@ -14,5 +14,5 @@ match_title_string = ''
 reject_title_string = ''
 
 # File Mode configurations
-file_speaker_name_column = "num_speaker"
-file_url_name_column = "video_url"
+file_speaker_name_column = "speaker_name"
+file_url_name_column = "url"

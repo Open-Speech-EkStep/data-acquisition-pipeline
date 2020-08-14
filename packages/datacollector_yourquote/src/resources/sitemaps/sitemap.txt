@@ -1,1 +1,0 @@
-{"_id":"yourquote","startUrl":["https://www.youtube.com/c/YourQuoteApp/videos"],"selectors":[{"id":"name","type":"SelectorElementScroll","parentSelectors":["_root"],"selector":"a.ytd-grid-video-renderer","multiple":true,"delay":0},{"id":"video-name","type":"SelectorLink","parentSelectors":["name"],"selector":"_parent_","multiple":false,"delay":0}]}
