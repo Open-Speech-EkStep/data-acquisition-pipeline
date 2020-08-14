@@ -25,7 +25,7 @@ def create_metadata(video_info, yml):
     metadata = {'raw_file_name': video_info['raw_file_name'],
                 'duration': str(video_info['duration']),
                 'title': video_info['raw_file_name'],
-                'speaker_name': video_info['name'],
+                'speaker_name': yml['speaker_name'] if yml['speaker_name'] else video_info['name'],
                 'audio_id': yml['audio_id'],
                 'cleaned_duration': yml['cleaned_duration'],
                 'num_of_speakers': yml['num_of_speakers'],  # check
@@ -36,7 +36,7 @@ def create_metadata(video_info, yml):
                 'experiment_use': yml['experiment_use'],  # check
                 'utterances_files_list': yml['utterances_files_list'],
                 'source_url': video_info['source_url'],
-                'speaker_gender': video_info['gender'],
+                'speaker_gender': yml['speaker_gender'] if yml['speaker_gender'] else video_info['gender'],
                 'source_website': yml['source_website'],  # --------
                 'experiment_name': yml['experiment_name'],
                 'mother_tongue': yml['mother_tongue'],
