@@ -82,6 +82,10 @@ def check_and_log_download_output(ob, downloader_output):
             video_id = formatted_error.split(":")[1].strip()
             remove_rejected_video(ob, video_id)
             logging.info(str("Video I'd {0} removed from playlist and won't be downloaded".format(video_id)))
+        if "Did not get any data blocks" in formatted_error:
+            video_id = open("video_list.txt").readlines()[0].replace("\n", "")
+            remove_rejected_video(ob, video_id)
+            logging.info(str("ERROR: Did not get any data blocks has been handled"))
         if "HTTP Error 429" in formatted_error:
             logging.error("Too many Requests... \nAborting..... \nPlease Re-Deploy")
             exit()

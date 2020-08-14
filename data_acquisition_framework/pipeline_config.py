@@ -16,4 +16,4 @@ reject_title_string = ''
 # File Mode configurations
 file_speaker_gender_column = 'speaker_gender'
 file_speaker_name_column = "speaker_name"
-file_url_name_column = "url"
+file_url_name_column = "video_url"
