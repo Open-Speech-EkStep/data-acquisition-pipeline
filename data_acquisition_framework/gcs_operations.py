@@ -2,6 +2,7 @@ from google.cloud import storage
 import os
 import json
 
+
 def set_gcs_credentials(dictionary):
     json_object = json.dumps(dictionary, indent=4)
 

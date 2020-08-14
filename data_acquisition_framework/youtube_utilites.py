@@ -16,7 +16,8 @@ def get_video_batch(ob):
         ARCHIVE_FILE = pd.read_csv(ob.ARCHIVE_FILE_NAME, delimiter=' ', header=None)[1]
     except EmptyDataError:
         ARCHIVE_FILE = pd.DataFrame(columns=[1])
-    VIDEO_BATCH = FULL_PLAYLIST[FULL_PLAYLIST.merge(ARCHIVE_FILE, left_on=0, right_on=1, how='left')[1].isnull()].head(batch_num)
+    VIDEO_BATCH = FULL_PLAYLIST[FULL_PLAYLIST.merge(ARCHIVE_FILE, left_on=0, right_on=1, how='left')[1].isnull()].head(
+        batch_num)
     VIDEO_BATCH.to_csv(ob.VIDEO_BATCH_FILE_NAME, header=False, index=False)
     return int(VIDEO_BATCH.count()[0])
 
