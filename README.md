@@ -141,12 +141,12 @@ As we already mentioned aur framework is extensible for any new source. To add a
 #### Running spiders with appropriate pipeline
 * Starting youtube spider with Youtube pipeline.
 ```shell script
-scrapy crawl datacollector_youtube --set=ITEM_PIPELINES={'data_acquisition_framework.pipelines.YoutubePipeline': 1}
+scrapy crawl datacollector_youtube --set=ITEM_PIPELINES='{"data_acquisition_framework.pipelines.YoutubePipeline": 1}'
 ```
 Note: You can download youtube video using youtube pipeline only.
 * Starting datacollector_music spider with media pipeline.
 ```shell script
-scrapy crawl datacollector_music --set=ITEM_PIPELINES={'data_acquisition_framework.pipelines.MediaPipeline': 1}
+scrapy crawl datacollector_music --set=ITEM_PIPELINES='{"data_acquisition_framework.pipelines.MediaPipeline": 1}'
 ```
 Note: You can use media pipeline for any other website source or you can write your own pipeline.
 <!-- CONTRIBUTING -->
