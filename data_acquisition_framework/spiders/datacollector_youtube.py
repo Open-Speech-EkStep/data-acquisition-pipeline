@@ -25,4 +25,4 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
 
 
     def parse(self, response):
-        return {"Channel": "https://www.youtube.com/channel/UCZ7HuQxnGJL76G8gQup_E7w"}
+        return {"Channel": "DUMMY"}
