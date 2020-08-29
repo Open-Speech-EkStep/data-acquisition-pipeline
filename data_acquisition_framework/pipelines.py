@@ -96,7 +96,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
             last_video_batch_count = self.create_download_batch()
         logging.info("Last Batch has no more videos to be downloaded,so finishing downloads...")
         logging.info(str("Total Uploaded files for this run was : {0}".format(self.batch_count)))
-
+        return item
 
 class MediaPipeline(FilesPipeline):
 
