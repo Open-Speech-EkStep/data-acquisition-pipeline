@@ -44,6 +44,7 @@ def check_mode(ob):
 
 def create_playlist(ob, source_file, file_url_name_column):
     df = pd.read_csv(source_file)
+    df = df[df[file_url_name_column].notna()]
     df[file_url_name_column] = df[file_url_name_column].apply(
         lambda x: str(x).replace("https://www.youtube.com/watch?v=", ""))
     df[file_url_name_column].to_csv(ob.FULL_PLAYLIST_FILE_NAME, index=False, header=None)
