@@ -47,6 +47,7 @@ def create_playlist(ob, source_file, file_url_name_column):
     df = df[df[file_url_name_column].notna()]
     df[file_url_name_column] = df[file_url_name_column].apply(
         lambda x: str(x).replace("https://www.youtube.com/watch?v=", ""))
+    df["video_url"] = df["video_url"].apply(lambda x: str(x).replace("https://youtu.be/", ""))
     df[file_url_name_column].to_csv(ob.FULL_PLAYLIST_FILE_NAME, index=False, header=None)
     return df
 
