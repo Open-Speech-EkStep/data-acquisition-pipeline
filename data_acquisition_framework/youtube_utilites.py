@@ -42,8 +42,21 @@ def check_mode(ob):
         exit()
 
 
+def check_dataframe_validity(df):
+    if not file_url_name_column in df.columns:
+        logging.error("Url column entered wrong.")
+        exit()
+    if not file_speaker_name_column in df.columns:
+        logging.error("Speaker name column entered wrong.")
+        exit()
+    if not file_speaker_gender_column in df.columns:
+        logging.error("Speaker gender column entered wrong.")
+        exit()
+
+
 def create_playlist(ob, source_file, file_url_name_column):
     df = pd.read_csv(source_file)
+    check_dataframe_validity(df)
     df = df[df[file_url_name_column].notna()]
     df[file_url_name_column] = df[file_url_name_column].apply(
         lambda x: str(x).replace("https://www.youtube.com/watch?v=", ""))
