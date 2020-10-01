@@ -48,6 +48,10 @@ def create_metadata(video_info, yml):
                 'purpose': yml['purpose']}
     return metadata
 
+def create_metadata_for_audio(video_info, yml, item):
+    metadata = create_metadata(video_info, yml)
+    metadata["source"] = item["source"]
+    return metadata
 
 def set_gcs_creds(gcs_credentials_string):
     gcs_credentials = json.loads(gcs_credentials_string)["Credentials"]
@@ -59,6 +63,8 @@ def set_gcs_creds(gcs_credentials_string):
 def get_archive_file_path():
     return channel_blob_path + '/' + archive_blob_path + '/' + source_name + '/' + ARCHIVE_FILE_NAME
 
+def get_archive_file_path_by_source(source):
+    return channel_blob_path + '/' + archive_blob_path + '/' + source + '/' + ARCHIVE_FILE_NAME
 
 def retrive_archive_from_bucket():
     if check_blob(bucket, get_archive_file_path()):
@@ -70,9 +76,24 @@ def retrive_archive_from_bucket():
         os.system('touch {0}'.format(ARCHIVE_FILE_NAME))
         logging.info("No Archive file has been found on bucket...Downloading all files...")
 
+def retrive_archive_from_bucket_by_source(source):
+    if check_blob(bucket, get_archive_file_path_by_source(source)):
+        download_blob(bucket, get_archive_file_path_by_source(source), source+"/"+ARCHIVE_FILE_NAME)
+        logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(bucket)))
+        num_downloaded = sum(1 for line in open(source+"/"+ARCHIVE_FILE_NAME))
+        logging.info(str("Count of Previously downloaded files are : {0}".format(num_downloaded)))
+    else:
+        os.system('mkdir {0}'.format(source))
+        os.system('touch {0}'.format(source+"/"+ARCHIVE_FILE_NAME))
+        logging.info("No Archive file has been found on bucket...Downloading all files...")
+
 
 def populate_archive(url):
     with open('archive.txt', 'a+') as f:
+        f.write(url + '\n')
+
+def populate_archive_to_source(source, url):
+    with open(source+'/archive.txt', 'a+') as f:
         f.write(url + '\n')
 
 
@@ -85,9 +106,21 @@ def retrieve_archive_from_local():
         logging.info("No archive.txt is found.....")
         return []
 
+def retrieve_archive_from_local_by_source(source):
+    if os.path.exists(source+'/archive.txt'):
+        with open(source+'/archive.txt', 'r') as f:
+            lines = f.readlines()
+        return [line.replace('\n', '') for line in lines]
+    else:
+        logging.info("No archive.txt is found.....")
+        return []
+
 
 def upload_archive_to_bucket():
     upload_blob(bucket, ARCHIVE_FILE_NAME, get_archive_file_path())
+
+def upload_archive_to_bucket_by_source(source):
+    upload_blob(bucket, source+"/"+ARCHIVE_FILE_NAME, get_archive_file_path_by_source(source))
 
 
 def upload_media_and_metadata_to_bucket(file):
@@ -96,6 +129,14 @@ def upload_media_and_metadata_to_bucket(file):
     upload_blob(bucket, file, channel_blob_path + '/' + source_name + '/' + file)
     os.remove(file)
     upload_blob(bucket, meta_file_name, channel_blob_path + '/' + source_name + '/' + meta_file_name)
+    os.remove(meta_file_name)
+
+def upload_audio_and_metadata_to_bucket(file, item):
+    FILE_FORMAT = file.split('.')[-1]
+    meta_file_name = file.replace(FILE_FORMAT, "csv")
+    upload_blob(bucket, file, channel_blob_path + '/' + item["source"] + '/' + file)
+    os.remove(file)
+    upload_blob(bucket, meta_file_name, channel_blob_path + '/' + item["source"] + '/' + meta_file_name)
     os.remove(meta_file_name)
 
 

@@ -7,6 +7,7 @@
 import glob
 from contextlib import suppress
 
+import os
 import moviepy.editor
 from itemadapter import ItemAdapter
 # useful for handling different item types with a single interface
@@ -147,5 +148,62 @@ class MediaPipeline(FilesPipeline):
         video_info['gender'] = None
         video_info['source_url'] = source_url
         metadata = create_metadata(video_info, self.yml_config)
+        metadata_df = pd.DataFrame([metadata])
+        metadata_df.to_csv(meta_file_name, index=False)
+
+class AudioPipeline(FilesPipeline):
+
+    def __init__(self, store_uri, download_func=None, settings=None):
+        super().__init__(store_uri, download_func, settings)
+        self.archive_list = []
+        self.yml_config = config_yaml()['downloader']
+
+    def file_path(self, request, response=None, info=None):
+        file_name: str = request.url.split("/")[-1]
+        return file_name
+
+    def item_completed(self, results, item, info):
+        with suppress(KeyError):
+            ItemAdapter(item)[self.files_result_field] = [x for ok, x in results if ok]
+        if len(item['files']) > 0:
+            file_stats = item['files'][0]
+            file = file_stats['path']
+            url = file_stats['url']
+            if os.path.isfile(file):
+                logging.info(str("***File {0} downloaded ***".format(file)))
+                populate_archive_to_source(item["source"],url)
+                try:
+                    self.extract_metadata(file, url, item)
+                    upload_audio_and_metadata_to_bucket(file, item)
+                    upload_archive_to_bucket_by_source(item["source"])
+                    logging.info(str("***File {0} uploaded ***".format(file)))
+                except:
+                    os.remove(file)
+        return item
+
+    def get_media_requests(self, item, info):
+        urls = ItemAdapter(item).get(self.files_urls_field, [])
+        if not os.path.isdir(item["source"]):
+            retrive_archive_from_bucket_by_source(item["source"])
+            self.archive_list = retrieve_archive_from_local_by_source(item["source"])
+        return [Request(u) for u in urls if u not in self.archive_list]
+
+    def extract_metadata(self, file, url, item):
+        video_info = {}
+        video_duration = 0
+        FILE_FORMAT = file.split('.')[-1]
+        meta_file_name = file.replace(FILE_FORMAT, "csv")
+        source_url = url
+        if FILE_FORMAT == 'mp4':
+            video = moviepy.editor.VideoFileClip(file)
+            video_duration = int(video.duration) / 60
+        elif FILE_FORMAT == 'mp3':
+            video_duration = get_mp3_duration(file)
+        video_info['duration'] = video_duration
+        video_info['raw_file_name'] = file
+        video_info['name'] = None
+        video_info['gender'] = None
+        video_info['source_url'] = source_url
+        metadata = create_metadata_for_audio(video_info, self.yml_config, item)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
