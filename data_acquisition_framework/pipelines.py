@@ -109,6 +109,7 @@ class MediaPipeline(FilesPipeline):
 
     def file_path(self, request, response=None, info=None):
         file_name: str = request.url.split("/")[-1]
+        file_name = file_name.replace("%","_").replace(",","_")
         return file_name
 
     def item_completed(self, results, item, info):
