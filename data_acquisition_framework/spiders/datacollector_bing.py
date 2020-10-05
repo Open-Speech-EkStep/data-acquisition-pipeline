@@ -71,8 +71,6 @@ class BingSearchSpider(scrapy.Spider):
             json.dump(config, jsonfile)  
 
     def bing_parse(self, response, count):
-        if count >= self.pages:
-            return
         urls = response.css('a::attr(href)').getall()
         include_first = True
         for url in urls:
@@ -87,6 +85,8 @@ class BingSearchSpider(scrapy.Spider):
                 formattedUrl = url[:url.index("&first=")+7] + str(self.page)
                 include_first = False
                 c = count+1
+                if c > self.pages:
+                    continue
                 next_url = response.urljoin(formattedUrl)
                 yield scrapy.Request(next_url, callback=self.bing_parse, cb_kwargs=dict(count=c))
     
