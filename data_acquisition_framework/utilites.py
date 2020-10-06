@@ -78,6 +78,8 @@ def retrive_archive_from_bucket():
 
 def retrive_archive_from_bucket_by_source(source):
     if check_blob(bucket, get_archive_file_path_by_source(source)):
+        if not os.path.exists(source+"/"):
+            os.system('mkdir {0}'.format(source))
         download_blob(bucket, get_archive_file_path_by_source(source), source+"/"+ARCHIVE_FILE_NAME)
         logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(bucket)))
         num_downloaded = sum(1 for line in open(source+"/"+ARCHIVE_FILE_NAME))

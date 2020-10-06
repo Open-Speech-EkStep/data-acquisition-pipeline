@@ -157,10 +157,12 @@ class AudioPipeline(FilesPipeline):
     def __init__(self, store_uri, download_func=None, settings=None):
         super().__init__(store_uri, download_func, settings)
         self.archive_list = []
+        self.duration = 0
         self.yml_config = config_yaml()['downloader']
 
     def file_path(self, request, response=None, info=None):
         file_name: str = request.url.split("/")[-1]
+        file_name = file_name.replace("%","_").replace(",","_")
         return file_name
 
     def item_completed(self, results, item, info):
@@ -200,6 +202,8 @@ class AudioPipeline(FilesPipeline):
             video_duration = int(video.duration) / 60
         elif FILE_FORMAT == 'mp3':
             video_duration = get_mp3_duration(file)
+        self.duration += video_duration
+        logging.info("************DURATION = %s minutes************" % str(self.duration))
         video_info['duration'] = video_duration
         video_info['raw_file_name'] = file
         video_info['name'] = None
