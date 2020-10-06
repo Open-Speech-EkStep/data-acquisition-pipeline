@@ -2,6 +2,7 @@ import scrapy
 from datetime import datetime
 import json
 import scrapy.settings
+import concurrent.futures
 
 from ..utilites import *
 
@@ -89,7 +90,7 @@ class BingSearchSpider(scrapy.Spider):
                     continue
                 next_url = response.urljoin(formattedUrl)
                 yield scrapy.Request(next_url, callback=self.bing_parse, cb_kwargs=dict(count=c))
-    
+
     def parse(self, response, depth):
         base_url = response.url
         a_urls = response.css('a::attr(href)').getall()
@@ -100,43 +101,84 @@ class BingSearchSpider(scrapy.Spider):
         if len(source_urls) != 0:
             urls += source_urls
         source = base_url[base_url.index("//")+2:].split('/')[0]
-        for url in urls:
-            url = response.urljoin(url)
-            flag = False
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
+            future_to_url = {executor.submit(self.process_url, url, source, depth, response): url for url in urls}
+            for future in concurrent.futures.as_completed(future_to_url):
+                url = future_to_url[future]
+                try:
+                    data = future.result()
+                    if data is not None:
+                        yield data
+                except Exception as exc:
+                    print('%r generated an exception: %s' % (url, exc))
+        # for url in urls:
+        #     url = response.urljoin(url)
+        #     flag = False
 
-            # iterate for search of unwanted words
-            for word in self.word_to_ignore:
-                if word in url.lower():
-                    flag = True
-                    break
-            if flag: continue
+        #     # iterate for search of unwanted words
+        #     for word in self.word_to_ignore:
+        #         if word in url.lower():
+        #             flag = True
+        #             break
+        #     if flag: continue
 
-            # download urls from drive
-            if "drive.google.com" in url and "export=download" in url:
+        #     # download urls from drive
+        #     if "drive.google.com" in url and "export=download" in url:
+        #         url_parts = url.split("/")
+        #         yield Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source)
+        #         continue
+
+        #     # iterate for search of wanted files
+        #     for extension in self.extensions_to_include:
+        #         if url.lower().endswith(extension.lower()):
+        #             url_parts = url.split("/")
+        #             yield Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source)
+        #             flag = True
+        #             break
+            
+        #     if flag: continue
+
+        #     # iterate for search of unwanted extension files
+        #     for extension in self.extensions_to_ignore:
+        #         if url.lower().endswith(extension):
+        #             flag = True
+        #             break
+            
+        #     if flag: continue
+
+        #     if (depth+1) >= self.depth:
+        #         continue
+
+        #     # if not matched any of above, traverse to next
+        #     yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=(depth+1)))
+    
+    def process_url(self, url, source, depth, response):
+        url = response.urljoin(url)
+
+        # iterate for search of unwanted words
+        for word in self.word_to_ignore:
+            if word in url.lower():
+                return None
+
+        # download urls from drive
+        if "drive.google.com" in url and "export=download" in url:
+            url_parts = url.split("/")
+            return Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source)
+
+        # iterate for search of wanted files
+        for extension in self.extensions_to_include:
+            if url.lower().endswith(extension.lower()):
                 url_parts = url.split("/")
-                yield Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source)
-                continue
+                return Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source)
 
-            # iterate for search of wanted files
-            for extension in self.extensions_to_include:
-                if url.lower().endswith(extension.lower()):
-                    url_parts = url.split("/")
-                    yield Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source)
-                    flag = True
-                    break
-            
-            if flag: continue
+        # iterate for search of unwanted extension files
+        for extension in self.extensions_to_ignore:
+            if url.lower().endswith(extension):
+                return None
 
-            # iterate for search of unwanted extension files
-            for extension in self.extensions_to_ignore:
-                if url.lower().endswith(extension):
-                    flag = True
-                    break
-            
-            if flag: continue
+        if (depth+1) >= self.depth:
+            return None
 
-            if (depth+1) >= self.depth:
-                continue
+        # if not matched any of above, traverse to next
+        return scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=(depth+1)))
 
-            # if not matched any of above, traverse to next
-            yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=(depth+1)))

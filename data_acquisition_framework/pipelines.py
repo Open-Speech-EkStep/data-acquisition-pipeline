@@ -203,7 +203,7 @@ class AudioPipeline(FilesPipeline):
         elif FILE_FORMAT == 'mp3':
             video_duration = get_mp3_duration(file)
         self.duration += video_duration
-        logging.info("************DURATION = %s minutes************" % str(self.duration))
+        logging.info("************DURATION = %s minutes************" % str(self.duration//60))
         video_info['duration'] = video_duration
         video_info['raw_file_name'] = file
         video_info['name'] = None
