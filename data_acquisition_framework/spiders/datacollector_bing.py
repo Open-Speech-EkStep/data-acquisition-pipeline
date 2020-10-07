@@ -74,7 +74,7 @@ class BingSearchSpider(scrapy.Spider):
     def bing_parse(self, response, count,keyword):
         urls = response.css('a::attr(href)').getall()
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            future_to_url = f
+            future_to_url = {executor.submit(self.parse_results_url, url): url for url in urls}
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
