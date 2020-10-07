@@ -66,15 +66,15 @@ class BingSearchSpider(scrapy.Spider):
             for keyword in config["keywords"]:
                 keyword = keyword.replace(" ","+")
                 url="http://www.bing.com/search?q={0}&first={1}".format(keyword, self.page)
-                yield scrapy.Request(url=url, callback=self.bing_parse, cb_kwargs=dict(count=1))
+                yield scrapy.Request(url=url, callback=self.bing_parse, cb_kwargs=dict(count=1,keyword=keyword))
         config["last_visited"] = (self.pages * 10) + 0 if isNew else config["last_visited"]
         with open(bing_config_path,'w') as jsonfile:
             json.dump(config, jsonfile)  
 
-    def bing_parse(self, response, count):
+    def bing_parse(self, response, count,keyword):
         urls = response.css('a::attr(href)').getall()
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            future_to_url = {executor.submit(self.parse_results_url, url): url for url in urls}
+            future_to_url = f
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
@@ -91,12 +91,12 @@ class BingSearchSpider(scrapy.Spider):
         #             continue
         #         yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
         self.page = self.page + 10
-        formattedUrl = url[:url.index("&first=")+7] + str(self.page)
+        formattedUrl="http://www.bing.com/search?q={0}&first={1}".format(keyword, self.page)
         c = count+1
         if c > self.pages:
             return
-        next_url = response.urljoin(formattedUrl)
-        yield scrapy.Request(next_url, callback=self.bing_parse, cb_kwargs=dict(count=c))
+        #next_url = response.urljoin(formattedUrl)
+        yield scrapy.Request(formattedUrl, callback=self.bing_parse, cb_kwargs=dict(count=c,keyword=keyword))
 
     def parse_results_url(self, url):
         if url.startswith("http:") or url.startswith("https:"):
