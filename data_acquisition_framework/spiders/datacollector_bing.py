@@ -54,6 +54,7 @@ class BingSearchSpider(scrapy.Spider):
         bing_config_path = os.path.dirname(os.path.realpath(__file__)) + "/../bing_config.json"
         with open(bing_config_path,'r') as f:
             config = json.load(f)
+            self.language = config["language"]
             self.depth = config["depth"]
             self.pages = config["pages"]
             self.word_to_ignore = config["word_to_ignore"]
@@ -66,7 +67,7 @@ class BingSearchSpider(scrapy.Spider):
                 isNew = True
                 self.page = 0
             for keyword in config["keywords"]:
-                keyword = keyword.replace(" ","+")
+                keyword = self.language+"+"+keyword.replace(" ","+")
                 url="http://www.bing.com/search?q={0}&first={1}".format(keyword, self.page)
                 yield scrapy.Request(url=url, callback=self.bing_parse, cb_kwargs=dict(count=1,keyword=keyword))
         config["last_visited"] = (self.pages * 10) + 0 if isNew else config["last_visited"]
