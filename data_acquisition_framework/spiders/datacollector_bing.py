@@ -29,6 +29,7 @@ class BingSearchSpider(scrapy.Spider):
         'LOG_LEVEL':'INFO',
         'REACTOR_THREADPOOL_MAXSIZE':'20',
         'CONCURRENT_REQUESTS':'32',
+        #'CONCURRENT_ITEMS':'200',
         'SCHEDULER_PRIORITY_QUEUE':'scrapy.pqueues.DownloaderAwarePriorityQueue',
         'COOKIES_ENABLED':'False',
     }
@@ -71,25 +72,30 @@ class BingSearchSpider(scrapy.Spider):
         with open(bing_config_path,'w') as jsonfile:
             json.dump(config, jsonfile)  
 
-    def bing_parse(self, response, count,keyword):
+    def write(self, filename, content):
+        with open(filename,'a') as f:
+           f.write(content+"\n")
+
+    def bing_parse(self, response, count, keyword):
+        self.write("base_url.txt", response.url)
         urls = response.css('a::attr(href)').getall()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            future_to_url = {executor.submit(self.parse_results_url, url): url for url in urls}
-            for future in concurrent.futures.as_completed(future_to_url):
-                url = future_to_url[future]
-                try:
-                    data = future.result()
-                    if data is not None:
-                        yield data
-                except Exception as exc:
-                    print('%r generated an exception: %s' % (url, exc))
-        # for url in urls:
-        #     if url.startswith("http:") or url.startswith("https:"):
-        #         if url.startswith("https://www.youtube.com") or "go.microsoft.com/fwlink" in url or "www.microsofttranslator.com" in url or "www.bing.com" in url or "www.microsoft.com" in url:
-        #             continue
-        #         if url.endswith(".pdf") or url.endswith(".jpg") or url.endswith(".png"):
-        #             continue
-        #         yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
+        #with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
+        #    future_to_url = {executor.submit(self.parse_results_url, url): url for url in urls}
+        #    for future in concurrent.futures.as_completed(future_to_url):
+        #        url = future_to_url[future]
+        #        try:
+        #            data = future.result()
+        #            if data is not None:
+        #                yield data
+        #        except Exception as exc:
+        #            print('%r generated an exception: %s' % (url, exc))
+        for url in urls:
+            if url.startswith("http:") or url.startswith("https:"):
+                if url.startswith("https://www.youtube.com") or "go.microsoft.com/fwlink" in url or "www.microsofttranslator.com" in url or "www.bing.com" in url or "www.microsoft.com" in url:
+                    continue
+                if url.endswith(".pdf") or url.endswith(".jpg") or url.endswith(".png"):
+                    continue
+                yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
         self.page = self.page + 10
         formattedUrl="http://www.bing.com/search?q={0}&first={1}".format(keyword, self.page)
         c = count+1
@@ -109,6 +115,7 @@ class BingSearchSpider(scrapy.Spider):
 
     def parse(self, response, depth):
         base_url = response.url
+        self.write('internal_url.txt',base_url)
         a_urls = response.css('a::attr(href)').getall()
         source_urls = response.css('source::attr(src)').getall()
         urls = []
@@ -148,6 +155,7 @@ class BingSearchSpider(scrapy.Spider):
             for extension in self.extensions_to_include:
                 if url.lower().endswith(extension.lower()):
                     url_parts = url.split("/")
+                    self.write("audio.txt", url)
                     yield Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source)
                     flag = True
                     break

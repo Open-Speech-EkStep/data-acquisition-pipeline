@@ -3,10 +3,10 @@ downloader: ## data loader
   audio_id: null
   cleaned_duration: null
   num_of_speakers: null
-  language: Tamil
+  language: Gujarati
   has_other_audio_signature: False
   type: 'audio'
-  source: 'CRAWL_SOURCE_TAMIL'
+  source: 'CRAWL_SOURCE_GUJARATI'
   experiment_use: False # null or False check it
   utterances_files_list: null
   source_website: 'https://www.bing.com'
