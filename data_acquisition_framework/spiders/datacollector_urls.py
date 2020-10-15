@@ -49,11 +49,12 @@ class UrlSearchSpider(scrapy.Spider):
 
 
     def start_requests(self):
-        self.word_to_ignore = ["hangouts.google.com","duo.google.com","youtube.com","books.google.co","jiosavvn","javscript", "instrument", "music", "gaana.com", "spotify.com", "porn","sex","song", "skype", "javascript", "terms-and-conditions", "microsoft.com", "facebook", "instagram", "gmail", "pinterest", "reddit", "play.google.com", "ringtone"]
+        self.word_to_ignore = ["melody","ieeexplore.ieee.org","dl.acm.org","hangouts.google.com","duo.google.com","youtube.com","books.google.co","jiosavvn","javscript", "instrument", "music", "gaana.com", "spotify.com", "porn","sex","song", "skype", "javascript", "terms-and-conditions", "microsoft.com", "facebook", "instagram", "gmail", "pinterest", "reddit", "play.google.com", "ringtone"]
         self.extensions_to_include = [".mp3", ".wav", ".ogg", ".mp4",".m4a"]
-        self.extensions_to_ignore = [".jpg", ".png", ".torrent", ".gif", ".pdf", ".zip", ".oga", ".rar", ".rm", ".dmg",".xml"]
+        self.extensions_to_ignore = [".jpeg","xlsx",".xls",".docx",".doc",".jpg", ".png", ".torrent", ".gif", ".pdf", ".zip", ".oga", ".rar", ".rm", ".dmg",".xml"]
         self.depth = 3
-        with open('urls.txt','r') as f:
+        urls_path = os.path.dirname(os.path.realpath(__file__)) + "/../urls.txt"
+        with open(urls_path,'r') as f:
             with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
                 future_to_url = {executor.submit(self.parse_results_url, url): url for url in f.readlines()}
                 for future in concurrent.futures.as_completed(future_to_url):
