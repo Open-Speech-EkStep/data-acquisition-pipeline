@@ -12,6 +12,7 @@ class Media(scrapy.Item):
     file_urls = scrapy.Field()
     files = scrapy.Field()
     source = scrapy.Field()
+    license_urls = scrapy.Field()
 
 class BingSearchSpider(scrapy.Spider):
     name = "bing_search"
@@ -79,29 +80,28 @@ class BingSearchSpider(scrapy.Spider):
     def bing_parse(self, response, count, keyword):
         self.write("base_url.txt", response.url)
         urls = response.css('a::attr(href)').getall()
-        #with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
-        #    future_to_url = {executor.submit(self.parse_results_url, url): url for url in urls}
-        #    for future in concurrent.futures.as_completed(future_to_url):
-        #        url = future_to_url[future]
-        #        try:
-        #            data = future.result()
-        #            if data is not None:
-        #                yield data
-        #        except Exception as exc:
-        #            print('%r generated an exception: %s' % (url, exc))
-        for url in urls:
-            if url.startswith("http:") or url.startswith("https:"):
-                if url.startswith("https://www.youtube.com") or "go.microsoft.com/fwlink" in url or "www.microsofttranslator.com" in url or "www.bing.com" in url or "www.microsoft.com" in url:
-                    continue
-                if url.endswith(".pdf") or url.endswith(".jpg") or url.endswith(".png"):
-                    continue
-                yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+           future_to_url = {executor.submit(self.parse_results_url, url): url for url in urls}
+           for future in concurrent.futures.as_completed(future_to_url):
+               url = future_to_url[future]
+               try:
+                   data = future.result()
+                   if data is not None:
+                       yield data
+               except Exception as exc:
+                   print('%r generated an exception: %s' % (url, exc))
+        # for url in urls:
+        #     if url.startswith("http:") or url.startswith("https:"):
+        #         if url.startswith("https://www.youtube.com") or "go.microsoft.com/fwlink" in url or "www.microsofttranslator.com" in url or "www.bing.com" in url or "www.microsoft.com" in url:
+        #             continue
+        #         if url.endswith(".pdf") or url.endswith(".jpg") or url.endswith(".png"):
+        #             continue
+        #         yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
         self.page = self.page + 10
         formattedUrl="http://www.bing.com/search?q={0}&first={1}".format(keyword, self.page)
         c = count+1
         if c > self.pages:
             return
-        #next_url = response.urljoin(formattedUrl)
         yield scrapy.Request(formattedUrl, callback=self.bing_parse, cb_kwargs=dict(count=c,keyword=keyword))
 
     def parse_results_url(self, url):
@@ -134,6 +134,11 @@ class BingSearchSpider(scrapy.Spider):
         #                 yield data
         #         except Exception as exc:
         #             print('%r generated an exception: %s' % (url, exc))
+        license_urls = []
+        for url in a_urls:
+            url = url.rstrip().lstrip()
+            if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith("https://creativecommons.org/publicdomain/zero") or url.startswith("https://creativecommons.org/licenses/by"):
+                license_urls.append(url)
         for url in urls:
             url = response.urljoin(url)
             flag = False
@@ -147,8 +152,8 @@ class BingSearchSpider(scrapy.Spider):
 
             # download urls from drive
             if "drive.google.com" in url and "export=download" in url:
-                url_parts = url.split("/")
-                yield Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source)
+                # url_parts = url.split("/")
+                # yield Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source,license_urls=license_urls)
                 continue
 
             # iterate for search of wanted files
@@ -156,7 +161,7 @@ class BingSearchSpider(scrapy.Spider):
                 if url.lower().endswith(extension.lower()):
                     url_parts = url.split("/")
                     self.write("audio.txt", url)
-                    yield Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source)
+                    yield Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source, license_urls=license_urls)
                     flag = True
                     break
             
@@ -175,34 +180,4 @@ class BingSearchSpider(scrapy.Spider):
 
             # if not matched any of above, traverse to next
             yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=(depth+1)))
-    
-    # def process_url(self, url, source, depth, response):
-    #     url = response.urljoin(url)
-
-    #     # iterate for search of unwanted words
-    #     for word in self.word_to_ignore:
-    #         if word in url.lower():
-    #             return None
-
-    #     # download urls from drive
-    #     if "drive.google.com" in url and "export=download" in url:
-    #         url_parts = url.split("/")
-    #         return Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source)
-
-    #     # iterate for search of wanted files
-    #     for extension in self.extensions_to_include:
-    #         if url.lower().endswith(extension.lower()):
-    #             url_parts = url.split("/")
-    #             return Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source)
-
-    #     # iterate for search of unwanted extension files
-    #     for extension in self.extensions_to_ignore:
-    #         if url.lower().endswith(extension):
-    #             return None
-
-    #     if (depth+1) >= self.depth:
-    #         return None
-
-    #     # if not matched any of above, traverse to next
-    #     return scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=(depth+1)))
 

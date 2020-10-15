@@ -211,6 +211,7 @@ class AudioPipeline(FilesPipeline):
         video_info['name'] = None
         video_info['gender'] = None
         video_info['source_url'] = source_url
+        video_info['license'] = "" if len(item["license_urls"]) == 0 else "creativecommons"
         metadata = create_metadata_for_audio(video_info, self.yml_config, item)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)

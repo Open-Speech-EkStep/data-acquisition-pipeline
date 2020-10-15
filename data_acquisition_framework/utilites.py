@@ -45,7 +45,8 @@ def create_metadata(video_info, yml):
                 'recorded_district': yml['recorded_district'],
                 'recorded_place': yml['recorded_place'],
                 'recorded_date': yml['recorded_date'],
-                'purpose': yml['purpose']}
+                'purpose': yml['purpose'],
+                'license':video_info["license"]}
     return metadata
 
 def create_metadata_for_audio(video_info, yml, item):
