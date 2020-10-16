@@ -1,0 +1,143 @@
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.firefox.options import Options
+from gcs import set_gcs_credentials
+from utilities import populate_local_archive, read_playlist_from_file, read_playlist_from_youtube_api
+import threading
+from enum import Enum
+import json
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+from gcs_helper import GCSHelper
+from downloader import Downloader
+
+# downloads driver for firefox if not present
+import geckodriver_autoinstaller
+
+geckodriver_autoinstaller.install()
+
+# Crawls youtube videos using youtube api and downloads using en.savefrom.net website
+class YoutubeCrawler:
+    def __init__(
+        self, bucket_name, bucket_path, config, playlist_workers=10, download_workers=10
+    ):
+        self.bucket_path = bucket_path
+        self.bucket_name = bucket_name
+        set_gcs_credentials()
+        self.config = config
+        self.playlist_executor = ThreadPoolExecutor(max_workers=playlist_workers)
+        self.download_executor = ThreadPoolExecutor(max_workers=download_workers)
+        self.thread_local = threading.local()
+        self.language = config["language"]
+
+    def start_download(self, download_url, video_id, source):
+        downloader = Downloader(self.thread_local, self.bucket_name, self.bucket_path, self.language)
+        downloader.download(download_url, video_id, source)
+
+    def initiate_video_id_crawl(self, browser, video_id, playlist_name):
+        video_id = video_id.rstrip().lstrip()
+        redirect_url = "https://www.ssyoutube.com/watch?v=" + video_id
+
+        browser.get(redirect_url)
+
+        try:
+            # wait until result box is rendered by ajax request
+            WebDriverWait(browser, 30).until(
+                EC.presence_of_element_located((By.CLASS_NAME, "subname"))
+            )
+        except:
+            print("Load of {0} failed".format(video_id))
+            return
+
+        result_div = browser.find_element_by_id("sf_result")
+        a_tags = result_div.find_elements_by_tag_name("a")
+
+        for a_tag in a_tags:
+            if a_tag.get_attribute("title") == "video format: 360":
+                download_url = a_tag.get_attribute("href")
+                print("Starting Download for {0}".format(video_id))
+
+                self.download_executor.submit(
+                    self.start_download,
+                    download_url,
+                    video_id,
+                    playlist_name,
+                )
+
+                break
+
+    def initiate_playlist_crawl(self, playlists, playlist_name):
+        options = Options()
+        options.headless = True
+        browser = webdriver.Firefox(options=options)
+        browser.maximize_window()
+
+        # download archive here
+        archive_video_ids = GCSHelper(
+            self.bucket_name, self.bucket_path
+        ).download_archive_from_bucket(playlist_name)
+
+        video_ids = playlists[playlist_name]
+
+        print("Total Files in {0} is {1}".format(playlist_name, str(len(video_ids))))
+
+        # remove video ids that are in archive
+        for id in archive_video_ids:
+            id = id.split(" ")[1].rstrip()
+            if id in video_ids:
+                video_ids.remove(id)
+
+        print("Files to be downloaded => %s" % str(len(video_ids)))
+
+        for video_id in video_ids:
+            try:
+                self.initiate_video_id_crawl(browser, video_id, playlist_name)
+            except Exception as exc:
+                print("%s generated an exception: %s" % (video_id, exc))
+                continue
+
+        browser.quit()
+
+    def crawl(self, input_type):
+        gcs_helper = GCSHelper(self.bucket_name, self.bucket_path)
+        if input_type is CrawlInput.FILE:
+            playlists = read_playlist_from_file("playlists")
+        else:
+            gcs_helper.download_token_from_bucket()
+            playlists = read_playlist_from_youtube_api(self.config)
+
+        future_to_playlist = {
+            self.playlist_executor.submit(
+                self.initiate_playlist_crawl, playlists, playlist
+            ): playlist
+            for playlist in playlists
+        }
+        for future in as_completed(future_to_playlist):
+            playlist = future_to_playlist[future]
+            try:
+                future.result()
+            except Exception as exc:
+                print("%r generated an exception: %s" % (playlist, exc))
+        
+        if input_type is CrawlInput.YOUTUBE_API:
+            gcs_helper.upload_token_to_bucket()
+
+
+class CrawlInput(Enum):
+    FILE = 1,
+    YOUTUBE_API = 2
+
+
+if __name__ == "__main__":
+    bucket_name = "ekstepspeechrecognition-dev"
+    bucket_path = "scrapydump"
+    # bucket_path = "data/audiotospeech/raw/download/downloaded/<language>/audio"
+    with open('config.json','r') as f:
+        config = json.load(f)
+        bucket_path = bucket_path.replace("<language>", config["language"])
+    youtube_crawler = YoutubeCrawler(bucket_name, bucket_path, config)
+    youtube_crawler.crawl(CrawlInput.FILE)

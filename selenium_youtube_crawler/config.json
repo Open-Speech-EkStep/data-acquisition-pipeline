@@ -1,0 +1,12 @@
+{
+    "language" : "gujarati",
+    "language_code": "gu",
+    "keywords":[
+        "audio",
+        "speech",
+        "talk"
+    ],
+    "words_to_ignore":[],
+    "max_results": 3,
+    "hours_limit": 1000
+}
