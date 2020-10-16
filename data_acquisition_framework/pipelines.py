@@ -16,7 +16,7 @@ from scrapy.pipelines.files import FilesPipeline
 from .data_acquisition_pipeline import DataAcqusitionPipeline
 from .utilites import *
 from .youtube_utilites import *
-from .yt_channel_list import getUrls
+from .yt_channel_list import getUrls, get_license_info
 from .token_utilities import *
 from concurrent.futures.thread import ThreadPoolExecutor
 
@@ -38,6 +38,8 @@ class YoutubePipeline(DataAcqusitionPipeline):
         self.check_speaker = False
         self.youtube_call = "/app/python/bin/youtube-dl " if "scrapinghub" in os.path.abspath("~") else "youtube-dl "
         self.source_channel_dict = None
+        self.source_file = None
+        self.t_duration = 0
 
     def scrape_links(self):
         if (len(channel_url_dict) != 0):
@@ -75,6 +77,8 @@ class YoutubePipeline(DataAcqusitionPipeline):
         print(file)
         video_duration = int(file.split('file-id')[0]) / 60
         video_info['duration'] = video_duration
+        self.t_duration += video_duration
+        logging.info('$$$$$$$    ' + str(self.t_duration // 60) + '   $$$$$$$')
         video_info['raw_file_name'] = file
         if self.check_speaker:
             video_info['name'] = get_speaker(self.scraped_data, video_id)
@@ -85,6 +89,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
         else:
             video_info['gender'] = None
         video_info['source_url'] = source_url
+        video_info['license'] = get_license_info(video_id)
         metadata = create_metadata(video_info, self.yml_config)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
