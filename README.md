@@ -22,7 +22,7 @@
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-This is downloading framework that is extensible and allows the user to add new source without much code changes. For each new source user need to write a scrapy spider script and rest of downloading and meta file creation is handled by repective pipelines. And if required user can add their custom pipelines. This framework automatically transfer the downloaded data to a Google cloud bucket automatically. For more info on writing scrapy spider and pipeline one can refer to the [documemtation](https://docs.scrapy.org/en/latest/intro/tutorial.html). 
+This is downloading framework that is extensible and allows the user to add new source without much code changes. For each new source user need to write a scrapy spider script and rest of downloading and meta file creation is handled by repective pipelines. And if required user can add their custom pipelines. This framework automatically transfer the downloaded data to a Google cloud bucket automatically. For more info on writing scrapy spider and pipeline one can refer to the [documentation](https://docs.scrapy.org/en/latest/intro/tutorial.html). 
 
 ### Built With
 We have used scrapy as the base of this framework.
@@ -73,7 +73,7 @@ bucket = ''                     Your bucket name
 channel_blob_path = ''          Path to directory where downloaded files is to be stored
 archive_blob_path = ''          Folder name in which history of download is to be maintained
 source_name = ''                This is the name of source you are downloading
-batch_num =                     Number of files fo download in a batch
+batch_num =                     Number of files to download in a batch
 scraped_data_blob_path = ""     Folder name in which CSV for youtube file mode is stored
 
 Note:
@@ -107,7 +107,7 @@ speaker_name: null                      Name of speaker
 
 Note:
 1. If any of the field ifo is not available keep its value to null
-2. If speaker_name or speaker_gender is given then that same will ve used for all the files in given source 
+2. If speaker_name or speaker_gender is given then that same will be used for all the files in given source 
 ```
 #### Youtube download configurations
 * You can set download mode [file/channel] in [pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/pipeline_config.py) 
@@ -128,15 +128,31 @@ file_speaker_gender_column = 'speaker_gender'     Gender column name in csv file
 file_speaker_name_column = "speaker_name"         Speaker name column name in csv file
 file_url_name_column = "video_url"                Video url column name in csv file
 ```
-* channel mode configuration in  [pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/pipeline_config.py)
+* channel mode configuration in  [pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/youtube/crawler/data_acquisition_framework/pipeline_config.py)
 ```shell script
 # Channel mode configurations
-channel_url = ''              Channel url (This will download all the videos from the given channel)
+channel_url_dict = {}              Channel url dictionary (This will download all the videos from the given channels with corresponding source names)
 match_title_string = ''       REGEX   Download only matching titles (regex or caseless sub-string)
 reject_title_string = ''      REGEX    Skip download for matching titles (regex or caseless sub-string)
+
+Note:
+In channel_url_dict, the keys must be the urls and values must be their channel names
 ``` 
+* Automated Youtube fetching configuration in [yt_channel_list.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/youtube/crawler/data_acquisition_framework/yt_channel_list.py)
+```shell script
+# Youtube API configurations
+MAX_RESULTS = 50                                          Number of channels per page from Youtube API (maximum limit is 50)
+REL_LANGUAGE = "hi"                                       Parameter to return results relevant to that language (in ISO 639-1 two-letter language code)
+TYPE = "channel"                                          Result type (can be 'channel', 'playlist' or 'video')
+PAGES = 5                                                 Number of pages to be retrieved (to get more than 50 results)
+KEYWORDS = ['in', 'hindi', 'audio|speech', '-song']       Keywords to query on (Boolean operators NOT(-), OR(|) can be used in query)
+
+Note:
+1. To get a total of 100 channels - MAX_RESULTS can be 50 and PAGES can be set to 2
+2. To run the automated youtube fetching, channel_url_dict in pipeline_config.py must be empty
+```
 #### Adding new spider
-As we already mentioned aur framework is extensible for any new source. To add a new source user just need to write a spider for that source.<br>To add a spider you can follow the scrapy [documemtation](https://docs.scrapy.org/en/latest/intro/tutorial.html) or you can check our [sample](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/spiders/datacollector_music.py) spider.</br> 
+As we already mentioned aur framework is extensible for any new source. To add a new source user just need to write a spider for that source.<br>To add a spider you can follow the scrapy [documentation](https://docs.scrapy.org/en/latest/intro/tutorial.html) or you can check our [sample](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/spiders/datacollector_music.py) spider.</br> 
 
 #### Running spiders with appropriate pipeline
 * Starting youtube spider with Youtube pipeline.
