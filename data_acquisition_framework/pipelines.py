@@ -18,6 +18,7 @@ from .utilites import *
 from .youtube_utilites import *
 from .yt_channel_list import getUrls
 from .token_utilities import *
+from concurrent.futures.thread import ThreadPoolExecutor
 
 
 class YoutubePipeline(DataAcqusitionPipeline):
@@ -47,11 +48,18 @@ class YoutubePipeline(DataAcqusitionPipeline):
     def create_download_batch(self):
         return get_video_batch(self)
 
-    def download_files(self, file):
+    def youtube_download(self, video_id, file):
+        command = self.youtube_call + '-f "best[ext=mp4]" -o "%(duration)sfile-id%(id)s.%(ext)s" "https://www.youtube.com/watch?v={0}" --download-archive {1} --proxy "" --abort-on-error'.format(
+               video_id, 'archive_' + file)
         downloader_output = subprocess.run(
-            self.youtube_call + '-f "best[ext=mp4]" -o "%(duration)sfile-id%(id)s.%(ext)s" --batch-file {0}  --restrict-filenames --download-archive {1} --proxy "" --abort-on-error '.format(
-                self.VIDEO_BATCH_FILE_NAME, 'archive_' + file), shell=True, capture_output=True)
+            command, shell=True, capture_output=True)
         check_and_log_download_output(self, downloader_output)
+
+    def download_files(self, file):
+        with ThreadPoolExecutor(max_workers=5) as executor:
+            with open(self.VIDEO_BATCH_FILE_NAME,'r') as f:
+                for video_id in f.readlines():
+                    executor.submit(self.youtube_download, video_id, file)
         return self
 
     def extract_metadata(self, source_file, file, url=None):
