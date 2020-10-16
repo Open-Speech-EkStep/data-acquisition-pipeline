@@ -77,9 +77,13 @@ def create_channel_playlist(ob):
         ob.source_channel_dict[channel_url] = str(ob.source_channel_dict[channel_url]).replace(' ', '_')
         source_playlist_file = path + '/' + ob.source_channel_dict[channel_url] + '.txt'
 
+        create_or_append = '>'
+        if os.path.exists(source_playlist_file):
+            create_or_append = '>>'
+
         os.system(
-            ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" > {3}'.format(
-                channel_url, match_title_string, reject_title_string, source_playlist_file))
+            ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" {3} {4} '.format(
+                channel_url, match_title_string, reject_title_string, create_or_append, source_playlist_file))
 
 
 def get_playlist_count(file):
