@@ -17,6 +17,7 @@ from .data_acquisition_pipeline import DataAcqusitionPipeline
 from .utilites import *
 from .youtube_utilites import *
 from .yt_channel_list import getUrls
+from .token_utilities import *
 
 
 class YoutubePipeline(DataAcqusitionPipeline):
@@ -38,9 +39,8 @@ class YoutubePipeline(DataAcqusitionPipeline):
         self.source_channel_dict = None
 
     def scrape_links(self):
+        get_token_from_bucket()
         self.source_channel_dict = getUrls()
-        print("get urls called",len(self.source_channel_dict))
-        logging.info("Getting urls")
         create_channel_playlist(self)
         return self
 
@@ -116,6 +116,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
             logging.info(str("Last Batch has no more videos to be downloaded,so finishing downloads..."))
             logging.info(
                 str("Total Uploaded files for this run was : {0}".format(self.batch_count)))
+        update_token_in_bucket()
         return item
 
 class MediaPipeline(FilesPipeline):
