@@ -9,3 +9,6 @@ pandas_datareader
 itemadapter
 tinytag
 scrapy
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2

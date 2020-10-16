@@ -11,9 +11,13 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def get_video_batch(ob):
-    FULL_PLAYLIST = pd.read_csv(ob.FULL_PLAYLIST_FILE_NAME, header=None)
     try:
-        ARCHIVE_FILE = pd.read_csv(ob.ARCHIVE_FILE_NAME, delimiter=' ', header=None)[1]
+        FULL_PLAYLIST = pd.read_csv('playlist/' + ob.source_file, header=None)
+    except EmptyDataError:
+        return 0
+    try:
+        ARCHIVE_FILE = pd.read_csv(
+            'archive_' + ob.source_file, delimiter=' ', header=None, encoding='utf-8')[1]
     except EmptyDataError:
         ARCHIVE_FILE = pd.DataFrame(columns=[1])
     VIDEO_BATCH = FULL_PLAYLIST[FULL_PLAYLIST.merge(ARCHIVE_FILE, left_on=0, right_on=1, how='left')[1].isnull()].head(
@@ -65,15 +69,22 @@ def create_playlist(ob, source_file, file_url_name_column):
     return df
 
 
-def create_channel_playlist(ob, channel_url):
-    os.system(
-        ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" > {3} '.format(
-            channel_url, match_title_string, reject_title_string, ob.FULL_PLAYLIST_FILE_NAME))
+def create_channel_playlist(ob):
+    path = ob.PLAYLIST_PATH
+    if not (os.path.exists(path)):
+        os.mkdir(path)
+    for channel_url in ob.source_channel_dict.keys():
+        ob.source_channel_dict[channel_url] = str(ob.source_channel_dict[channel_url]).replace(' ', '_')
+        source_playlist_file = path + '/' + ob.source_channel_dict[channel_url] + '.txt'
+
+        os.system(
+            ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" > {3}'.format(
+                channel_url, match_title_string, reject_title_string, source_playlist_file))
 
 
-def get_playlist_count(ob):
+def get_playlist_count(file):
     return int(subprocess.check_output(
-        "cat {0} | wc -l".format(ob.FULL_PLAYLIST_FILE_NAME), shell=True).decode("utf-8").split('\n')[0])
+        "cat {0} | wc -l".format(file), shell=True).decode("utf-8").split('\n')[0])
 
 
 def get_scraped_file_path():
@@ -117,4 +128,4 @@ def check_and_log_download_output(ob, downloader_output):
 
 
 def remove_rejected_video(ob, video_id):
-    os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, ob.FULL_PLAYLIST_FILE_NAME))
+    os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, 'playlist/' + ob.source_file))

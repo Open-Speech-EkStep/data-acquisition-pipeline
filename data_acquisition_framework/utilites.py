@@ -32,7 +32,7 @@ def create_metadata(video_info, yml):
                 'language': yml['language'],
                 'has_other_audio_signature': yml['has_other_audio_signature'],
                 'type': yml['type'],
-                'source': yml['source'],  # --------
+                # 'source': yml['source'],  # --------
                 'experiment_use': yml['experiment_use'],  # check
                 'utterances_files_list': yml['utterances_files_list'],
                 'source_url': video_info['source_url'],
@@ -56,18 +56,20 @@ def set_gcs_creds(gcs_credentials_string):
     logging.info("**********Bucket Credentials Set**********")
 
 
-def get_archive_file_path():
+def get_archive_file_path(source_file):
+    source_name=source_file.replace(".txt",'')
     return channel_blob_path + '/' + archive_blob_path + '/' + source_name + '/' + ARCHIVE_FILE_NAME
 
 
-def retrive_archive_from_bucket():
-    if check_blob(bucket, get_archive_file_path()):
-        download_blob(bucket, get_archive_file_path(), ARCHIVE_FILE_NAME)
+def retrive_archive_from_bucket(source_file):
+    archive_file_name = 'archive_' + source_file
+    if check_blob(bucket, get_archive_file_path(source_file)):
+        download_blob(bucket, get_archive_file_path(source_file), archive_file_name)
         logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(bucket)))
-        num_downloaded = sum(1 for line in open(ARCHIVE_FILE_NAME))
+        num_downloaded = sum(1 for line in open(archive_file_name))
         logging.info(str("Count of Previously downloaded files are : {0}".format(num_downloaded)))
     else:
-        os.system('touch {0}'.format(ARCHIVE_FILE_NAME))
+        os.system('touch {0}'.format(archive_file_name))
         logging.info("No Archive file has been found on bucket...Downloading all files...")
 
 
@@ -86,13 +88,14 @@ def retrieve_archive_from_local():
         return []
 
 
-def upload_archive_to_bucket():
-    upload_blob(bucket, ARCHIVE_FILE_NAME, get_archive_file_path())
+def upload_archive_to_bucket(source_file):
+    upload_blob(bucket, 'archive_'+source_file, get_archive_file_path(source_file))
 
 
-def upload_media_and_metadata_to_bucket(file):
+def upload_media_and_metadata_to_bucket(source_file, file):
     FILE_FORMAT = file.split('.')[-1]
     meta_file_name = file.replace(FILE_FORMAT, "csv")
+    source_name = source_file.replace('.txt', '')
     upload_blob(bucket, file, channel_blob_path + '/' + source_name + '/' + file)
     os.remove(file)
     upload_blob(bucket, meta_file_name, channel_blob_path + '/' + source_name + '/' + meta_file_name)

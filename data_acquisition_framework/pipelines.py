@@ -16,6 +16,7 @@ from scrapy.pipelines.files import FilesPipeline
 from .data_acquisition_pipeline import DataAcqusitionPipeline
 from .utilites import *
 from .youtube_utilites import *
+from .yt_channel_list import getUrls
 
 
 class YoutubePipeline(DataAcqusitionPipeline):
@@ -23,6 +24,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
     ARCHIVE_FILE_NAME = 'archive.txt'
     VIDEO_BATCH_FILE_NAME = 'video_list.txt'
     FULL_PLAYLIST_FILE_NAME = "full_playlist.txt"
+    PLAYLIST_PATH = 'playlist'
 
     def __init__(self):
         logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
@@ -33,29 +35,33 @@ class YoutubePipeline(DataAcqusitionPipeline):
         self.yml_config = config_yaml()['downloader']
         self.check_speaker = False
         self.youtube_call = "/app/python/bin/youtube-dl " if "scrapinghub" in os.path.abspath("~") else "youtube-dl "
-        retrive_archive_from_bucket()
+        self.source_channel_dict = None
 
     def scrape_links(self):
-        create_channel_playlist(self, channel_url)
+        self.source_channel_dict = getUrls()
+        print("get urls called",len(self.source_channel_dict))
+        logging.info("Getting urls")
+        create_channel_playlist(self)
         return self
 
     def create_download_batch(self):
         return get_video_batch(self)
 
-    def download_files(self):
+    def download_files(self, file):
         downloader_output = subprocess.run(
             self.youtube_call + '-f "best[ext=mp4]" -o "%(duration)sfile-id%(id)s.%(ext)s" --batch-file {0}  --restrict-filenames --download-archive {1} --proxy "" --abort-on-error '.format(
-                self.VIDEO_BATCH_FILE_NAME, self.ARCHIVE_FILE_NAME), shell=True, capture_output=True)
+                self.VIDEO_BATCH_FILE_NAME, 'archive_' + file), shell=True, capture_output=True)
         check_and_log_download_output(self, downloader_output)
         return self
 
-    def extract_metadata(self, file, url=None):
+    def extract_metadata(self, source_file, file, url=None):
         video_info = {}
         FILE_FORMAT = file.split('.')[-1]
         meta_file_name = file.replace(FILE_FORMAT, "csv")
         video_id = file.split('file-id')[-1][:-4]
         source_url = ("https://www.youtube.com/watch?v=") + video_id
         # video = moviepy.editor.VideoFileClip(file)
+        print(file)
         video_duration = int(file.split('file-id')[0]) / 60
         video_info['duration'] = video_duration
         video_info['raw_file_name'] = file
@@ -75,27 +81,41 @@ class YoutubePipeline(DataAcqusitionPipeline):
 
     def process_item(self, item, spider):
         self.check_speaker = True if check_mode(self) else False
-        playlist_count = get_playlist_count(self)
-        logging.info(str("Total playlist count with valid videos is {0}".format(playlist_count)))
-        last_video_batch_count = self.create_download_batch()
-        while last_video_batch_count > 0:
-            logging.info(str("Attempt to download videos with batch size of {0}".format(last_video_batch_count)))
-            try:
-                self.download_files()
-            finally:
-                audio_paths = glob.glob('*.' + self.FILE_FORMAT)
-                audio_files_count = len(audio_paths)
-                if audio_files_count > 0:
-                    self.batch_count += audio_files_count
-                    logging.info(str("Uploading {0} files to gcs bucket...".format(audio_files_count)))
-                    for file in audio_paths:
-                        self.extract_metadata(file)
-                        upload_media_and_metadata_to_bucket(file)
-                    upload_archive_to_bucket()
-                    logging.info(str("Uploaded files till now: {0}".format(self.batch_count)))
+        for source_file in glob.glob(self.PLAYLIST_PATH + '/*.txt'):
+            source_file_name = source_file.replace('playlist/', '')
+            logging.info(
+                str("Channel {0}".format(source_file_name)))
+
+            self.source_file = source_file_name
+            self.batch_count = 0
+            retrive_archive_from_bucket(source_file_name)
+            playlist_count = get_playlist_count(source_file)
+            logging.info(
+                str("Total playlist count with valid videos is {0}".format(playlist_count)))
+
             last_video_batch_count = self.create_download_batch()
-        logging.info("Last Batch has no more videos to be downloaded,so finishing downloads...")
-        logging.info(str("Total Uploaded files for this run was : {0}".format(self.batch_count)))
+            while last_video_batch_count > 0:
+                logging.info(str("Attempt to download videos with batch size of {0}".format(
+                    last_video_batch_count)))
+                try:
+                    self.download_files(source_file_name)
+                finally:
+                    audio_paths = glob.glob('*.' + self.FILE_FORMAT)
+                    audio_files_count = len(audio_paths)
+                    if audio_files_count > 0:
+                        self.batch_count += audio_files_count
+                        logging.info(
+                            str("Uploading {0} files to gcs bucket...".format(audio_files_count)))
+                        for file in audio_paths:
+                            self.extract_metadata(source_file_name, file)
+                            upload_media_and_metadata_to_bucket(source_file_name, file)
+                        upload_archive_to_bucket(source_file_name)
+                        logging.info(
+                            str("Uploaded files till now: {0}".format(self.batch_count)))
+                last_video_batch_count = self.create_download_batch()
+            logging.info(str("Last Batch has no more videos to be downloaded,so finishing downloads..."))
+            logging.info(
+                str("Total Uploaded files for this run was : {0}".format(self.batch_count)))
         return item
 
 class MediaPipeline(FilesPipeline):
