@@ -40,8 +40,11 @@ class YoutubePipeline(DataAcqusitionPipeline):
         self.source_channel_dict = None
 
     def scrape_links(self):
-        get_token_from_bucket()
-        self.source_channel_dict = getUrls()
+        if (len(channel_url_dict) != 0):
+            self.source_channel_dict = channel_url_dict
+        else:
+            get_token_from_bucket()
+            self.source_channel_dict = getUrls()
         create_channel_playlist(self)
         return self
 
@@ -49,7 +52,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
         return get_video_batch(self)
 
     def youtube_download(self, video_id, file):
-        command = self.youtube_call + '-f "best[ext=mp4]" -o "%(duration)sfile-id%(id)s.%(ext)s" "https://www.youtube.com/watch?v={0}" --download-archive {1} --proxy "" --abort-on-error'.format(
+        command = self.youtube_call + '-f "best[ext=mp4][filesize<1024M]" -o "%(duration)sfile-id%(id)s.%(ext)s" "https://www.youtube.com/watch?v={0}" --download-archive {1} --proxy "" --abort-on-error'.format(
                video_id, 'archive_' + file)
         downloader_output = subprocess.run(
             command, shell=True, capture_output=True)
