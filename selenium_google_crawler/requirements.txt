@@ -1,0 +1,2 @@
+geckodriver-autoinstaller==0.1.0
+selenium==3.141.0
