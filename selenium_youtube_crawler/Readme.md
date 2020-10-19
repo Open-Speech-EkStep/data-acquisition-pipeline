@@ -22,13 +22,15 @@ This crawler can be configured by modified the parameter values of config.json.
     8. bucket_path - path where to store the file.
     9. input_type - type of input to crawler.. values = [FILE or YOUTUBE_API]
 
-Note: 
+## Note:
     1. If input_type is file, then create a folder named playlists and add files with channel name as filename and channel videos ids as file content.
+    
     eg. playlist/Tamil_Channel.txt having content
-            ```
-            lajvqyWWfnk
-            sbOsG0ytCQg
-            ```
+            
+        lajvqyWWfnk
+        sbOsG0ytCQg
+            
 
-    2. If input_type is YOUTUBE_API, then create a .env file with youtube search api key.
-    eg. `youtube_api_key=<your api key>`
+    2. If input_type is YOUTUBE_API, then create a .env file with youtube search api key as below:
+    
+        youtube_api_key=<your api key>
