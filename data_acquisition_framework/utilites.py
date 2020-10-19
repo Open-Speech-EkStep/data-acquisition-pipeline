@@ -52,6 +52,8 @@ def create_metadata(video_info, yml):
 def create_metadata_for_audio(video_info, yml, item):
     metadata = create_metadata(video_info, yml)
     metadata["source"] = item["source"]
+    metadata["language"] = item["language"]
+    metadata["file_url"] = video_info["file_url"]
     return metadata
 
 def set_gcs_creds(gcs_credentials_string):
@@ -64,8 +66,8 @@ def set_gcs_creds(gcs_credentials_string):
 def get_archive_file_path():
     return channel_blob_path + '/' + archive_blob_path + '/' + source_name + '/' + ARCHIVE_FILE_NAME
 
-def get_archive_file_path_by_source(source):
-    return channel_blob_path + '/' + archive_blob_path + '/' + source + '/' + ARCHIVE_FILE_NAME
+def get_archive_file_path_by_source(item):
+    return channel_blob_path.replace("<language>",item["language"]) + '/' + archive_blob_path + '/' + item["source"] + '/' + ARCHIVE_FILE_NAME
 
 def retrive_archive_from_bucket():
     if check_blob(bucket, get_archive_file_path()):
@@ -77,11 +79,12 @@ def retrive_archive_from_bucket():
         os.system('touch {0}'.format(ARCHIVE_FILE_NAME))
         logging.info("No Archive file has been found on bucket...Downloading all files...")
 
-def retrive_archive_from_bucket_by_source(source):
-    if check_blob(bucket, get_archive_file_path_by_source(source)):
+def retrive_archive_from_bucket_by_source(item):
+    source = item["source"]
+    if check_blob(bucket, get_archive_file_path_by_source(item)):
         if not os.path.exists(source+"/"):
             os.system('mkdir {0}'.format(source))
-        download_blob(bucket, get_archive_file_path_by_source(source), source+"/"+ARCHIVE_FILE_NAME)
+        download_blob(bucket, get_archive_file_path_by_source(item), source+"/"+ARCHIVE_FILE_NAME)
         logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(bucket)))
         num_downloaded = sum(1 for line in open(source+"/"+ARCHIVE_FILE_NAME))
         logging.info(str("Count of Previously downloaded files are : {0}".format(num_downloaded)))
@@ -122,8 +125,8 @@ def retrieve_archive_from_local_by_source(source):
 def upload_archive_to_bucket():
     upload_blob(bucket, ARCHIVE_FILE_NAME, get_archive_file_path())
 
-def upload_archive_to_bucket_by_source(source):
-    upload_blob(bucket, source+"/"+ARCHIVE_FILE_NAME, get_archive_file_path_by_source(source))
+def upload_archive_to_bucket_by_source(item):
+    upload_blob(bucket, item["source"]+"/"+ARCHIVE_FILE_NAME, get_archive_file_path_by_source(item))
 
 
 def upload_media_and_metadata_to_bucket(file):
@@ -137,12 +140,16 @@ def upload_media_and_metadata_to_bucket(file):
 def upload_audio_and_metadata_to_bucket(file, item):
     FILE_FORMAT = file.split('.')[-1]
     meta_file_name = file.replace(FILE_FORMAT, "csv")
-    upload_blob(bucket, file, channel_blob_path + '/' + item["source"] + '/' + file)
+    upload_blob(bucket, file, channel_blob_path.replace("<language>",item["language"]) + '/' + item["source"] + '/' + file)
     os.remove(file)
-    upload_blob(bucket, meta_file_name, channel_blob_path + '/' + item["source"] + '/' + meta_file_name)
+    upload_blob(bucket, meta_file_name, channel_blob_path.replace("<language>",item["language"]) + '/' + item["source"] + '/' + meta_file_name)
     os.remove(meta_file_name)
 
 
 def get_mp3_duration(file):
     tag = TinyTag.get(file)
     return round(tag.duration, 3) / 60
+
+def get_mp3_duration_in_seconds(file):
+    tag = TinyTag.get(file)
+    return round(tag.duration, 3)

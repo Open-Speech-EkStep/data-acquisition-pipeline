@@ -157,8 +157,6 @@ class AudioPipeline(FilesPipeline):
     def __init__(self, store_uri, download_func=None, settings=None):
         super().__init__(store_uri, download_func, settings)
         self.archive_list = []
-        self.duration = 0
-        self.count = 0
         self.yml_config = config_yaml()['downloader']
 
     def file_path(self, request, response=None, info=None):
@@ -167,6 +165,7 @@ class AudioPipeline(FilesPipeline):
         return file_name
 
     def item_completed(self, results, item, info):
+        duration = 0
         with suppress(KeyError):
             ItemAdapter(item)[self.files_result_field] = [x for ok, x in results if ok]
         if len(item['files']) > 0:
@@ -177,41 +176,44 @@ class AudioPipeline(FilesPipeline):
                 logging.info(str("***File {0} downloaded ***".format(file)))
                 populate_archive_to_source(item["source"],url)
                 try:
-                    self.extract_metadata(file, url, item)
+                    duration = self.extract_metadata(file, url, item)
                     upload_audio_and_metadata_to_bucket(file, item)
-                    upload_archive_to_bucket_by_source(item["source"])
+                    upload_archive_to_bucket_by_source(item)
                     logging.info(str("***File {0} uploaded ***".format(file)))
-                except:
+                except Exception as exception:
+                    logging.error(exception)
                     os.remove(file)
+            else:
+                logging.info(str("***File {0} not downloaded ***".format(item["title"])))
+        item["duration"] = duration
         return item
 
     def get_media_requests(self, item, info):
         urls = ItemAdapter(item).get(self.files_urls_field, [])
         if not os.path.isdir(item["source"]):
-            retrive_archive_from_bucket_by_source(item["source"])
+            retrive_archive_from_bucket_by_source(item)
             self.archive_list = retrieve_archive_from_local_by_source(item["source"])
         return [Request(u) for u in urls if u not in self.archive_list]
 
     def extract_metadata(self, file, url, item):
         video_info = {}
-        video_duration = 0
+        duration_in_seconds = 0
         FILE_FORMAT = file.split('.')[-1]
         meta_file_name = file.replace(FILE_FORMAT, "csv")
         source_url = url
         if FILE_FORMAT == 'mp4':
             video = moviepy.editor.VideoFileClip(file)
-            video_duration = int(video.duration) / 60
-        elif FILE_FORMAT == 'mp3':
-            video_duration = get_mp3_duration(file)
-        self.duration += video_duration
-        self.count += 1
-        logging.info("************DURATION = {0} hours in {1} files************".format(str(self.duration//60),str(self.count)))
-        video_info['duration'] = video_duration
+            duration_in_seconds = int(video.duration)
+        else:
+            duration_in_seconds = get_mp3_duration_in_seconds(file)
+        video_info['duration'] = duration_in_seconds / 60
         video_info['raw_file_name'] = file
         video_info['name'] = None
         video_info['gender'] = None
-        video_info['source_url'] = source_url
-        video_info['license'] = "" if len(item["license_urls"]) == 0 else "creativecommons"
+        video_info['source_url'] = item["source_url"]
+        video_info['file_url'] = source_url
+        video_info['license'] = "" if len(item["license_urls"]) == 0 else "Creative Commons"
         metadata = create_metadata_for_audio(video_info, self.yml_config, item)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
+        return duration_in_seconds

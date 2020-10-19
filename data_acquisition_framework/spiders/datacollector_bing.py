@@ -1,18 +1,14 @@
 import scrapy
 from datetime import datetime
 import json
+import logging
 import scrapy.settings
 import concurrent.futures
-
+from scrapy import signals
 from ..utilites import *
+from ..items import Media
+from urllib.parse import urlparse
 
-
-class Media(scrapy.Item):
-    title = scrapy.Field()
-    file_urls = scrapy.Field()
-    files = scrapy.Field()
-    source = scrapy.Field()
-    license_urls = scrapy.Field()
 
 class BingSearchSpider(scrapy.Spider):
     name = "bing_search"
@@ -21,15 +17,15 @@ class BingSearchSpider(scrapy.Spider):
         'DOWNLOAD_MAXSIZE': '0',
         'DOWNLOAD_WARNSIZE': '999999999',
         'RETRY_TIMES': '0',
-        # 'DEPTH_PRIORITY':'1',
         'ROBOTSTXT_OBEY':'False',
-        # 'SCHEDULER_DISK_QUEUE':'scrapy.squeues.PickleFifoDiskQueue',
-        # 'SCHEDULER_MEMORY_QUEUE' : 'scrapy.squeues.FifoMemoryQueue',
         'ITEM_PIPELINES':'{"data_acquisition_framework.pipelines.AudioPipeline": 1}',
         'MEDIA_ALLOW_REDIRECTS':'True',
-        'LOG_LEVEL':'INFO',
         'REACTOR_THREADPOOL_MAXSIZE':'20',
-        'CONCURRENT_REQUESTS':'32',
+        # 'DOWNLOAD_DELAY':'2.0',
+        'AUTOTHROTTLE_ENABLED': 'True',
+        #'HTTPCACHE_ENABLED':'True',
+        #"USER_AGENT":'Ekstep-Crawler (bot@mycompany.com)',
+        # 'CONCURRENT_REQUESTS':'32',
         #'CONCURRENT_ITEMS':'200',
         'SCHEDULER_PRIORITY_QUEUE':'scrapy.pqueues.DownloaderAwarePriorityQueue',
         'COOKIES_ENABLED':'False',
@@ -38,6 +34,8 @@ class BingSearchSpider(scrapy.Spider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         set_gcs_creds(str(kwargs["my_setting"]).replace("\'", ""))
+        self.total_duration_in_seconds = 0
+
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
@@ -46,43 +44,53 @@ class BingSearchSpider(scrapy.Spider):
             my_setting=crawler.settings.get("GCS_CREDS") if "scrapinghub" in os.path.abspath("~") else open("./credentials.json").read(),
             **kwargs
         )
+        crawler.signals.connect(spider.item_scraped, signal=scrapy.signals.item_scraped)
         spider._set_crawler(crawler)
         return spider
 
+    def item_scraped(self, item, response, spider):
+        self.total_duration_in_seconds += item["duration"]
+        hours = self.total_duration_in_seconds / 3600
+        print(spider.name+" has downloaded %s hours"%str(hours))
+        # if self.total_duration_in_seconds >= self.max_seconds:
+        #     # raise CloseSpider("Stopped since %s hours of data scraped"% hours)
+        #     self.crawler.engine.close_spider(spider,"Scraped estimated hours")
+
 
     def start_requests(self):
-        bing_config_path = os.path.dirname(os.path.realpath(__file__)) + "/../bing_config.json"
-        with open(bing_config_path,'r') as f:
+        self.bing_config_path = os.path.dirname(os.path.realpath(__file__)) + "/../bing_config.json"
+        with open(self.bing_config_path,'r') as f:
             config = json.load(f)
             self.language = config["language"]
+            self.max_seconds = config["max_hours"] * 3600
             self.depth = config["depth"]
             self.pages = config["pages"]
+            self.max_hours = config["max_hours"]
+            self.extensions_to_include = config["extensions_to_include"]
             self.word_to_ignore = config["word_to_ignore"]
             self.extensions_to_ignore = config["extensions_to_ignore"]
-            self.extensions_to_include = config["extensions_to_include"]
-            isNew = False
-            if config["continue"].lower() == "yes":
-                self.page = config["last_visited"]
-            else:
-                isNew = True
-                self.page = 0
+            self.is_continued = config["continue"].lower() == "yes"
+            page = 0
+            if self.is_continued:
+                page = config["last_visited"]
             for keyword in config["keywords"]:
                 keyword = self.language+"+"+keyword.replace(" ","+")
-                url="http://www.bing.com/search?q={0}&first={1}".format(keyword, self.page)
+                url="https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
                 yield scrapy.Request(url=url, callback=self.bing_parse, cb_kwargs=dict(count=1,keyword=keyword))
-        config["last_visited"] = (self.pages * 10) + 0 if isNew else config["last_visited"]
-        with open(bing_config_path,'w') as jsonfile:
-            json.dump(config, jsonfile)  
-
-    def write(self, filename, content):
-        with open(filename,'a') as f:
-           f.write(content+"\n")
+            config["last_visited"] = (self.pages * 10) + page 
+            with open(self.bing_config_path,'w') as jsonfile:
+                json.dump(config, jsonfile, indent=4)
 
     def bing_parse(self, response, count, keyword):
         self.write("base_url.txt", response.url)
         urls = response.css('a::attr(href)').getall()
+        search_result_urls = []
+        for url in urls:
+            if url.startswith("http:") or url.startswith("https:"):
+                if "go.microsoft.com" not in url and not "microsofttranslator.com" in url:
+                    search_result_urls.append(url)
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-           future_to_url = {executor.submit(self.parse_results_url, url): url for url in urls}
+           future_to_url = {executor.submit(self.parse_results_url, url): url for url in search_result_urls}
            for future in concurrent.futures.as_completed(future_to_url):
                url = future_to_url[future]
                try:
@@ -91,94 +99,80 @@ class BingSearchSpider(scrapy.Spider):
                        yield data
                except Exception as exc:
                    print('%r generated an exception: %s' % (url, exc))
-        # for url in urls:
-        #     if url.startswith("http:") or url.startswith("https:"):
-        #         if url.startswith("https://www.youtube.com") or "go.microsoft.com/fwlink" in url or "www.microsofttranslator.com" in url or "www.bing.com" in url or "www.microsoft.com" in url:
-        #             continue
-        #         if url.endswith(".pdf") or url.endswith(".jpg") or url.endswith(".png"):
-        #             continue
-        #         yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
-        self.page = self.page + 10
-        formattedUrl="http://www.bing.com/search?q={0}&first={1}".format(keyword, self.page)
-        c = count+1
-        if c > self.pages:
-            return
-        yield scrapy.Request(formattedUrl, callback=self.bing_parse, cb_kwargs=dict(count=c,keyword=keyword))
-
-    def parse_results_url(self, url):
-        if url.startswith("http:") or url.startswith("https:"):
-            if url.startswith("https://www.youtube.com") or "go.microsoft.com/fwlink" in url or "www.microsofttranslator.com" in url or "www.bing.com" in url or "www.microsoft.com" in url:
-                return None
-            if url.endswith(".pdf") or url.endswith(".jpg") or url.endswith(".png"):
-                return None
-            return scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
+        page = count * 10
+        formattedUrl="https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
+        count += 1
+        if count <= self.pages:
+            print("inside")
+            yield scrapy.Request(formattedUrl, callback=self.bing_parse, cb_kwargs=dict(count=count,keyword=keyword))
 
 
     def parse(self, response, depth):
+
         base_url = response.url
-        self.write('internal_url.txt',base_url)
         a_urls = response.css('a::attr(href)').getall()
         source_urls = response.css('source::attr(src)').getall()
-        urls = []
-        if len(a_urls) != 0:
-            urls += a_urls
-        if len(source_urls) != 0:
-            urls += source_urls
-        source = base_url[base_url.index("//")+2:].split('/')[0]
-        # with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-        #     future_to_url = {executor.submit(self.process_url, url, source, depth, response): url for url in urls}
-        #     for future in concurrent.futures.as_completed(future_to_url):
-        #         url = future_to_url[future]
-        #         try:
-        #             data = future.result()
-        #             if data is not None:
-        #                 yield data
-        #         except Exception as exc:
-        #             print('%r generated an exception: %s' % (url, exc))
-        license_urls = []
-        for url in a_urls:
-            url = url.rstrip().lstrip()
-            if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith("https://creativecommons.org/publicdomain/zero") or url.startswith("https://creativecommons.org/licenses/by"):
-                license_urls.append(url)
+        urls = a_urls + source_urls
+        source_domain = base_url[base_url.index("//")+2:].split('/')[0]
+
+        license_urls = self.extract_license_urls(a_urls)
+
         for url in urls:
             url = response.urljoin(url)
-            flag = False
 
-            # iterate for search of unwanted words
-            for word in self.word_to_ignore:
-                if word in url.lower():
-                    flag = True
-                    break
-            if flag: continue
-
-            # download urls from drive
-            if "drive.google.com" in url and "export=download" in url:
-                # url_parts = url.split("/")
-                # yield Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source,license_urls=license_urls)
+            try:
+                urlparse(url)
+            except:
                 continue
 
+            if self.is_unwanted_words_present(url):
+                continue
+            
             # iterate for search of wanted files
-            for extension in self.extensions_to_include:
-                if url.lower().endswith(extension.lower()):
-                    url_parts = url.split("/")
-                    self.write("audio.txt", url)
-                    yield Media(title=url_parts[len(url_parts)-1], file_urls=[url], source=source, license_urls=license_urls)
-                    flag = True
-                    break
+            if self.is_extension_present(url):
+                url = response.urljoin(url)
+                url_parts = url.split("/")
+                yield Media(title=url_parts[len(url_parts)-1], file_urls=[url],source_url=base_url,source=source_domain, license_urls=license_urls,language=self.language)
+                continue
             
-            if flag: continue
-
-            # iterate for search of unwanted extension files
-            for extension in self.extensions_to_ignore:
-                if url.lower().endswith(extension):
-                    flag = True
-                    break
-            
-            if flag: continue
-
-            if (depth+1) >= self.depth:
+            if self.is_unwanted_extension_present(url) or depth >= self.depth:
                 continue
 
             # if not matched any of above, traverse to next
             yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=(depth+1)))
+
+
+    def parse_results_url(self, url):
+        return scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
+
+    def extract_license_urls(self, urls):
+        license_urls = []
+        for url in urls:
+            url = url.rstrip().lstrip()
+            if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith("https://creativecommons.org/publicdomain/zero") or url.startswith("https://creativecommons.org/licenses/by"):
+                license_urls.append(url)
+        return license_urls
+    
+    def is_unwanted_words_present(self, url):
+        for word in self.word_to_ignore:
+            if word in url.lower():
+                return True
+        return False
+    
+    def is_unwanted_extension_present(self, url):
+        for extension in self.extensions_to_ignore:
+            if url.lower().endswith(extension):
+                return True
+        return False
+
+    def is_extension_present(self, url):
+        for extension in self.extensions_to_include:
+            if url.lower().endswith(extension.lower()):
+                return True
+        return False
+    
+    def write(self, filename, content):
+        with open(filename,'a') as f:
+           f.write(content+"\n")
+
 

@@ -1,5 +1,5 @@
 {
-    "language": "bengali",
+    "language": "hindi",
     "keywords": [
         "talks audio",
         "audiobooks",
@@ -9,6 +9,20 @@
         "news interviews"
     ],
     "word_to_ignore": [
+        "mailto:",
+        "sms:",
+        "mms:",
+        "whatsapp:",
+        "tel:",
+        "javscript",
+        "javascript",
+        "https://creativecommons.org",
+        "drive.google.com",
+        "ebela.in",
+        "hungama.com",
+        "hotstar.com",
+        "audible.in",
+        "speechtyping.com",
         "ieeexplore.ieee.org",
         "melody",
         "hangouts.google.com",
@@ -16,8 +30,6 @@
         "youtube.com",
         "books.google.co",
         "jiosavvn",
-        "porn",
-        "sex",
         "dl.acm.org",
         "fb-messenger:",
         "javscript",
@@ -27,9 +39,6 @@
         "gaana.com",
         "spotify.com",
         "song",
-        "tel:",
-        "#",
-        "mailto:",
         "skype",
         "javascript",
         "terms-and-conditions",
@@ -40,15 +49,18 @@
         "pinterest",
         "reddit",
         "play.google.com",
-        "whatsapp:",
         "ringtone",
-        "sms:",
         "twitter",
-        "mms:",
         "snapchat",
         "go.microsoft.com/fwlink",
         "www.microsofttranslator.com",
-        "www.microsoft.com"
+        "www.microsoft.com",
+        "netflix.com",
+        "amazon.in",
+        "flipkart",
+        "snapdeal",
+        "mintra",
+        "https://www.bing.com/videos/"
     ],
     "extensions_to_ignore": [
         ".jpeg",
@@ -76,7 +88,8 @@
         ".m4a"
     ],
     "pages": 1,
-    "depth": 1,
+    "depth": 2,
     "continue": "NO",
-    "last_visited": 200
+    "last_visited": 10,
+    "max_hours": 1
 }

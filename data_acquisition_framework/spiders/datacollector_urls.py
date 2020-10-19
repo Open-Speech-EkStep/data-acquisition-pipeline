@@ -5,14 +5,9 @@ import scrapy.settings
 import concurrent.futures
 
 from ..utilites import *
-
-
-class Media(scrapy.Item):
-    title = scrapy.Field()
-    file_urls = scrapy.Field()
-    files = scrapy.Field()
-    source = scrapy.Field()
-    license_urls = scrapy.Field()
+from ..items import Media
+from scrapy.exceptions import CloseSpider
+from urllib.parse import urlparse
 
 
 class UrlSearchSpider(scrapy.Spider):
@@ -22,15 +17,13 @@ class UrlSearchSpider(scrapy.Spider):
         "DOWNLOAD_MAXSIZE": "0",
         "DOWNLOAD_WARNSIZE": "999999999",
         "RETRY_TIMES": "0",
-        # 'DEPTH_PRIORITY':'1',
         "ROBOTSTXT_OBEY": "False",
-        # 'SCHEDULER_DISK_QUEUE':'scrapy.squeues.PickleFifoDiskQueue',
-        # 'SCHEDULER_MEMORY_QUEUE' : 'scrapy.squeues.FifoMemoryQueue',
         "ITEM_PIPELINES": '{"data_acquisition_framework.pipelines.AudioPipeline": 1}',
         "MEDIA_ALLOW_REDIRECTS": "True",
-        "LOG_LEVEL": "INFO",
         "REACTOR_THREADPOOL_MAXSIZE": "20",
-        "CONCURRENT_REQUESTS": "32",
+        "DOWNLOAD_DELAY":'2.0',
+        "AUTOTHROTTLE_ENABLED": 'True',
+        # "CONCURRENT_REQUESTS": "32",
         "SCHEDULER_PRIORITY_QUEUE": "scrapy.pqueues.DownloaderAwarePriorityQueue",
         "COOKIES_ENABLED": "False",
     }
@@ -38,6 +31,7 @@ class UrlSearchSpider(scrapy.Spider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         set_gcs_creds(str(kwargs["my_setting"]).replace("'", ""))
+        self.total_duration_in_seconds = 0
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
@@ -48,15 +42,26 @@ class UrlSearchSpider(scrapy.Spider):
             else open("./credentials.json").read(),
             **kwargs
         )
+        crawler.signals.connect(spider.item_scraped, signal=scrapy.signals.item_scraped)
         spider._set_crawler(crawler)
         return spider
 
+    def item_scraped(self, item, response, spider):
+        self.total_duration_in_seconds += item["duration"]
+        hours = self.total_duration_in_seconds / 3600
+        print(spider.name+" has downloaded %s hours"%str(hours))
+        # if self.total_duration_in_seconds >= self.max_seconds:
+        #     # raise CloseSpider("Stopped since %s hours of data scraped"% hours)
+        #     self.crawler.engine.close_spider(spider,"Scraped estimated hours")
+
     def start_requests(self):
-        bing_config_path = (
+        config_path = (
             os.path.dirname(os.path.realpath(__file__)) + "/../bing_config.json"
         )
-        with open(bing_config_path, "r") as f:
+        with open(config_path, "r") as f:
             config = json.load(f)
+            self.language = config["language"]
+            self.max_seconds = config["max_hours"] * 3600
             self.word_to_ignore = config["word_to_ignore"]
             self.extensions_to_include = config["extensions_to_include"]
             self.extensions_to_ignore = config["extensions_to_ignore"]
@@ -80,70 +85,75 @@ class UrlSearchSpider(scrapy.Spider):
     def parse_results_url(self, url):
         return scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
 
-    def parse(self, response, depth):
-        base_url = response.url
-        a_urls = response.css("a::attr(href)").getall()
-        source_urls = response.css("source::attr(src)").getall()
-        urls = []
-        if len(a_urls) != 0:
-            urls += a_urls
-        if len(source_urls) != 0:
-            urls += source_urls
-        source = base_url[base_url.index("//") + 2 :].split("/")[0]
+    def extract_license_urls(self, urls):
         license_urls = []
-        for url in a_urls:
+        for url in urls:
             url = url.rstrip().lstrip()
             if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith("https://creativecommons.org/publicdomain/zero") or url.startswith("https://creativecommons.org/licenses/by"):
                 license_urls.append(url)
+        return license_urls
+    
+    def is_unwanted_words_present(self, url):
+        for word in self.word_to_ignore:
+            if word in url.lower():
+                return True
+        return False
+    
+    def is_unwanted_extension_present(self, url):
+        for extension in self.extensions_to_ignore:
+            if url.lower().endswith(extension):
+                return True
+        return False
+
+    def is_extension_present(self, url):
+        for extension in self.extensions_to_include:
+            if url.lower().endswith(extension.lower()):
+                return True
+        return False            
+
+
+    def parse(self, response, depth):
+
+        if self.total_duration_in_seconds >= self.max_seconds:
+            return
+
+        base_url = response.url
+        a_urls = response.css("a::attr(href)").getall()
+        source_urls = response.css("source::attr(src)").getall()
+        urls = a_urls + source_urls
+
+        source_domain = base_url[base_url.index("//") + 2 :].split("/")[0]
+
+        license_urls = self.extract_license_urls(a_urls)
+
         for url in urls:
+            
+            if self.total_duration_in_seconds >= self.max_seconds:
+                return
+
             url = response.urljoin(url)
-            flag = False
 
-            # iterate for search of unwanted words
-            for word in self.word_to_ignore:
-                if word in url.lower():
-                    flag = True
-                    break
-            if flag:
+            try:
+                urlparse(url)
+            except:
                 continue
 
-            # download urls from drive
-            if "drive.google.com" in url and "export=download" in url:
-                # url_parts = url.split("=")
-                # yield Media(
-                #     title=url_parts[-1],
-                #     file_urls=[url],
-                #     source=source,
-                #     license_urls=license_urls,
-                # )
+            if self.is_unwanted_words_present(url):
                 continue
 
-            # iterate for search of wanted files
-            for extension in self.extensions_to_include:
-                if url.lower().endswith(extension.lower()):
-                    url_parts = url.split("/")
-                    yield Media(
-                        title=url_parts[len(url_parts) - 1],
-                        file_urls=[url],
-                        source=source,
-                        license_urls=license_urls,
-                    )
-                    flag = True
-                    break
-
-            if flag:
+            if self.is_extension_present(url):
+                url_parts = url.split("/")
+                yield Media(
+                    title=url_parts[len(url_parts) - 1],
+                    file_urls=[url],
+                    source=source_domain,
+                    license_urls=license_urls,
+                    language=self.language,
+                    source_url=base_url
+                )
                 continue
 
-            # iterate for search of unwanted extension files
-            for extension in self.extensions_to_ignore:
-                if url.lower().endswith(extension):
-                    flag = True
-                    break
-
-            if flag:
-                continue
-
-            if (depth + 1) >= self.depth:
+            if self.is_unwanted_extension_present(url) or depth >= self.depth:
                 continue
 
             # if not matched any of above, traverse to next

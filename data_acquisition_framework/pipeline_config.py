@@ -2,7 +2,7 @@ mode = 'file'  # [channel,file]
 
 # Common configurations
 bucket = 'ekstepspeechrecognition-dev'
-channel_blob_path = 'data/audiotospeech/raw/download/downloaded/gujarati/audio'
+channel_blob_path = 'scrapydump/hindi'#'data/audiotospeech/raw/download/downloaded/gujarati/audio'
 archive_blob_path = 'archive'
 source_name = 'CRAWL_SOURCE_GUJARATI'  # Scraped Data file name(CSV)
 batch_num = 5  # keep batch small on free tier
