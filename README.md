@@ -82,7 +82,9 @@ scraped_data_blob_path = ""     Folder name in which CSV for youtube file mode i
 
 Note:
 1. Both archive_blob_path and scraped_data_blob_path should be present in channel_blob_path.
-2. The CSV file used in file mode of youtube, It's name must be same as source_name given above. 
+2. The CSV file used in file mode of youtube, It\'s name must be same as source_name given above. 
+3. (only for datacollector_urls and datacollector_bing spiders) To autoconfigure language parameter to channel_blob_path from web_crawler_config.json, use <language> in channel_blob_path.  
+    "eg: for tamil : data/dowload/<language>/audio - this will replace <language> with tamil."
 ```
 #### Metadata file configurations
 Metadata file configurations in [config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/config.py)
@@ -140,7 +142,7 @@ match_title_string = ''       REGEX   Download only matching titles (regex or ca
 reject_title_string = ''      REGEX    Skip download for matching titles (regex or caseless sub-string)
 ``` 
 #### Web Crawl Configuration
-* web crawl configuration in [web_crawl_config.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/non_youtube_scraper/data_acquisition_framework/web_crawl_config.py) (Use this only for datacollector_bing and datacollector_urls spider)
+* web crawl configuration in [web_crawl_config.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/web_crawl_config.py) (Use this only for datacollector_bing and datacollector_urls spider)
 ```shell script
 {
     "language": "bengali",              # Language to be crawled
@@ -203,14 +205,14 @@ scrapy crawl datacollector_urls
 
 * It is capable of crawling search results of google for a given language and exporting them to urls.txt file. This urls.txt file can be used with datacollector_urls spider to crawl all the search results website and download the media along with their metadata.
 
-* A specified Readme can be found in selenium_google_crawler folder. [Readme for selenium google crawler](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/non_youtube_scrapper/selenium_google_crawler/Readme.md)
+* A specified Readme can be found in selenium_google_crawler folder. [Readme for selenium google crawler](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/selenium_google_crawler/Readme.md)
 
 
 #### Selenium youtube crawler
 
 * It is capable of crawling youtube videos using youtube api or from a list of files with youtube video ids provided with channel name as filename.
 
-* A specified Readme can be found in selenium_youtube_crawler folder. [Readme for selenium youtube crawler](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/non_youtube_scrapper/selenium_youtube_crawler/Readme.md)
+* A specified Readme can be found in selenium_youtube_crawler folder. [Readme for selenium youtube crawler](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/selenium_youtube_crawler/Readme.md)
 
 
 <!-- CONTRIBUTING -->
