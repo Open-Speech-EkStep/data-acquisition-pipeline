@@ -123,9 +123,9 @@ class CrawlerDownloaderMiddleware:
 
     def __init__(self):
         self.visited_urls = []
-        bing_config_path = os.path.dirname(os.path.realpath(__file__)) + "/bing_config.json"
+        web_crawl_config_path = os.path.dirname(os.path.realpath(__file__)) + "/web_crawl_config.json"
         self.bing_archive_path = os.path.dirname(os.path.realpath(__file__)) + "/bing_archive.txt"
-        with open(bing_config_path,'r') as f:
+        with open(web_crawl_config_path,'r') as f:
             config = json.load(f)
             self.word_to_ignore = config["word_to_ignore"]
             self.extensions_to_ignore = set(config["extensions_to_ignore"] + IGNORED_EXTENSIONS)

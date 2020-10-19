@@ -56,7 +56,7 @@ class UrlSearchSpider(scrapy.Spider):
 
     def start_requests(self):
         config_path = (
-            os.path.dirname(os.path.realpath(__file__)) + "/../bing_config.json"
+            os.path.dirname(os.path.realpath(__file__)) + "/../web_crawl_config.json"
         )
         with open(config_path, "r") as f:
             config = json.load(f)
@@ -65,6 +65,7 @@ class UrlSearchSpider(scrapy.Spider):
             self.word_to_ignore = config["word_to_ignore"]
             self.extensions_to_include = config["extensions_to_include"]
             self.extensions_to_ignore = config["extensions_to_ignore"]
+            self.enable_hours_restriction = config["enable_hours_restriction"].lower() == "yes"
             self.depth = config["depth"]
         urls_path = os.path.dirname(os.path.realpath(__file__)) + "/../urls.txt"
         with open(urls_path, "r") as f:
@@ -114,7 +115,7 @@ class UrlSearchSpider(scrapy.Spider):
 
     def parse(self, response, depth):
 
-        if self.total_duration_in_seconds >= self.max_seconds:
+        if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
             return
 
         base_url = response.url
@@ -128,7 +129,7 @@ class UrlSearchSpider(scrapy.Spider):
 
         for url in urls:
             
-            if self.total_duration_in_seconds >= self.max_seconds:
+            if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
                 return
 
             url = response.urljoin(url)

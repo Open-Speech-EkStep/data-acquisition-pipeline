@@ -58,8 +58,8 @@ class BingSearchSpider(scrapy.Spider):
 
 
     def start_requests(self):
-        self.bing_config_path = os.path.dirname(os.path.realpath(__file__)) + "/../bing_config.json"
-        with open(self.bing_config_path,'r') as f:
+        self.web_crawl_config = os.path.dirname(os.path.realpath(__file__)) + "/../web_crawl_config.json"
+        with open(self.web_crawl_config,'r') as f:
             config = json.load(f)
             self.language = config["language"]
             self.max_seconds = config["max_hours"] * 3600
@@ -69,26 +69,32 @@ class BingSearchSpider(scrapy.Spider):
             self.extensions_to_include = config["extensions_to_include"]
             self.word_to_ignore = config["word_to_ignore"]
             self.extensions_to_ignore = config["extensions_to_ignore"]
-            self.is_continued = config["continue"].lower() == "yes"
+            self.is_continued = config["continue_page"].lower() == "yes"
+            self.enable_hours_restriction = config["enable_hours_restriction"].lower() == "yes"
             page = 0
             if self.is_continued:
                 page = config["last_visited"]
             for keyword in config["keywords"]:
                 keyword = self.language+"+"+keyword.replace(" ","+")
-                url="https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
-                yield scrapy.Request(url=url, callback=self.bing_parse, cb_kwargs=dict(count=1,keyword=keyword))
+                if page == 0:
+                    url="https://www.bing.com/search?q={0}".format(keyword)
+                else:
+                    url="https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
+                yield scrapy.Request(url=url, callback=self.bing_parse, cb_kwargs=dict(page_number=1,keyword=keyword))
             config["last_visited"] = (self.pages * 10) + page 
-            with open(self.bing_config_path,'w') as jsonfile:
+            with open(self.web_crawl_config,'w') as jsonfile:
                 json.dump(config, jsonfile, indent=4)
 
-    def bing_parse(self, response, count, keyword):
+    def bing_parse(self, response, page_number, keyword):
         self.write("base_url.txt", response.url)
         urls = response.css('a::attr(href)').getall()
+        print("bing search page urls count=>", len(urls))
         search_result_urls = []
         for url in urls:
             if url.startswith("http:") or url.startswith("https:"):
                 if "go.microsoft.com" not in url and not "microsofttranslator.com" in url:
                     search_result_urls.append(url)
+        print("filtered search page urls count=>", len(search_result_urls))
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
            future_to_url = {executor.submit(self.parse_results_url, url): url for url in search_result_urls}
            for future in concurrent.futures.as_completed(future_to_url):
@@ -99,16 +105,18 @@ class BingSearchSpider(scrapy.Spider):
                        yield data
                except Exception as exc:
                    print('%r generated an exception: %s' % (url, exc))
-        page = count * 10
+        page = page_number * 10
         formattedUrl="https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
-        count += 1
-        if count <= self.pages:
-            print("inside")
-            yield scrapy.Request(formattedUrl, callback=self.bing_parse, cb_kwargs=dict(count=count,keyword=keyword))
+        page_number += 1
+        if page_number <= self.pages:
+            yield scrapy.Request(formattedUrl, callback=self.bing_parse, cb_kwargs=dict(page_number=page_number,keyword=keyword))
 
+    def parse_results_url(self, url):
+        return scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
 
     def parse(self, response, depth):
-
+        if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
+            return
         base_url = response.url
         a_urls = response.css('a::attr(href)').getall()
         source_urls = response.css('source::attr(src)').getall()
@@ -118,6 +126,8 @@ class BingSearchSpider(scrapy.Spider):
         license_urls = self.extract_license_urls(a_urls)
 
         for url in urls:
+            if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
+                return
             url = response.urljoin(url)
 
             try:
@@ -130,7 +140,6 @@ class BingSearchSpider(scrapy.Spider):
             
             # iterate for search of wanted files
             if self.is_extension_present(url):
-                url = response.urljoin(url)
                 url_parts = url.split("/")
                 yield Media(title=url_parts[len(url_parts)-1], file_urls=[url],source_url=base_url,source=source_domain, license_urls=license_urls,language=self.language)
                 continue
@@ -140,10 +149,6 @@ class BingSearchSpider(scrapy.Spider):
 
             # if not matched any of above, traverse to next
             yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=(depth+1)))
-
-
-    def parse_results_url(self, url):
-        return scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
 
     def extract_license_urls(self, urls):
         license_urls = []
