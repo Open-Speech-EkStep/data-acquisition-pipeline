@@ -16,7 +16,7 @@ from scrapy.pipelines.files import FilesPipeline
 from .data_acquisition_pipeline import DataAcqusitionPipeline
 from .utilites import *
 from .youtube_utilites import *
-from .yt_channel_list import getUrls, get_license_info
+from .yt_channel_list import get_urls, get_license_info
 from .token_utilities import *
 from concurrent.futures.thread import ThreadPoolExecutor
 
@@ -42,11 +42,11 @@ class YoutubePipeline(DataAcqusitionPipeline):
         self.t_duration = 0
 
     def scrape_links(self):
-        if (len(channel_url_dict) != 0):
+        if len(channel_url_dict) != 0:
             self.source_channel_dict = channel_url_dict
         else:
             get_token_from_bucket()
-            self.source_channel_dict = getUrls()
+            self.source_channel_dict = get_urls()
         create_channel_playlist(self)
         return self
 
@@ -54,27 +54,26 @@ class YoutubePipeline(DataAcqusitionPipeline):
         return get_video_batch(self)
 
     def youtube_download(self, video_id, file):
-        command = self.youtube_call + '-f "best[ext=mp4][filesize<1024M]" -o "%(duration)sfile-id%(id)s.%(ext)s" "https://www.youtube.com/watch?v={0}" --download-archive {1} --proxy "" --abort-on-error'.format(
-               video_id, 'archive_' + file)
+        command = self.youtube_call + '-f "best[ext=mp4][filesize<1024M]" -o "%(duration)sfile-id%(id)s.%(ext)s" ' \
+                                      '"https://www.youtube.com/watch?v={0}" --download-archive {1} --proxy "" ' \
+                                      '--abort-on-error'.format(video_id, 'archive_' + file)
         downloader_output = subprocess.run(
             command, shell=True, capture_output=True)
         check_and_log_download_output(self, downloader_output)
 
     def download_files(self, file):
         with ThreadPoolExecutor(max_workers=5) as executor:
-            with open(self.VIDEO_BATCH_FILE_NAME,'r') as f:
+            with open(self.VIDEO_BATCH_FILE_NAME, 'r') as f:
                 for video_id in f.readlines():
                     executor.submit(self.youtube_download, video_id, file)
         return self
 
     def extract_metadata(self, source_file, file, url=None):
         video_info = {}
-        FILE_FORMAT = file.split('.')[-1]
-        meta_file_name = file.replace(FILE_FORMAT, "csv")
+        file_format = file.split('.')[-1]
+        meta_file_name = file.replace(file_format, "csv")
         video_id = file.split('file-id')[-1][:-4]
-        source_url = ("https://www.youtube.com/watch?v=") + video_id
-        # video = moviepy.editor.VideoFileClip(file)
-        print(file)
+        source_url = "https://www.youtube.com/watch?v=" + video_id
         video_duration = int(file.split('file-id')[0]) / 60
         video_info['duration'] = video_duration
         self.t_duration += video_duration
@@ -134,6 +133,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
                 str("Total Uploaded files for this run was : {0}".format(self.batch_count)))
         update_token_in_bucket()
         return item
+
 
 class MediaPipeline(FilesPipeline):
 
