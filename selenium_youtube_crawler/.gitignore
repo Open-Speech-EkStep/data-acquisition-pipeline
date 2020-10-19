@@ -1,0 +1,8 @@
+.env
+temp.json
+__pycache__
+geckodriver.log
+downloads/
+archive/
+token.txt
+playlists/

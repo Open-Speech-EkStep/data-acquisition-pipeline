@@ -1,0 +1,14 @@
+{
+    "language" : "gujarati",
+    "language_code": "gu",
+    "keywords":[
+        "audio",
+        "speech",
+        "talk"
+    ],
+    "words_to_ignore":[],
+    "max_results": 3,
+    "bucket_name": "ekstepspeechrecognition-dev",
+    "bucket_path":  "scrapydump/<language>",
+    "input_type":"FILE"
+}

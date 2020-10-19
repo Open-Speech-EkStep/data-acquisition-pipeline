@@ -11,8 +11,12 @@
   * [Bucket configuration](#bucket-configuration)
   * [Metadata file configurations](#metadata-file-configurations)
   * [Youtube download configurations](#youtube-download-configurations)
+  * [Web Crawl Configuraton](#web-crawl-configuration)
   * [Adding new spider](#adding-new-spider)
   * [Running spiders with appropriate pipeline](#running-spiders-with-appropriate-pipeline)
+* [Additional services](#additional-services)
+  * [Selenium google crawler](#selenium-google-crawler)
+  * [Selenium youtube crawler](#selenium-youtube-crawler)
 * [Contributing](#contributing)
 * [License](#license)
 * [Contact](#contact)
@@ -59,7 +63,7 @@ pip install -r requirements.txt
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-This framework allows the user to download the media file from a websource(youtube, xyz.com, etc) and creates the respective metadata file from the data that is extracted from the file. For using any added source or to add new source refer to steps below.
+This framework allows the user to download the media file from a websource(youtube, xyz.com, etc) and creates the respective metadata file from the data that is extracted from the file.For using any added source or to add new source refer to steps below.It can also crawl internet for media of a specific language. For web crawling, refer to the web crawl configuration below.
 ### Common configuration steps:
 #### Setting credentials for Google cloud bucket
 You can set credentials for Google cloud bucket in the [credentials.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/credentials.json) add the credentials in given manner
@@ -78,7 +82,9 @@ scraped_data_blob_path = ""     Folder name in which CSV for youtube file mode i
 
 Note:
 1. Both archive_blob_path and scraped_data_blob_path should be present in channel_blob_path.
-2. The CSV file used in file mode of youtube, It's name must be same as source_name given above. 
+2. The CSV file used in file mode of youtube, It\'s name must be same as source_name given above. 
+3. (only for datacollector_urls and datacollector_bing spiders) To autoconfigure language parameter to channel_blob_path from web_crawler_config.json, use <language> in channel_blob_path.  
+    "eg: for tamil : data/dowload/<language>/audio - this will replace <language> with tamil."
 ```
 #### Metadata file configurations
 Metadata file configurations in [config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/config.py)
@@ -106,8 +112,8 @@ speaker_gender: null                    Gender of speaker
 speaker_name: null                      Name of speaker
 
 Note:
-1. If any of the field ifo is not available keep its value to null
-2. If speaker_name or speaker_gender is given then that same will be used for all the files in given source 
+1. If any of the field info is not available keep its value to null
+2. If speaker_name or speaker_gender is given then that same will ve used for all the files in given source 
 ```
 #### Youtube download configurations
 * You can set download mode [file/channel] in [pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/pipeline_config.py) 
@@ -139,6 +145,7 @@ reject_title_string = ''      REGEX    Skip download for matching titles (regex 
 Note:
 In channel_url_dict, the keys must be the urls and values must be their channel names
 ``` 
+#### Youtube Crawl configuration
 * Automated Youtube fetching configuration in [yt_channel_list.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/youtube/crawler/data_acquisition_framework/yt_channel_list.py)
 ```shell script
 # Youtube API configurations
@@ -151,6 +158,39 @@ KEYWORDS = ['in', 'hindi', 'audio|speech', '-song']       Keywords to query on (
 Note:
 1. To get a total of 100 channels - MAX_RESULTS can be 50 and PAGES can be set to 2
 2. To run the automated youtube fetching, channel_url_dict in pipeline_config.py must be empty
+```
+#### Web Crawl Configuration
+* web crawl configuration in [web_crawl_config.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/web_crawl_config.py) (Use this only for datacollector_bing and datacollector_urls spider)
+```shell script
+{
+    "language": "bengali",              # Language to be crawled
+    "keywords": [                       # Keywords to query
+        "talks audio",
+        "audiobooks",
+        "speeches",
+    ],
+    "word_to_ignore": [                 # Words to ignore while crawling
+        "ieeexplore.ieee.org",
+        "dl.acm.org",
+        "www.microsoft.com"
+    ],
+    "extensions_to_ignore": [           # Formats/extensions to ignore while crawling
+        ".jpeg",
+        "xlsx",
+        ".xml"
+    ],
+    "extensions_to_include": [          # Formats/extensions to include while crawling
+        ".mp3",
+        ".wav",
+        ".mp4",
+    ],
+    "pages": 1,                         # Number of pages to crawl
+    "depth": 1,                         # Nesting depth for each website
+    "continue_page": "NO",              # Field to continue/resume crawling
+    "last_visited": 200,                # Last visited results count
+    "enable_hours_restriction": "YES",  # Restrict crawling based on hours of data collected
+    "max_hours": 1                      # Maximum hours to crawl
+}
 ```
 #### Adding new spider
 As we already mentioned our framework is extensible for any new source. To add a new source user just need to write a spider for that source.<br>To add a spider you can follow the scrapy [documentation](https://docs.scrapy.org/en/latest/intro/tutorial.html) or you can check our [sample](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/spiders/datacollector_music.py) spider.</br> 
@@ -173,6 +213,32 @@ Note: file mode in pipeline_config is not supported for this spider.
 scrapy crawl datacollector_music --set=ITEM_PIPELINES='{"data_acquisition_framework.pipelines.MediaPipeline": 1}'
 ```
 Note: You can use media pipeline for any other website source or you can write your own pipeline.
+* Starting datacollector_bing spider with audio pipeline.
+```shell script
+scrapy crawl datacollector_bing
+```
+* Starting datacollector_urls spider with audio pipeline.
+Make sure to put the urls to crawl in the data_acquisition_framework/urls.txt
+```shell script
+scrapy crawl datacollector_urls
+```
+
+## Additional Services
+
+#### Selenium google crawler
+
+* It is capable of crawling search results of google for a given language and exporting them to urls.txt file. This urls.txt file can be used with datacollector_urls spider to crawl all the search results website and download the media along with their metadata.
+
+* A specified Readme can be found in selenium_google_crawler folder. [Readme for selenium google crawler](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/selenium_google_crawler/Readme.md)
+
+
+#### Selenium youtube crawler
+
+* It is capable of crawling youtube videos using youtube api or from a list of files with youtube video ids provided with channel name as filename.
+
+* A specified Readme can be found in selenium_youtube_crawler folder. [Readme for selenium youtube crawler](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/selenium_youtube_crawler/Readme.md)
+
+
 <!-- CONTRIBUTING -->
 ## Contributing
 

@@ -10,3 +10,14 @@ class DataAcquisitionFrameworkItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
     pass
+
+
+class Media(scrapy.Item):
+    title = scrapy.Field()
+    file_urls = scrapy.Field()
+    files = scrapy.Field()
+    source = scrapy.Field()
+    source_url = scrapy.Field()
+    license_urls = scrapy.Field()
+    language = scrapy.Field()
+    duration = scrapy.Field()
