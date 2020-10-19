@@ -4,7 +4,7 @@ This crawler can be used to crawl search engine results of google for a list of 
 
 This crawler can be configured by modified the parameter values of config.json.
 
-`Output of this crawler can be given to url_search spider in data_acquisition_framework folder.`
+`Output of this crawler(urls.txt) can be given to datacollector_urls spider in data_acquisition_framework folder.`
 
 ## Steps:
 
