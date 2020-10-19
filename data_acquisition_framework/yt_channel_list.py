@@ -16,9 +16,6 @@ def load_api_key():
     return os.environ["youtube_api_key"]
 
 
-youtube = build('youtube', 'v3', developerKey=load_api_key())
-
-
 def get_token():
     with open('token.txt', 'r') as file:
         token = file.read()
@@ -32,6 +29,7 @@ def set_next_token(token):
 
 def youtube_extract():
     token = get_token()
+    youtube = build('youtube', 'v3', developerKey=load_api_key())
     results = youtube.search().list(part="id,snippet", type=TYPE, q=(' ').join(
         KEYWORDS), maxResults=MAX_RESULTS, relevanceLanguage=REL_LANGUAGE, pageToken=token).execute()
     next_token = results['nextPageToken']
@@ -52,6 +50,7 @@ def get_urls():
 
 
 def get_license_info(video_id):
+    youtube = build('youtube', 'v3', developerKey=load_api_key())
     result = youtube.videos().list(part='status', id=video_id).execute()
     license_value = result['items'][0]['status']['license']
     if license_value == 'creativeCommon':

@@ -10,6 +10,7 @@ scraped_data_blob_path = "scraped_data"
 
 # Channel mode configurations
 channel_url_dict = {}
+channel_url = ''
 match_title_string = ''
 reject_title_string = ''
 
