@@ -14,6 +14,9 @@
   * [Web Crawl Configuraton](#web-crawl-configuration)
   * [Adding new spider](#adding-new-spider)
   * [Running spiders with appropriate pipeline](#running-spiders-with-appropriate-pipeline)
+* [Additional services](#additional-services)
+  * [Selenium google crawler](#selenium-google-crawler)
+  * [Selenium youtube crawler](#selenium-youtube-crawler)
 * [Contributing](#contributing)
 * [License](#license)
 * [Contact](#contact)
@@ -193,6 +196,23 @@ Make sure to put the urls to crawl in the data_acquisition_framework/urls.txt
 ```shell script
 scrapy crawl datacollector_urls
 ```
+
+## Additional Services
+
+#### Selenium google crawler
+
+* It is capable of crawling search results of google for a given language and exporting them to urls.txt file. This urls.txt file can be used with datacollector_urls spider to crawl all the search results website and download the media along with their metadata.
+
+* A specified Readme can be found in selenium_google_crawler folder. [Readme for selenium google crawler](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/non_youtube_scrapper/selenium_google_crawler/Readme.md)
+
+
+#### Selenium youtube crawler
+
+* It is capable of crawling youtube videos using youtube api or from a list of files with youtube video ids provided with channel name as filename.
+
+* A specified Readme can be found in selenium_youtube_crawler folder. [Readme for selenium youtube crawler](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/non_youtube_scrapper/selenium_youtube_crawler/Readme.md)
+
+
 <!-- CONTRIBUTING -->
 ## Contributing
 
