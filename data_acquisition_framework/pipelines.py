@@ -47,17 +47,18 @@ class YoutubePipeline(DataAcqusitionPipeline):
 
     def download_files(self):
         downloader_output = subprocess.run(
-            self.youtube_call + '-f "best[ext=mp4]" -o "%(duration)sfile-id%(id)s.%(ext)s" --batch-file {0}  --restrict-filenames --download-archive {1} --proxy "" --abort-on-error '.format(
-                self.VIDEO_BATCH_FILE_NAME, self.ARCHIVE_FILE_NAME), shell=True, capture_output=True)
+            self.youtube_call + '-f "best[ext=mp4]" -o "%(duration)sfile-id%(id)s.%(ext)s" --batch-file {0}  '
+                                '--restrict-filenames --download-archive {1} --proxy "" --abort-on-error '
+            .format(self.VIDEO_BATCH_FILE_NAME, self.ARCHIVE_FILE_NAME), shell=True, capture_output=True)
         check_and_log_download_output(self, downloader_output)
         return self
 
     def extract_metadata(self, file, url=None):
         video_info = {}
-        FILE_FORMAT = file.split('.')[-1]
-        meta_file_name = file.replace(FILE_FORMAT, "csv")
+        file_format = file.split('.')[-1]
+        meta_file_name = file.replace(file_format, "csv")
         video_id = file.split('file-id')[-1][:-4]
-        source_url = ("https://www.youtube.com/watch?v=") + video_id
+        source_url = "https://www.youtube.com/watch?v=" + video_id
         # video = moviepy.editor.VideoFileClip(file)
         video_duration = int(file.split('file-id')[0]) / 60
         video_info['duration'] = video_duration
@@ -79,7 +80,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
 
     def process_item(self, item, spider):
         self.check_speaker = True if check_mode(self) else False
-        playlist_count = get_playlist_count(self)
+        playlist_count = get_playlist_count(self.FULL_PLAYLIST_FILE_NAME)
         logging.info(str("Total playlist count with valid videos is {0}".format(playlist_count)))
         last_video_batch_count = self.create_download_batch()
         while last_video_batch_count > 0:
@@ -133,7 +134,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         return self
 
     def create_download_batch(self):
-        return get_video_batch_for_api(self)
+        return get_video_batch(self)
 
     def youtube_download(self, video_id, file):
         command = self.youtube_call + '-f "best[ext=mp4][filesize<1024M]" -o "%(duration)sfile-id%(id)s.%(ext)s" ' \
@@ -141,7 +142,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
                                       '--abort-on-error'.format(video_id, 'archive_' + file)
         downloader_output = subprocess.run(
             command, shell=True, capture_output=True)
-        check_and_log_download_output_for_api(self, downloader_output)
+        check_and_log_download_output(self, downloader_output)
 
     def download_files(self, file):
         with ThreadPoolExecutor(max_workers=1) as executor:
@@ -186,7 +187,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
             self.source_file = source_file_name
             self.batch_count = 0
             retrive_archive_from_bucket_for_api(source_file_name)
-            playlist_count = get_playlist_count_for_api(source_file)
+            playlist_count = get_playlist_count(source_file)
             logging.info(
                 str("Total playlist count with valid videos is {0}".format(playlist_count)))
 

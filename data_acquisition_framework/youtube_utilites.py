@@ -11,25 +11,18 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def get_video_batch(ob):
-    FULL_PLAYLIST = pd.read_csv(ob.FULL_PLAYLIST_FILE_NAME, header=None)
+    if hasattr(ob, 'source_file'):
+        playlist_file_name = 'playlist/' + ob.source_file
+        archive_file_name = 'archive_' + ob.source_file
+    else:
+        playlist_file_name = ob.FULL_PLAYLIST_FILE_NAME
+        archive_file_name = ob.ARCHIVE_FILE_NAME
     try:
-        ARCHIVE_FILE = pd.read_csv(ob.ARCHIVE_FILE_NAME, delimiter=' ', header=None)[1]
-    except EmptyDataError:
-        ARCHIVE_FILE = pd.DataFrame(columns=[1])
-    VIDEO_BATCH = FULL_PLAYLIST[FULL_PLAYLIST.merge(ARCHIVE_FILE, left_on=0, right_on=1, how='left')[1].isnull()].head(
-        batch_num)
-    VIDEO_BATCH.to_csv(ob.VIDEO_BATCH_FILE_NAME, header=False, index=False)
-    return int(VIDEO_BATCH.count()[0])
-
-
-def get_video_batch_for_api(ob):
-    try:
-        FULL_PLAYLIST = pd.read_csv('playlist/' + ob.source_file, header=None)
+        FULL_PLAYLIST = pd.read_csv(playlist_file_name, header=None)
     except EmptyDataError:
         return 0
     try:
-        ARCHIVE_FILE = pd.read_csv(
-            'archive_' + ob.source_file, delimiter=' ', header=None, encoding='utf-8')[1]
+        ARCHIVE_FILE = pd.read_csv(archive_file_name, delimiter=' ', header=None, encoding='utf-8')[1]
     except EmptyDataError:
         ARCHIVE_FILE = pd.DataFrame(columns=[1])
     VIDEO_BATCH = FULL_PLAYLIST[FULL_PLAYLIST.merge(ARCHIVE_FILE, left_on=0, right_on=1, how='left')[1].isnull()].head(
@@ -80,10 +73,12 @@ def create_playlist(ob, source_file, file_url_name_column):
     df[file_url_name_column].to_csv(ob.FULL_PLAYLIST_FILE_NAME, index=False, header=None)
     return df
 
+
 def create_channel_playlist(ob, channel_url):
     os.system(
         ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" > {3} '.format(
             channel_url, match_title_string, reject_title_string, ob.FULL_PLAYLIST_FILE_NAME))
+
 
 def create_channel_playlist_for_api(ob):
     path = ob.PLAYLIST_PATH
@@ -102,13 +97,10 @@ def create_channel_playlist_for_api(ob):
                 channel_url, match_title_string, reject_title_string, create_or_append, source_playlist_file))
 
 
-def get_playlist_count_for_api(file):
+def get_playlist_count(file):
     return int(subprocess.check_output(
         "cat {0} | wc -l".format(file), shell=True).decode("utf-8").split('\n')[0])
 
-def get_playlist_count(ob):
-    return int(subprocess.check_output(
-        "cat {0} | wc -l".format(ob.FULL_PLAYLIST_FILE_NAME), shell=True).decode("utf-8").split('\n')[0])
 
 def get_scraped_file_path():
     return channel_blob_path + '/' + scraped_data_blob_path + '/' + source_name + '.csv'
@@ -150,37 +142,8 @@ def check_and_log_download_output(ob, downloader_output):
         logging.info(str(_))
 
 
-def check_and_log_download_output_for_api(ob, downloader_output):
-    if downloader_output.stderr:
-        formatted_error = str(downloader_output.stderr.decode("utf-8"))
-        check = False
-        if not ("WARNING" in formatted_error):
-            logging.error(formatted_error)
-        if ": YouTube said: Unable to extract video data" in formatted_error:
-            video_id = formatted_error.split(":")[1].strip()
-            remove_rejected_video_for_api(ob, video_id)
-            check = True
-            logging.info(str("Video I'd {0} removed from playlist and won't be downloaded".format(video_id)))
-        if "Did not get any data blocks" in formatted_error or "HTTP Error 404: Not Found" in formatted_error:
-            video_id = open("video_list.txt").readlines()[0].replace("\n", "")
-            remove_rejected_video_for_api(ob, video_id)
-            check = True
-            logging.info(str("ERROR Handeled"))
-        if "HTTP Error 429" in formatted_error:
-            logging.error("Too many Requests... \nAborting..... \nPlease Re-Deploy")
-            exit()
-        if len(formatted_error) > 5 and check == False:
-            video_id = open("video_list.txt").readlines()[0].replace("\n", "")
-            remove_rejected_video_for_api(ob, video_id)
-            logging.info(str("ERROR Handeled"))
-    formatted_output = downloader_output.stdout.decode("utf-8").split("\n")
-    for _ in formatted_output:
-        logging.info(str(_))
-
-
 def remove_rejected_video(ob, video_id):
-    os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, ob.FULL_PLAYLIST_FILE_NAME))
-
-
-def remove_rejected_video_for_api(ob, video_id):
-    os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, 'playlist/' + ob.source_file))
+    if hasattr(ob, 'source_file'):
+        os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, 'playlist/' + ob.source_file))
+    else:
+        os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, ob.FULL_PLAYLIST_FILE_NAME))

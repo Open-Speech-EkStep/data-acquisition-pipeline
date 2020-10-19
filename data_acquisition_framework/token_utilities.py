@@ -1,4 +1,5 @@
 import logging
+import os
 
 from .gcs_operations import *
 from .pipeline_config import *
@@ -11,7 +12,8 @@ def get_token_path():
 
 
 def update_token_in_bucket():
-    upload_blob(bucket, 'token.txt', get_token_path())
+    if os.path.exists('token.txt'):
+        upload_blob(bucket, 'token.txt', get_token_path())
 
 
 def get_token_from_bucket():
