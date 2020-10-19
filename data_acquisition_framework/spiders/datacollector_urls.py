@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 
 class UrlSearchSpider(scrapy.Spider):
-    name = "url_search"
+    name = "datacollector_urls"
 
     custom_settings = {
         "DOWNLOAD_MAXSIZE": "0",

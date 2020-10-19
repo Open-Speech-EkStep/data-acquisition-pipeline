@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 
 class BingSearchSpider(scrapy.Spider):
-    name = "bing_search"
+    name = "data_collector_bing"
 
     custom_settings = {
         'DOWNLOAD_MAXSIZE': '0',
