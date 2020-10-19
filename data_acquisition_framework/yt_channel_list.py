@@ -4,16 +4,19 @@ import os
 # https://console.developers.google.com/project/_/apiui/credential
 # Please ensure that you have enabled the YouTube Data API for your project.
 
-youTubeApiKey = 'AIzaSyCf0vB-lFYcMSmTNpqC6ZJ-xZB-h108fTY'
-
-youtube = build('youtube', 'v3', developerKey=youTubeApiKey)
-
 # Youtube API configurations
 MAX_RESULTS = 5
 REL_LANGUAGE = "gu"
 TYPE = "channel"
 PAGES = 1
 KEYWORDS = ['in', 'gujarati', 'audio|speech|talk', '-song']
+
+
+def load_api_key():
+    return os.environ["youtube_api_key"]
+
+
+youtube = build('youtube', 'v3', developerKey=load_api_key())
 
 
 def get_token():
@@ -42,7 +45,7 @@ def youtube_extract():
 
 def get_urls():
     complete_channels = {}
-    for i in range(PAGES):
+    for _ in range(PAGES):
         page_channels = youtube_extract()
         complete_channels.update(page_channels)
     return complete_channels
