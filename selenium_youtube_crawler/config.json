@@ -8,5 +8,8 @@
     ],
     "words_to_ignore":[],
     "max_results": 3,
-    "hours_limit": 1000
+    "hours_limit": 1000,
+    "bucket_name": "ekstepspeechrecognition-dev",
+    "bucket_path":"data/audiotospeech/raw/download/downloaded/<language>/audio",
+    "input_type":"FILE"
 }

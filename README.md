@@ -60,7 +60,7 @@ pip install -r requirements.txt
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-This framework allows the user to download the media file from a websource(youtube, xyz.com, etc) and creates the respective metadata file from the data that is extracted from the file. It can also crawl internet for media of a specific language. For using any added source or to add new source refer to steps below.
+This framework allows the user to download the media file from a websource(youtube, xyz.com, etc) and creates the respective metadata file from the data that is extracted from the file.For using any added source or to add new source refer to steps below.It can also crawl internet for media of a specific language. For web crawling, refer to the web crawl configuration below.
 ### Common configuration steps:
 #### Setting credentials for Google cloud bucket
 You can set credentials for Google cloud bucket in the [credentials.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/credentials.json) add the credentials in given manner

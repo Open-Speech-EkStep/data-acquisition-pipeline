@@ -128,16 +128,20 @@ class YoutubeCrawler:
 
 
 class CrawlInput(Enum):
-    FILE = 1,
-    YOUTUBE_API = 2
+    FILE = "FILE",
+    YOUTUBE_API = "YOUTUBE_API"
 
 
 if __name__ == "__main__":
-    bucket_name = "ekstepspeechrecognition-dev"
-    bucket_path = "scrapydump"
-    # bucket_path = "data/audiotospeech/raw/download/downloaded/<language>/audio"
     with open('config.json','r') as f:
         config = json.load(f)
+        bucket_name = config["bucket_name"]
+        bucket_path = config["bucket_path"]
+        input_type = config["input_type"]
+    try:
+        CrawlInput[input_type.upper()]
         bucket_path = bucket_path.replace("<language>", config["language"])
-    youtube_crawler = YoutubeCrawler(bucket_name, bucket_path, config)
-    youtube_crawler.crawl(CrawlInput.FILE)
+        youtube_crawler = YoutubeCrawler(bucket_name, bucket_path, config)
+        youtube_crawler.crawl(CrawlInput.FILE)
+    except:
+        print("Invalid Input type. Should be FILE or YOUTUBE_API")
