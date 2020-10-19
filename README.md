@@ -11,6 +11,7 @@
   * [Bucket configuration](#bucket-configuration)
   * [Metadata file configurations](#metadata-file-configurations)
   * [Youtube download configurations](#youtube-download-configurations)
+  * [Web Crawl Configuraton](#web-crawl-configuration)
   * [Adding new spider](#adding-new-spider)
   * [Running spiders with appropriate pipeline](#running-spiders-with-appropriate-pipeline)
 * [Contributing](#contributing)
@@ -59,7 +60,7 @@ pip install -r requirements.txt
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-This framework allows the user to download the media file from a websource(youtube, xyz.com, etc) and creates the respective metadata file from the data that is extracted from the file. For using any added source or to add new source refer to steps below.
+This framework allows the user to download the media file from a websource(youtube, xyz.com, etc) and creates the respective metadata file from the data that is extracted from the file. It can also crawl internet for media of a specific language. For using any added source or to add new source refer to steps below.
 ### Common configuration steps:
 #### Setting credentials for Google cloud bucket
 You can set credentials for Google cloud bucket in the [credentials.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/credentials.json) add the credentials in given manner
@@ -106,7 +107,7 @@ speaker_gender: null                    Gender of speaker
 speaker_name: null                      Name of speaker
 
 Note:
-1. If any of the field ifo is not available keep its value to null
+1. If any of the field info is not available keep its value to null
 2. If speaker_name or speaker_gender is given then that same will ve used for all the files in given source 
 ```
 #### Youtube download configurations
@@ -135,6 +136,40 @@ channel_url = ''              Channel url (This will download all the videos fro
 match_title_string = ''       REGEX   Download only matching titles (regex or caseless sub-string)
 reject_title_string = ''      REGEX    Skip download for matching titles (regex or caseless sub-string)
 ``` 
+#### Web Crawl Configuration
+* web crawl configuration in [web_crawl_config.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/non_youtube_scraper/data_acquisition_framework/web_crawl_config.py) (Use this only for datacollector_bing and datacollector_urls spider)
+```shell script
+{
+    "language": "bengali",              # Language to be crawled
+    "keywords": [                       # Keywords to query
+        "talks audio",
+        "audiobooks",
+        "speeches",
+    ],
+    "word_to_ignore": [                 # Words to ignore while crawling
+        "ieeexplore.ieee.org",
+        "dl.acm.org",
+        "www.microsoft.com"
+    ],
+    "extensions_to_ignore": [           # Formats/extensions to ignore while crawling
+        ".jpeg",
+        "xlsx",
+        ".xml"
+    ],
+    "extensions_to_include": [          # Formats/extensions to include while crawling
+        ".mp3",
+        ".wav",
+        ".mp4",
+    ],
+    "pages": 1,                         # Number of pages to crawl
+    "depth": 1,                         # Nesting depth for each website
+    "continue_page": "NO",              # Field to continue/resume crawling
+    "last_visited": 200,                # Last visited results count
+    "enable_hours_restriction": "YES",  # Restrict crawling based on hours of data collected
+    "max_hours": 1                      # Maximum hours to crawl
+}
+
+```
 #### Adding new spider
 As we already mentioned aur framework is extensible for any new source. To add a new source user just need to write a spider for that source.<br>To add a spider you can follow the scrapy [documemtation](https://docs.scrapy.org/en/latest/intro/tutorial.html) or you can check our [sample](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/spiders/datacollector_music.py) spider.</br> 
 
@@ -149,6 +184,15 @@ Note: You can download youtube video using youtube pipeline only.
 scrapy crawl datacollector_music --set=ITEM_PIPELINES='{"data_acquisition_framework.pipelines.MediaPipeline": 1}'
 ```
 Note: You can use media pipeline for any other website source or you can write your own pipeline.
+* Starting datacollector_bing spider with audio pipeline.
+```shell script
+scrapy crawl datacollector_bing
+```
+* Starting datacollector_urls spider with audio pipeline.
+Make sure to put the urls to crawl in the data_acquisition_framework/urls.txt
+```shell script
+scrapy crawl datacollector_urls
+```
 <!-- CONTRIBUTING -->
 ## Contributing
 
