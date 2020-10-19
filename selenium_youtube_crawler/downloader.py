@@ -5,6 +5,7 @@ import pandas as pd
 import requests
 from gcs_helper import GCSHelper
 from utilities import populate_local_archive
+from youtube_api import YoutubeApiUtils
 
 class Downloader:
 
@@ -49,13 +50,12 @@ class Downloader:
         meta_file['raw_file_name'] = modified_file_name
         meta_file['title'] = modified_file_name
         meta_file['language'] = self.language.lower()
+        meta_file['license'] = YoutubeApiUtils().get_license_info(video_id)
         meta_file.to_csv(self.file_dir+"/"+csv_name, index=False)
 
         # upload media and metadata to bucket
-        self.gcs_helper.upload_file_to_bucket(source, file_name, modified_file_name)
-        self.gcs_helper.upload_file_to_bucket(source, csv_name, modified_csv_name)
-
-        print("uploaded {0} to bucket".format(video_id))
+        self.gcs_helper.upload_file_to_bucket(source, file_name, modified_file_name, self.file_dir)
+        self.gcs_helper.upload_file_to_bucket(source, csv_name, modified_csv_name, self.file_dir)
 
         # remove files from local system
         os.system('rm {0}/{1} {0}/{2}'.format(self.file_dir, file_name, csv_name))

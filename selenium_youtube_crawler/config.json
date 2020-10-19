@@ -8,8 +8,7 @@
     ],
     "words_to_ignore":[],
     "max_results": 3,
-    "hours_limit": 1000,
     "bucket_name": "ekstepspeechrecognition-dev",
-    "bucket_path":"data/audiotospeech/raw/download/downloaded/<language>/audio",
+    "bucket_path":  "scrapydump/<language>",
     "input_type":"FILE"
 }

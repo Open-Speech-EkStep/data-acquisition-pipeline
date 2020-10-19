@@ -10,7 +10,7 @@ class GCSHelper:
     def upload_archive_to_bucket(self, source):
         upload_blob(
             self.bucket_name,
-            source + "/archive.txt",
+            "archive/"+source + "/archive.txt",
             self.bucket_path + "/archive/" + source + "/archive.txt",
         )
 

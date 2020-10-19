@@ -4,12 +4,37 @@ import youtube_dl
 import json
 from googleapiclient.discovery import build
 
-class YoutubeApi:
+class YoutubeApiBuilder:
+
+    def __init__(self):
+        self.load_api_key()
+    
+    def load_api_key(self):
+        with open('.env', 'r') as f:
+            self.youtube_api_key = f.read().split("=")[-1]
+    
+    def get_youtube_object(self):
+        return build('youtube', 'v3', developerKey=self.youtube_api_key)
+
+class YoutubeApiUtils:
+
+    def __init__(self):
+        self.youtube = YoutubeApiBuilder().get_youtube_object()
+    
+    def get_license_info(self, video_id):
+        result = self.youtube.videos().list(part='status', id=video_id).execute()
+        license = result['items'][0]['status']['license']
+        if license == 'creativeCommon':
+            return 'Creative Commons'
+        else:
+            return 'Standard Youtube'
+
+class YoutubePlaylistCollector:
 
     def __init__(self, config):
-        self.load_api_key()
-        self.youtube = build('youtube', 'v3', developerKey=self.youTubeApiKey)
+        
         self.TYPE = "channel"
+        self.youtube = YoutubeApiBuilder().get_youtube_object()
 
         num_pages, num_results = self.calculate_pages(config["max_results"])
 
@@ -20,9 +45,6 @@ class YoutubeApi:
         words_to_include = "|".join(config["keywords"""])
         self.KEYWORDS = ['in', config["language"], words_to_include, '-song']
 
-    def load_api_key(self):
-        with open('.env', 'r') as f:
-            self.youTubeApiKey = f.read().split("=")[-1]
 
     def calculate_pages(self, max_results):
         if max_results <= 50: 
@@ -35,10 +57,10 @@ class YoutubeApi:
                 num_pages += 1
         return num_pages, num_results
         
-    def youtubeExtract(self):
+    def youtube_extract(self):
         token = self.getToken()
-        results = self.youtube.search().list(part="id,snippet", type=self.TYPE, q=(' ').join(
-            self.KEYWORDS), maxResults=self.MAX_RESULTS, relevanceLanguage=self.REL_LANGUAGE, pageToken='').execute()
+        results = youtube.search().list(part="id,snippet", type=self.TYPE, q=(' ').join(
+            self.KEYWORDS), maxResults=self.MAX_RESULTS, relevanceLanguage=self.REL_LANGUAGE, pageToken=token).execute()
         nextToken = results['nextPageToken']
         self.setNextToken(nextToken)
         page_channels = {}
@@ -60,8 +82,8 @@ class YoutubeApi:
 
     def getUrls(self):
         complete_channels = {}
-        for i in range(self.PAGES):
-            page_channels = self.youtubeExtract()
+        for _ in range(self.PAGES):
+            page_channels = self.youtube_extract()
             complete_channels.update(page_channels)
         return complete_channels
     
@@ -81,7 +103,7 @@ class YoutubeApi:
 
     def generate_playlist_files(self, folder):
         playlist_collection = self.get_playlist_collection()
-        for playlist in playlist_collection:
+        for playlist, video_ids in playlist_collection.items():
             with open(folder+"/"+playlist+".txt", 'w') as f:
                 for video_id in video_ids:
                     f.write(video_id+"\n")
@@ -90,7 +112,7 @@ class YoutubeApi:
 if __name__ == "__main__":
     with open('config.json','r') as f:
         config = json.load(f)
-        YoutubeApi(config).generate_playlist_files("playlists")
+        YoutubePlaylistCollector(config).generate_playlist_files("playlists")
 
 
 

@@ -17,10 +17,9 @@ This crawler can be configured by modified the parameter values of config.json.
     3. keywords - the search keyword to be given in google search engine.
     4. words_to_ignore - can be used to ignore urls that has the given words.
     5. max_results - maximum number of channels or results that is required.
-    6. hours_limit - maximum hours of data to download from youtube.
-    7. bucket_name - name of the gcp bucket.
-    8. bucket_path - path where to store the file.
-    9. input_type - type of input to crawler.. values = [FILE or YOUTUBE_API]
+    6. bucket_name - name of the gcp bucket.
+    7. bucket_path - path where to store the file.
+    8. input_type - type of input to crawler.. values = [FILE or YOUTUBE_API]
 
 ## Note:
     1. If input_type is file, then create a folder named playlists and add files with channel name as filename and channel videos ids as file content.

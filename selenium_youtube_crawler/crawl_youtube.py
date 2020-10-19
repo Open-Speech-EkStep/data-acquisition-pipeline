@@ -1,9 +1,3 @@
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.firefox.options import Options
 from gcs import set_gcs_credentials
 from utilities import populate_local_archive, read_playlist_from_file, read_playlist_from_youtube_api
 import threading
@@ -14,10 +8,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from gcs_helper import GCSHelper
 from downloader import Downloader
+from browser_utils import BrowserUtils
 
 # downloads driver for firefox if not present
 import geckodriver_autoinstaller
-
 geckodriver_autoinstaller.install()
 
 # Crawls youtube videos using youtube api and downloads using en.savefrom.net website
@@ -38,22 +32,20 @@ class YoutubeCrawler:
         downloader = Downloader(self.thread_local, self.bucket_name, self.bucket_path, self.language)
         downloader.download(download_url, video_id, source)
 
-    def initiate_video_id_crawl(self, browser, video_id, playlist_name):
+    def initiate_video_id_crawl(self, browser_utils, video_id, playlist_name):
         video_id = video_id.rstrip().lstrip()
         redirect_url = "https://www.ssyoutube.com/watch?v=" + video_id
 
-        browser.get(redirect_url)
+        browser_utils.get(redirect_url)
 
         try:
             # wait until result box is rendered by ajax request
-            WebDriverWait(browser, 30).until(
-                EC.presence_of_element_located((By.CLASS_NAME, "subname"))
-            )
+            browser_utils.wait_by_class_name("subname")
         except:
             print("Load of {0} failed".format(video_id))
             return
 
-        result_div = browser.find_element_by_id("sf_result")
+        result_div = browser_utils.find_element_by_id("sf_result")
         a_tags = result_div.find_elements_by_tag_name("a")
 
         for a_tag in a_tags:
@@ -71,10 +63,7 @@ class YoutubeCrawler:
                 break
 
     def initiate_playlist_crawl(self, playlists, playlist_name):
-        options = Options()
-        options.headless = True
-        browser = webdriver.Firefox(options=options)
-        browser.maximize_window()
+        browser_utils = BrowserUtils()
 
         # download archive here
         archive_video_ids = GCSHelper(
@@ -95,12 +84,12 @@ class YoutubeCrawler:
 
         for video_id in video_ids:
             try:
-                self.initiate_video_id_crawl(browser, video_id, playlist_name)
+                self.initiate_video_id_crawl(browser_utils, video_id, playlist_name)
             except Exception as exc:
                 print("%s generated an exception: %s" % (video_id, exc))
                 continue
 
-        browser.quit()
+        browser_utils.quit()
 
     def crawl(self, input_type):
         gcs_helper = GCSHelper(self.bucket_name, self.bucket_path)

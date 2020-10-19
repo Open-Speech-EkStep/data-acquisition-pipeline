@@ -1,5 +1,5 @@
 import os
-from youtube_api import YoutubeApi
+from youtube_api import YoutubePlaylistCollector
 from gcs import upload_blob, download_blob, check_blob
 import requests
 import threading
@@ -16,8 +16,8 @@ def read_playlist_from_file(folder_name):
     return data_collection
 
 def read_playlist_from_youtube_api(config):
-    youtube_api = YoutubeApi(config)
-    return youtube_api.get_playlist_collection()
+    youtube_playlist_collector = YoutubePlaylistCollector(config)
+    return youtube_playlist_collector.get_playlist_collection()
 
 def populate_local_archive(source, video_id):        
     with open("archive/"+source+"/archive.txt", 'a') as f:
