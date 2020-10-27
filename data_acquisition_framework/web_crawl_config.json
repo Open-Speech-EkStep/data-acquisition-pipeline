@@ -1,12 +1,16 @@
 {
-    "language": "urdu",
+    "language": "ગુજરાતી",
     "keywords": [
-        "talks audio",
         "audiobooks",
+        "iડિયોબુક્સ",
         "poems download",
+        "કવિતાઓ",
         "debates",
+        "ચર્ચાઓ",
         "speeches",
-        "news interviews"
+        "ભાષણો",
+        "news interviews",
+        "સમાચાર ઇન્ટરવ્યુ"
     ],
     "word_to_ignore": [
         "mailto:",
@@ -14,6 +18,7 @@
         "mms:",
         "whatsapp:",
         "tel:",
+        "www.audible.",
         "javscript",
         "javascript",
         "https://creativecommons.org",
@@ -22,6 +27,8 @@
         "hungama.com",
         "hotstar.com",
         "audible.in",
+        "www.apple.com",
+        "www.amazon.",
         "speechtyping.com",
         "ieeexplore.ieee.org",
         "melody",
@@ -87,10 +94,10 @@
         ".mp4",
         ".m4a"
     ],
-    "pages": 1,
-    "depth": 2,
+    "pages": 10,
+    "depth": 3,
     "continue_page": "NO",
-    "last_visited": 10,
-    "enable_hours_restriction": "YES",
+    "last_visited": 0,
+    "enable_hours_restriction": "NO",
     "max_hours": 1
 }

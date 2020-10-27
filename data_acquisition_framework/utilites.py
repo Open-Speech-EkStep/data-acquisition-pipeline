@@ -35,6 +35,7 @@ def create_metadata(video_info, yml):
                 # 'source': yml['source'],  # --------
                 'experiment_use': yml['experiment_use'],  # check
                 'utterances_files_list': yml['utterances_files_list'],
+                'file_url': video_info['file_url'],
                 'source_url': video_info['source_url'],
                 'speaker_gender': str(yml['speaker_gender']).lower() if yml['speaker_gender'] else video_info['gender'],
                 'source_website': yml['source_website'],  # --------
@@ -46,7 +47,8 @@ def create_metadata(video_info, yml):
                 'recorded_place': yml['recorded_place'],
                 'recorded_date': yml['recorded_date'],
                 'purpose': yml['purpose'],
-                'license': video_info['license']}
+                'license': video_info["license"] if "license" in video_info else ""
+    }
     return metadata
 
 def create_metadata_for_audio(video_info, yml, item):
