@@ -162,6 +162,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         video_info['duration'] = video_duration
         self.t_duration += video_duration
         logging.info('$$$$$$$    ' + str(self.t_duration // 60) + '   $$$$$$$')
+        video_info['source'] = source_file.replace('.txt', '')
         video_info['raw_file_name'] = file
         if self.check_speaker:
             video_info['name'] = get_speaker(self.scraped_data, video_id)
@@ -172,8 +173,9 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         else:
             video_info['gender'] = None
         video_info['source_url'] = source_url
+        video_info['source_website'] = read_website_url(video_info['source'])
         video_info['license'] = get_license_info(video_id)
-        metadata = create_metadata(video_info, self.yml_config)
+        metadata = create_metadata_for_api(video_info, self.yml_config)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
         return self

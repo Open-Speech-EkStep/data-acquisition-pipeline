@@ -84,6 +84,8 @@ def create_channel_playlist_for_api(ob):
     path = ob.PLAYLIST_PATH
     if not (os.path.exists(path)):
         os.mkdir(path)
+    if not (os.path.exists('urls')):
+        os.mkdir('urls')
     for channel_url in ob.source_channel_dict.keys():
         ob.source_channel_dict[channel_url] = str(ob.source_channel_dict[channel_url]).replace(' ', '_')
         source_playlist_file = path + '/' + ob.source_channel_dict[channel_url] + '.txt'
@@ -95,6 +97,8 @@ def create_channel_playlist_for_api(ob):
         os.system(
             ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" {3} {4} '.format(
                 channel_url, match_title_string, reject_title_string, create_or_append, source_playlist_file))
+
+        os.system('ECHO {0} > {1}_url.txt'.format(channel_url, 'urls/'+ob.source_channel_dict[channel_url]))
 
 
 def get_playlist_count(file):
@@ -140,6 +144,12 @@ def check_and_log_download_output(ob, downloader_output):
     formatted_output = downloader_output.stdout.decode("utf-8").split("\n")
     for _ in formatted_output:
         logging.info(str(_))
+
+
+def read_website_url(source):
+    with open('urls/'+source+'_url.txt') as file:
+        url = file.readline().strip()
+        return url
 
 
 def remove_rejected_video(ob, video_id):

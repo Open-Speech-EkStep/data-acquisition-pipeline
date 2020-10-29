@@ -32,7 +32,7 @@ def create_metadata(video_info, yml):
                 'language': yml['language'],
                 'has_other_audio_signature': yml['has_other_audio_signature'],
                 'type': yml['type'],
-                # 'source': yml['source'],  # --------
+                'source': yml['source'],  # --------
                 'experiment_use': yml['experiment_use'],  # check
                 'utterances_files_list': yml['utterances_files_list'],
                 'source_url': video_info['source_url'],
@@ -49,12 +49,43 @@ def create_metadata(video_info, yml):
                 'license': video_info['license']}
     return metadata
 
+
+def create_metadata_for_api(video_info, yml):
+    metadata = {'raw_file_name': video_info['raw_file_name'],
+                'duration': str(video_info['duration']),
+                'title': video_info['raw_file_name'],
+                'speaker_name': yml['speaker_name'] if yml['speaker_name'] else video_info['name'],
+                'audio_id': yml['audio_id'],
+                'cleaned_duration': yml['cleaned_duration'],
+                'num_of_speakers': yml['num_of_speakers'],  # check
+                'language': yml['language'],
+                'has_other_audio_signature': yml['has_other_audio_signature'],
+                'type': yml['type'],
+                'source': video_info['source'],
+                'experiment_use': yml['experiment_use'],  # check
+                'utterances_files_list': yml['utterances_files_list'],
+                'source_url': video_info['source_url'],
+                'speaker_gender': str(yml['speaker_gender']).lower() if yml['speaker_gender'] else video_info['gender'],
+                'source_website': video_info['source_website'],
+                'experiment_name': yml['experiment_name'],
+                'mother_tongue': yml['mother_tongue'],
+                'age_group': yml['age_group'],  # -----------
+                'recorded_state': yml['recorded_state'],
+                'recorded_district': yml['recorded_district'],
+                'recorded_place': yml['recorded_place'],
+                'recorded_date': yml['recorded_date'],
+                'purpose': yml['purpose'],
+                'license': video_info['license']}
+    return metadata
+
+
 def create_metadata_for_audio(video_info, yml, item):
     metadata = create_metadata(video_info, yml)
     metadata["source"] = item["source"]
     metadata["language"] = item["language"]
     metadata["file_url"] = video_info["file_url"]
     return metadata
+
 
 def set_gcs_creds(gcs_credentials_string):
     gcs_credentials = json.loads(gcs_credentials_string)["Credentials"]
@@ -66,6 +97,7 @@ def set_gcs_creds(gcs_credentials_string):
 def get_archive_file_path_for_api(source_file):
     source_name=source_file.replace(".txt",'')
     return channel_blob_path + '/' + archive_blob_path + '/' + source_name + '/' + ARCHIVE_FILE_NAME
+
 
 def get_archive_file_path():
     return channel_blob_path + '/' + archive_blob_path + '/' + source_name + '/' + ARCHIVE_FILE_NAME
