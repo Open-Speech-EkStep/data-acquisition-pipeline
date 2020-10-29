@@ -90,10 +90,13 @@ class BingSearchSpider(scrapy.Spider):
         urls = response.css('a::attr(href)').getall()
         print("bing search page urls count=>", len(urls))
         search_result_urls = []
+        self.write("results.txt","%s results = [\n"%response.url)
         for url in urls:
             if url.startswith("http:") or url.startswith("https:"):
                 if "go.microsoft.com" not in url and not "microsofttranslator.com" in url:
                     search_result_urls.append(url)
+                    self.write("results.txt",url+"\n")
+        self.write("results.txt","\n]\n")
         print("filtered search page urls count=>", len(search_result_urls))
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
            future_to_url = {executor.submit(self.parse_results_url, url): url for url in search_result_urls}
