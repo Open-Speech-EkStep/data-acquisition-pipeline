@@ -3,6 +3,7 @@ import subprocess
 import youtube_dl 
 import json
 from googleapiclient.discovery import build
+import pandas as pd 
 
 class YoutubeApiBuilder:
 
@@ -10,8 +11,8 @@ class YoutubeApiBuilder:
         self.load_api_key()
     
     def load_api_key(self):
-        with open('.env', 'r') as f:
-            self.youtube_api_key = f.read().split("=")[-1]
+        with open('.youtube_api_key', 'r') as f:
+            self.youtube_api_key = f.read()
     
     def get_youtube_object(self):
         return build('youtube', 'v3', developerKey=self.youtube_api_key)
@@ -42,7 +43,7 @@ class YoutubePlaylistCollector:
         self.PAGES = num_pages
 
         self.REL_LANGUAGE = config["language_code"]
-        words_to_include = "|".join(config["keywords"""])
+        words_to_include = "|".join(config["keywords"])
         self.KEYWORDS = ['in', config["language"], words_to_include, '-song']
 
 
@@ -59,7 +60,7 @@ class YoutubePlaylistCollector:
         
     def youtube_extract(self):
         token = self.getToken()
-        results = youtube.search().list(part="id,snippet", type=self.TYPE, q=(' ').join(
+        results = self.youtube.search().list(part="id,snippet", type=self.TYPE, q=(' ').join(
             self.KEYWORDS), maxResults=self.MAX_RESULTS, relevanceLanguage=self.REL_LANGUAGE, pageToken=token).execute()
         nextToken = results['nextPageToken']
         self.setNextToken(nextToken)
@@ -83,7 +84,10 @@ class YoutubePlaylistCollector:
     def getUrls(self):
         complete_channels = {}
         for _ in range(self.PAGES):
-            page_channels = self.youtube_extract()
+            try:
+                page_channels = self.youtube_extract()
+            except:
+                break
             complete_channels.update(page_channels)
         return complete_channels
     
@@ -107,12 +111,21 @@ class YoutubePlaylistCollector:
             with open(folder+"/"+playlist+".txt", 'w') as f:
                 for video_id in video_ids:
                     f.write(video_id+"\n")
-            
+
+    def get_channel_name_and_urls(self):
+        playlist_collection = {}
+        urls = self.getUrls()
+        pairs = []
+        for url, name in urls.items():
+            pairs.append((name, url))
+        df = pd.DataFrame(pairs, columns=['Channel Name','Url']) 
+        df.to_csv('channels1.csv')
         
 if __name__ == "__main__":
     with open('config.json','r') as f:
         config = json.load(f)
-        YoutubePlaylistCollector(config).generate_playlist_files("playlists")
+        YoutubePlaylistCollector(config).get_channel_name_and_urls()
+        
 
 
 

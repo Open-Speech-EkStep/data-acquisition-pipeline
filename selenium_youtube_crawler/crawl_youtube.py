@@ -131,7 +131,7 @@ if __name__ == "__main__":
         CrawlInput[input_type.upper()]
         bucket_path = bucket_path.replace("<language>", config["language"])
         youtube_crawler = YoutubeCrawler(bucket_name, bucket_path, config)
-        youtube_crawler.crawl(CrawlInput.FILE)
-    except:
-        print("Invalid Input type. Should be FILE or YOUTUBE_API")
-        
+        youtube_crawler.crawl(CrawlInput.YOUTUBE_API)
+    except Exception as exc:
+        print("generated an exception: %s" % (exc))
+        print("Invalid Input type. Should be FILE or YOUTUBE_API")        

@@ -2,13 +2,15 @@
     "language" : "gujarati",
     "language_code": "gu",
     "keywords":[
-        "audio",
-        "speech",
-        "talk"
+        "gujaraticomedy",
+        "gujaratinews",
+        "gujaratimovies",
+        "gujaratitalks",
+        "gujaratispeeches"
     ],
     "words_to_ignore":[],
     "max_results": 3,
     "bucket_name": "ekstepspeechrecognition-dev",
     "bucket_path":  "scrapydump/<language>",
-    "input_type":"FILE"
+    "input_type":"YOUTUBE_API"
 }

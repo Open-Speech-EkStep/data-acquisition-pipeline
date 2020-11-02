@@ -77,9 +77,9 @@ class BingSearchSpider(scrapy.Spider):
             for keyword in config["keywords"]:
                 keyword = self.language+"+"+keyword.replace(" ","+")
                 if page == 0:
-                    url="https://www.bing.com/search?q={0}".format(keyword)
+                    url="https://www.bing.com/search?q={0}&rf=1&qpvt={0}".format(keyword)
                 else:
-                    url="https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
+                    url="https://www.bing.com/search?q={0}&first={1}&rf=1&qpvt={0}".format(keyword, page)
                 yield scrapy.Request(url=url, callback=self.bing_parse, cb_kwargs=dict(page_number=1,keyword=keyword))
             config["last_visited"] = (self.pages * 10) + page 
             with open(self.web_crawl_config,'w') as jsonfile:
@@ -109,7 +109,7 @@ class BingSearchSpider(scrapy.Spider):
                except Exception as exc:
                    print('%r generated an exception: %s' % (url, exc))
         page = page_number * 10
-        formattedUrl="https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
+        formattedUrl="https://www.bing.com/search?q={0}&first={1}&rf=1&qpvt={0}".format(keyword, page)
         page_number += 1
         if page_number <= self.pages:
             yield scrapy.Request(formattedUrl, callback=self.bing_parse, cb_kwargs=dict(page_number=page_number,keyword=keyword))
