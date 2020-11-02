@@ -98,7 +98,7 @@ def create_channel_playlist_for_api(ob):
             ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" {3} {4} '.format(
                 channel_url, match_title_string, reject_title_string, create_or_append, source_playlist_file))
 
-        os.system('ECHO {0} > {1}_url.txt'.format(channel_url, 'urls/'+ob.source_channel_dict[channel_url]))
+        os.system('echo {0} > {1}_url.txt'.format(channel_url, 'urls/'+ob.source_channel_dict[channel_url]))
 
 
 def get_playlist_count(file):

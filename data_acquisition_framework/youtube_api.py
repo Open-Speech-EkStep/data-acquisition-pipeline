@@ -10,8 +10,7 @@ class YoutubeApiBuilder:
         self.load_api_key()
     
     def load_api_key(self):
-        with open('.youtube_api_key', 'r') as f:
-            self.youtube_api_key = f.read()
+        self.youtube_api_key = os.environ["youtube_api_key"]
     
     def get_youtube_object(self):
         return build('youtube', 'v3', developerKey=self.youtube_api_key)
