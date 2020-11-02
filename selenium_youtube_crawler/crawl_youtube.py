@@ -134,3 +134,4 @@ if __name__ == "__main__":
         youtube_crawler.crawl(CrawlInput.FILE)
     except:
         print("Invalid Input type. Should be FILE or YOUTUBE_API")
+        

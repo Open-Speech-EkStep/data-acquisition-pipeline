@@ -7,7 +7,6 @@
 import glob
 from contextlib import suppress
 
-import os
 import moviepy.editor
 from itemadapter import ItemAdapter
 # useful for handling different item types with a single interface
@@ -17,7 +16,7 @@ from scrapy.pipelines.files import FilesPipeline
 from .data_acquisition_pipeline import DataAcqusitionPipeline
 from .utilites import *
 from .youtube_utilites import *
-from .yt_channel_list import get_urls, get_license_info
+from .youtube_api import YoutubePlaylistCollector, YoutubeApiUtils
 from .token_utilities import *
 from concurrent.futures.thread import ThreadPoolExecutor
 
@@ -32,6 +31,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
         logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
         logging.info(str("Downloading videos for source : {0}".format(source_name)))
 
+        self.youtube_api_utils = YoutubeApiUtils()
         self.batch_count = 0
         self.scraped_data = None
         self.yml_config = config_yaml()['downloader']
@@ -73,7 +73,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
         else:
             video_info['gender'] = None
         video_info['source_url'] = source_url
-        video_info['license'] = get_license_info(video_id)
+        video_info['license'] = self.youtube_api_utils.get_license_info(video_id)
         metadata = create_metadata(video_info, self.yml_config)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
@@ -116,6 +116,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
         logging.info(str("Downloading videos for source : {0}".format(source_name)))
 
+        self.youtube_api_utils = YoutubeApiUtils()
         self.batch_count = 0
         self.scraped_data = None
         self.yml_config = config_yaml()['downloader']
@@ -130,7 +131,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
             self.source_channel_dict = channel_url_dict
         else:
             get_token_from_bucket()
-            self.source_channel_dict = get_urls()
+            self.source_channel_dict = YoutubePlaylistCollector().get_urls()
         create_channel_playlist_for_api(self)
         return self
 
@@ -174,7 +175,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
             video_info['gender'] = None
         video_info['source_url'] = source_url
         video_info['source_website'] = read_website_url(video_info['source'])
-        video_info['license'] = get_license_info(video_id)
+        video_info['license'] = self.youtube_api_utils.get_license_info(video_id)
         metadata = create_metadata_for_api(video_info, self.yml_config)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
