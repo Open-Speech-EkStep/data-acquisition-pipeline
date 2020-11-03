@@ -6,9 +6,5 @@
         "speech",
         "talk"
     ],
-    "words_to_ignore":[],
-    "max_results": 3,
-    "bucket_name": "ekstepspeechrecognition-dev",
-    "bucket_path":  "scrapydump/<language>",
-    "input_type":"YOUTUBE_API"
+    "max_results": 3
 }

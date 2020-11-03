@@ -6,7 +6,7 @@ downloader: ## data loader
   language: Gujarati
   has_other_audio_signature: False
   type: 'audio'
-  source: 'CRAWL_SOURCE_GUJARATI'
+  source: ''
   experiment_use: False # null or False check it
   utterances_files_list: null
   source_website: ''

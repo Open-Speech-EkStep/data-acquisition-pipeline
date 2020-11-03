@@ -14,7 +14,7 @@ This crawler can be configured by modified the parameter values of config.json.
 
     1. language - the type of language for which search results are required.
     2. language_code - language code for the specified language.
-    3. keywords - the search keyword to be given in google search engine.
+    3. keywords - the search keyword to be given in youtube API query.
     4. words_to_ignore - can be used to ignore urls that has the given words.
     5. max_results - maximum number of channels or results that is required.
     6. bucket_name - name of the gcp bucket.

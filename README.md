@@ -143,21 +143,21 @@ match_title_string = ''       REGEX   Download only matching titles (regex or ca
 reject_title_string = ''      REGEX    Skip download for matching titles (regex or caseless sub-string)
 
 Note:
-In channel_url_dict, the keys must be the urls and values must be their channel names
+1. In channel_url_dict, the keys must be the urls and values must be their channel names
+2. To get list of channels from youtube API, channel_url_dict must be empty
 ``` 
 #### Youtube Crawl configuration
-* Automated Youtube fetching configuration in [yt_channel_list.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/youtube/crawler/data_acquisition_framework/yt_channel_list.py)
+* Automated Youtube fetching configuration in [youtube_api_config.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/youtube_api_config.json)
 ```shell script
 # Youtube API configurations
-MAX_RESULTS = 50                                          Number of channels per page from Youtube API (maximum limit is 50)
-REL_LANGUAGE = "hi"                                       Parameter to return results relevant to that language (in ISO 639-1 two-letter language code)
-TYPE = "channel"                                          Result type (can be 'channel', 'playlist' or 'video')
-PAGES = 5                                                 Number of pages to be retrieved (to get more than 50 results)
-KEYWORDS = ['in', 'hindi', 'audio|speech', '-song']       Keywords to query on (Boolean operators NOT(-), OR(|) can be used in query)
-
-Note:
-1. To get a total of 100 channels - MAX_RESULTS can be 50 and PAGES can be set to 2
-2. To run the automated youtube fetching, channel_url_dict in pipeline_config.py must be empty
+"language" : "hindi",                                     Type of language for which search results are required.
+    "language_code": "hi",                                Language code for the specified language.
+    "keywords":[                                          The search keywords to be given in youtube API query
+        "audio",
+        "speech",
+        "talk"
+    ],
+    "max_results": 20                                     Maximum number of channels or results that is required.
 ```
 #### Web Crawl Configuration
 * web crawl configuration in [web_crawl_config.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/web_crawl_config.py) (Use this only for datacollector_bing and datacollector_urls spider)
