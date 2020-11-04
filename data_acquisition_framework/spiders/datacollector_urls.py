@@ -86,13 +86,21 @@ class UrlSearchSpider(scrapy.Spider):
     def parse_results_url(self, url):
         return scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
 
-    def extract_license_urls(self, urls):
-        license_urls = []
+    def extract_license_urls(self, urls, all_a_tags, response):
+        license_urls = set()
         for url in urls:
             url = url.rstrip().lstrip()
             if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith("https://creativecommons.org/publicdomain/zero") or url.startswith("https://creativecommons.org/licenses/by"):
-                license_urls.append(url)
-        return license_urls
+                license_urls.add(url)
+        if len(license_urls) == 0:
+            for a_tag in all_a_tags:
+                texts = a_tag.xpath('text()').extract()
+                for text in texts:
+                    text = text.lower()
+                    if "terms" in text or "license" in text or "copyright" in text or "usage policy" in text or "conditions" in text or "website policies" in text:
+                        for link in a_tag.xpath('@href').extract():
+                            license_urls.add(response.urljoin(link))
+        return list(license_urls)
     
     def is_unwanted_words_present(self, url):
         for word in self.word_to_ignore:
@@ -119,13 +127,17 @@ class UrlSearchSpider(scrapy.Spider):
             return
 
         base_url = response.url
+        all_a_tags = response.xpath('//a')
         a_urls = response.css("a::attr(href)").getall()
         source_urls = response.css("source::attr(src)").getall()
         urls = a_urls + source_urls
 
         source_domain = base_url[base_url.index("//") + 2 :].split("/")[0]
 
-        license_urls = self.extract_license_urls(a_urls)
+        if source_domain.startswith("www."):
+            source_domain = source_domain.replace("www.","")
+
+        license_urls = self.extract_license_urls(a_urls, all_a_tags, response)
 
         for url in urls:
             

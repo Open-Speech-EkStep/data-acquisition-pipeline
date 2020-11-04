@@ -22,6 +22,7 @@ class GoogleCrawler:
         with open(config_path,'r') as f:
             config = json.load(f)
             self.language = config["language"]
+            self.language_code = config["language_code"]
             self.max_pages = config["max_pages"]
             self.word_to_ignore = config["words_to_ignore"]
             self.extensions_to_ignore = config["extensions_to_ignore"]
@@ -46,6 +47,14 @@ class GoogleCrawler:
                 return True
         return False
 
+    def is_unwanted_wiki(self, url):
+        url = self.sanitize(url)
+        if "wikipedia.org" in url or "wikimedia.org" in url:
+            url = url.replace("https://","").replace("http://","")
+            if not url.startswith("en") or not url.startswith(self.language_code) or not url.startswith("wiki"):
+                return True
+        return False
+
     def extract_and_move_next(self, browser ,current_page):
         try:
             WebDriverWait(browser, 20).until(EC.presence_of_element_located((By.CLASS_NAME, "yuRUbf")))
@@ -56,7 +65,7 @@ class GoogleCrawler:
         for link_element in link_elements:
             a_element = link_element.find_element_by_tag_name("a")
             link = a_element.get_attribute('href')
-            if self.is_present_in_archive(link) or self.is_unwanted_present(link) or self.is_unwanted_extension_present(link):
+            if self.is_present_in_archive(link) or self.is_unwanted_present(link) or self.is_unwanted_extension_present(link) or self.is_unwanted_wiki(link):
                 continue
             self.links_count+=1
             self.archive.append(link+"\n")
@@ -73,7 +82,7 @@ class GoogleCrawler:
 
     def crawl(self):
         options = Options()
-        # options.headless = True
+        options.headless = True
         browser = webdriver.Firefox(options=options)
         browser.maximize_window()
 

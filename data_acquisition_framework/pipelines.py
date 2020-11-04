@@ -318,6 +318,12 @@ class AudioPipeline(FilesPipeline):
             self.archive_list = retrieve_archive_from_local_by_source(item["source"])
         return [Request(u) for u in urls if u not in self.archive_list]
 
+    def get_license_info(self, license_urls):
+        for url in license_urls:
+            if "creativecommons" in url:
+                return "Creative Commons"
+        return ', '.join(license_urls)
+
     def extract_metadata(self, file, url, item):
         video_info = {}
         duration_in_seconds = 0
@@ -333,9 +339,10 @@ class AudioPipeline(FilesPipeline):
         video_info['raw_file_name'] = file
         video_info['name'] = None
         video_info['gender'] = None
-        video_info['source_url'] = item["source_url"]
-        video_info['file_url'] = source_url
-        video_info['license'] = "" if len(item["license_urls"]) == 0 else "Creative Commons"
+        video_info['source_url'] = source_url
+        video_info['source_website'] = item["source_url"]
+        # have to rephrase to check if creative commons is present otherwise give comma separated license page links
+        video_info['license'] = self.get_license_info(item["license_urls"])
         metadata = create_metadata_for_audio(video_info, self.yml_config, item)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)

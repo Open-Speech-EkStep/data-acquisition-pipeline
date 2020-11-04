@@ -85,7 +85,7 @@ def create_metadata_for_audio(video_info, yml, item):
     metadata = create_metadata(video_info, yml)
     metadata["source"] = item["source"]
     metadata["language"] = item["language"]
-    metadata["file_url"] = video_info["file_url"]
+    # metadata["file_url"] = video_info["file_url"]
     return metadata
 
 
@@ -135,15 +135,18 @@ def retrive_archive_from_bucket_for_api(source_file):
 def retrive_archive_from_bucket_by_source(item):
     source = item["source"]
     if check_blob(bucket, get_archive_file_path_by_source(item)):
-        if not os.path.exists(source+"/"):
-            os.system('mkdir {0}'.format(source))
-        download_blob(bucket, get_archive_file_path_by_source(item), source+"/"+ARCHIVE_FILE_NAME)
+        if not os.path.exists("archives"):
+            os.system('mkdir archives')
+        if not os.path.exists("archives/"+source+"/"):
+            os.system('mkdir archives/{0}'.format(source))
+        download_blob(bucket, get_archive_file_path_by_source(item), "archives/"+source+"/"+ARCHIVE_FILE_NAME)
         logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(bucket)))
-        num_downloaded = sum(1 for line in open(source+"/"+ARCHIVE_FILE_NAME))
+        num_downloaded = sum(1 for line in open("archives/"+source+"/"+ARCHIVE_FILE_NAME))
         logging.info(str("Count of Previously downloaded files are : {0}".format(num_downloaded)))
     else:
-        os.system('mkdir {0}'.format(source))
-        os.system('touch {0}'.format(source+"/"+ARCHIVE_FILE_NAME))
+        os.system('mkdir archives')
+        os.system('mkdir archives/{0}'.format(source))
+        os.system('touch {0}'.format("archives/"+source+"/"+ARCHIVE_FILE_NAME))
         logging.info("No Archive file has been found on bucket...Downloading all files...")
 
 
@@ -153,7 +156,7 @@ def populate_archive(url):
 
 
 def populate_archive_to_source(source, url):
-    with open(source+'/archive.txt', 'a+') as f:
+    with open("archives/"+source+'/archive.txt', 'a+') as f:
         f.write(url + '\n')
 
 
@@ -168,8 +171,8 @@ def retrieve_archive_from_local():
 
 
 def retrieve_archive_from_local_by_source(source):
-    if os.path.exists(source+'/archive.txt'):
-        with open(source+'/archive.txt', 'r') as f:
+    if os.path.exists("archives/"+source+'/archive.txt'):
+        with open("archives/"+source+'/archive.txt', 'r') as f:
             lines = f.readlines()
         return [line.replace('\n', '') for line in lines]
     else:
@@ -196,7 +199,7 @@ def upload_media_and_metadata_to_bucket_for_api(source_file, file):
 
 
 def upload_archive_to_bucket_by_source(item):
-    upload_blob(bucket, item["source"]+"/"+ARCHIVE_FILE_NAME, get_archive_file_path_by_source(item))
+    upload_blob(bucket, "archives/"+item["source"]+"/"+ARCHIVE_FILE_NAME, get_archive_file_path_by_source(item))
 
 
 def upload_media_and_metadata_to_bucket(file):

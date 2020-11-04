@@ -124,7 +124,8 @@ class YoutubePlaylistCollector:
 if __name__ == "__main__":
     with open('config.json','r') as f:
         config = json.load(f)
-        YoutubePlaylistCollector(config).get_channel_name_and_urls()
+        #YoutubePlaylistCollector(config).get_channel_name_and_urls()
+        YoutubePlaylistCollector(config).generate_playlist_files("playlists")
         
 
 
