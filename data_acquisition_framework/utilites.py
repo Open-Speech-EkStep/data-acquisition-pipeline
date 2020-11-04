@@ -35,7 +35,7 @@ def create_metadata(video_info, yml):
                 'source': yml['source'],  # --------
                 'experiment_use': yml['experiment_use'],  # check
                 'utterances_files_list': yml['utterances_files_list'],
-                'file_url': video_info['file_url'],
+                # 'file_url': video_info['file_url'],
                 'source_url': video_info['source_url'],
                 'speaker_gender': str(yml['speaker_gender']).lower() if yml['speaker_gender'] else video_info['gender'],
                 'source_website': yml['source_website'],  # --------
@@ -85,6 +85,7 @@ def create_metadata_for_audio(video_info, yml, item):
     metadata = create_metadata(video_info, yml)
     metadata["source"] = item["source"]
     metadata["language"] = item["language"]
+    metadata['source_website'] = item["source_url"]
     # metadata["file_url"] = video_info["file_url"]
     return metadata
 
@@ -212,13 +213,16 @@ def upload_media_and_metadata_to_bucket(file):
 
 
 def upload_audio_and_metadata_to_bucket(file, item):
+    blob_path = channel_blob_path
     FILE_FORMAT = file.split('.')[-1]
     meta_file_name = file.replace(FILE_FORMAT, "csv")
-    upload_blob(bucket, file, channel_blob_path
-                .replace("<language>", item["language"]) + '/' + item["source"] + '/' + file)
+    file_path = blob_path.replace("<language>", item["language"]) + '/' + item["source"] + '/' + file
+    print(file_path)
+    upload_blob(bucket, file, file_path)
     os.remove(file)
-    upload_blob(bucket, meta_file_name, channel_blob_path
-                .replace("<language>", item["language"]) + '/' + item["source"] + '/' + meta_file_name)
+    meta_path = blob_path.replace("<language>", item["language"]) + '/' + item["source"] + '/' + meta_file_name
+    print(meta_path)
+    upload_blob(bucket, meta_file_name, meta_path)
     os.remove(meta_file_name)
 
 

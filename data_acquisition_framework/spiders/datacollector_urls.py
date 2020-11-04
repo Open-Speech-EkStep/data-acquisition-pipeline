@@ -21,7 +21,7 @@ class UrlSearchSpider(scrapy.Spider):
         "ITEM_PIPELINES": '{"data_acquisition_framework.pipelines.AudioPipeline": 1}',
         "MEDIA_ALLOW_REDIRECTS": "True",
         "REACTOR_THREADPOOL_MAXSIZE": "20",
-        "DOWNLOAD_DELAY":'2.0',
+        # "DOWNLOAD_DELAY":'2.0',
         "AUTOTHROTTLE_ENABLED": 'True',
         # "CONCURRENT_REQUESTS": "32",
         "SCHEDULER_PRIORITY_QUEUE": "scrapy.pqueues.DownloaderAwarePriorityQueue",
@@ -61,6 +61,7 @@ class UrlSearchSpider(scrapy.Spider):
         with open(config_path, "r") as f:
             config = json.load(f)
             self.language = config["language"]
+            self.language_code = config["language_code"]
             self.max_seconds = config["max_hours"] * 3600
             self.word_to_ignore = config["word_to_ignore"]
             self.extensions_to_include = config["extensions_to_include"]
@@ -118,7 +119,22 @@ class UrlSearchSpider(scrapy.Spider):
         for extension in self.extensions_to_include:
             if url.lower().endswith(extension.lower()):
                 return True
-        return False            
+        return False        
+    
+    def sanitize(self, word):
+        return word.rstrip().lstrip().lower()
+
+    def is_unwanted_wiki(self, url):
+        url = self.sanitize(url)
+        if "wikipedia.org" in url or "wikimedia.org" in url:
+            url = url.replace("https://","").replace("http://","")
+            if not url.startswith("en") or not url.startswith(self.language_code) or not url.startswith("wiki"):
+                return True
+        return False
+
+    def write(self, content):
+        with open("log.txt", 'a') as f:
+            f.write(content+"\n")    
 
 
     def parse(self, response, depth):
@@ -130,7 +146,9 @@ class UrlSearchSpider(scrapy.Spider):
         all_a_tags = response.xpath('//a')
         a_urls = response.css("a::attr(href)").getall()
         source_urls = response.css("source::attr(src)").getall()
-        urls = a_urls + source_urls
+        audio_tag_urls = response.css("audio::attr(src)").getall()
+        
+        urls = a_urls + source_urls + audio_tag_urls
 
         source_domain = base_url[base_url.index("//") + 2 :].split("/")[0]
 
@@ -138,7 +156,7 @@ class UrlSearchSpider(scrapy.Spider):
             source_domain = source_domain.replace("www.","")
 
         license_urls = self.extract_license_urls(a_urls, all_a_tags, response)
-
+        print(',\n'.join(urls))
         for url in urls:
             
             if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
@@ -151,7 +169,7 @@ class UrlSearchSpider(scrapy.Spider):
             except:
                 continue
 
-            if self.is_unwanted_words_present(url):
+            if self.is_unwanted_words_present(url) or self.is_unwanted_wiki(url):
                 continue
 
             if self.is_extension_present(url):
@@ -164,11 +182,13 @@ class UrlSearchSpider(scrapy.Spider):
                     language=self.language,
                     source_url=base_url
                 )
+                self.write(url)
                 continue
 
             if self.is_unwanted_extension_present(url) or depth >= self.depth:
                 continue
 
+            self.write(url)
             # if not matched any of above, traverse to next
             yield scrapy.Request(
                 url, callback=self.parse, cb_kwargs=dict(depth=(depth + 1))

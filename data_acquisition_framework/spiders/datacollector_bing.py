@@ -62,6 +62,7 @@ class BingSearchSpider(scrapy.Spider):
         with open(self.web_crawl_config,'r') as f:
             config = json.load(f)
             self.language = config["language"]
+            self.language_code = config["language_code"]
             self.max_seconds = config["max_hours"] * 3600
             self.depth = config["depth"]
             self.pages = config["pages"]
@@ -77,9 +78,9 @@ class BingSearchSpider(scrapy.Spider):
             for keyword in config["keywords"]:
                 keyword = self.language+"+"+keyword.replace(" ","+")
                 if page == 0:
-                    url="https://www.bing.com/search?q={0}&rf=1&qpvt={0}".format(keyword)
+                    url="https://www.bing.com/search?q={0}".format(keyword)
                 else:
-                    url="https://www.bing.com/search?q={0}&first={1}&rf=1&qpvt={0}".format(keyword, page)
+                    url="https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
                 yield scrapy.Request(url=url, callback=self.bing_parse, cb_kwargs=dict(page_number=1,keyword=keyword))
             config["last_visited"] = (self.pages * 10) + page 
             with open(self.web_crawl_config,'w') as jsonfile:
@@ -109,7 +110,7 @@ class BingSearchSpider(scrapy.Spider):
                except Exception as exc:
                    print('%r generated an exception: %s' % (url, exc))
         page = page_number * 10
-        formattedUrl="https://www.bing.com/search?q={0}&first={1}&rf=1&qpvt={0}".format(keyword, page)
+        formattedUrl="https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
         page_number += 1
         if page_number <= self.pages:
             yield scrapy.Request(formattedUrl, callback=self.bing_parse, cb_kwargs=dict(page_number=page_number,keyword=keyword))
@@ -123,7 +124,9 @@ class BingSearchSpider(scrapy.Spider):
         base_url = response.url
         a_urls = response.css('a::attr(href)').getall()
         source_urls = response.css('source::attr(src)').getall()
-        urls = a_urls + source_urls
+        audio_tag_urls = response.css("audio::attr(src)").getall()
+
+        urls = a_urls + source_urls + audio_tag_urls
         source_domain = base_url[base_url.index("//")+2:].split('/')[0]
 
         license_urls = self.extract_license_urls(a_urls)
@@ -138,7 +141,7 @@ class BingSearchSpider(scrapy.Spider):
             except:
                 continue
 
-            if self.is_unwanted_words_present(url):
+            if self.is_unwanted_words_present(url) or self.is_unwanted_wiki(url):
                 continue
             
             # iterate for search of wanted files
@@ -176,6 +179,17 @@ class BingSearchSpider(scrapy.Spider):
     def is_extension_present(self, url):
         for extension in self.extensions_to_include:
             if url.lower().endswith(extension.lower()):
+                return True
+        return False
+    
+    def sanitize(self, word):
+        return word.rstrip().lstrip().lower()
+    
+    def is_unwanted_wiki(self, url):
+        url = self.sanitize(url)
+        if "wikipedia.org" in url or "wikimedia.org" in url:
+            url = url.replace("https://","").replace("http://","")
+            if not url.startswith("en") or not url.startswith(self.language_code) or not url.startswith("wiki"):
                 return True
         return False
     

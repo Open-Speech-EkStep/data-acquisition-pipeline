@@ -201,6 +201,8 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
                     last_video_batch_count)))
                 try:
                     self.download_files(source_file_name)
+                except Exception as e:
+                    print("error", e)
                 finally:
                     audio_paths = glob.glob('*.' + self.FILE_FORMAT)
                     audio_files_count = len(audio_paths)
@@ -279,7 +281,7 @@ class AudioPipeline(FilesPipeline):
 
     def __init__(self, store_uri, download_func=None, settings=None):
         super().__init__(store_uri, download_func, settings)
-        self.archive_list = []
+        self.archive_list = {}
         self.yml_config = config_yaml()['downloader']
 
     def file_path(self, request, response=None, info=None):
@@ -313,10 +315,12 @@ class AudioPipeline(FilesPipeline):
 
     def get_media_requests(self, item, info):
         urls = ItemAdapter(item).get(self.files_urls_field, [])
-        if not os.path.isdir(item["source"]):
+        if item["source"] not in self.archive_list:
+            self.archive_list[item["source"]] = []
+        if not os.path.isdir("archives/"+item["source"]):
             retrive_archive_from_bucket_by_source(item)
-            self.archive_list = retrieve_archive_from_local_by_source(item["source"])
-        return [Request(u) for u in urls if u not in self.archive_list]
+            self.archive_list[item["source"]] = retrieve_archive_from_local_by_source(item["source"])
+        return [Request(u) for u in urls if u not in self.archive_list[item["source"]]]
 
     def get_license_info(self, license_urls):
         for url in license_urls:
@@ -340,10 +344,10 @@ class AudioPipeline(FilesPipeline):
         video_info['name'] = None
         video_info['gender'] = None
         video_info['source_url'] = source_url
-        video_info['source_website'] = item["source_url"]
         # have to rephrase to check if creative commons is present otherwise give comma separated license page links
         video_info['license'] = self.get_license_info(item["license_urls"])
         metadata = create_metadata_for_audio(video_info, self.yml_config, item)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
+        item["duration"] = duration_in_seconds
         return duration_in_seconds

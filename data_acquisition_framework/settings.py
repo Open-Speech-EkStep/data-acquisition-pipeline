@@ -22,7 +22,7 @@ FILES_STORE = '.'
 # FILES_STORE = 'gs://ekstepspeechrecognition-dev/scrapydump/music4programming/'
 # GCS_PROJECT_ID = 'ekstepspeechrecognition'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-# USER_AGENT = 'data_acquisition_framework (+http://www.yourdomain.com)'
+USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36'
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
