@@ -128,8 +128,12 @@ class BingSearchSpider(scrapy.Spider):
 
         urls = a_urls + source_urls + audio_tag_urls
         source_domain = base_url[base_url.index("//")+2:].split('/')[0]
+        all_a_tags = response.xpath('//a')
+        license_urls = self.extract_license_urls(a_urls, all_a_tags, response)
 
-        license_urls = self.extract_license_urls(a_urls)
+        # for license in license_urls:
+        #     if "creativecommons" not in license:
+        #         yield scrapy.Request(license, callback=self.parse_license_page, cb_kwargs=dict(source=source_domain))
 
         for url in urls:
             if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
@@ -156,12 +160,20 @@ class BingSearchSpider(scrapy.Spider):
             # if not matched any of above, traverse to next
             yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=(depth+1)))
 
-    def extract_license_urls(self, urls):
+    def extract_license_urls(self, urls, all_a_tags, response):
         license_urls = []
         for url in urls:
             url = url.rstrip().lstrip()
             if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith("https://creativecommons.org/publicdomain/zero") or url.startswith("https://creativecommons.org/licenses/by"):
                 license_urls.append(url)
+        if len(license_urls) == 0:
+            for a_tag in all_a_tags:
+                texts = a_tag.xpath('text()').extract()
+                for text in texts:
+                    text = text.lower()
+                    if "terms" in text or "license" in text or "copyright" in text or "usage policy" in text or "conditions" in text or "website policies" in text:
+                        for link in a_tag.xpath('@href').extract():
+                            license_urls.add(response.urljoin(link))
         return license_urls
     
     def is_unwanted_words_present(self, url):

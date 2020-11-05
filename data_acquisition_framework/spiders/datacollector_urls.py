@@ -156,7 +156,7 @@ class UrlSearchSpider(scrapy.Spider):
             source_domain = source_domain.replace("www.","")
 
         license_urls = self.extract_license_urls(a_urls, all_a_tags, response)
-        print(',\n'.join(urls))
+        
         for url in urls:
             
             if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
