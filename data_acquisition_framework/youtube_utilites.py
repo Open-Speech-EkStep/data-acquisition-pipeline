@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def get_video_batch(ob):
-    source = ob.source_file.replace('.txt', '')
+    source = ob.source_without_channel_id.replace('.txt', '')
     playlist_file_name = playlist_path + ob.source_file
     archive_file_name = archives_path.replace('<source>', source)
     try:
@@ -77,21 +77,15 @@ def create_playlist_for_file_mode(ob, source_file, file_url_name_column):
 def create_channel_playlist(ob):
     if not (os.path.exists(playlist_path)):
         os.mkdir(playlist_path)
-    if not (os.path.exists('urls')):
-        os.mkdir('urls')
-    for channel_url in ob.source_channel_dict.keys():
-        ob.source_channel_dict[channel_url] = str(ob.source_channel_dict[channel_url]).replace(' ', '_')
-        source_playlist_file = playlist_path + ob.source_channel_dict[channel_url] + '.txt'
 
-        create_or_append = '>'
-        if os.path.exists(source_playlist_file):
-            create_or_append = '>>'
+    for channel_url in ob.source_channel_dict.keys():
+        channel_id = channel_url.split('/')[-1]
+        ob.source_channel_dict[channel_url] = str(ob.source_channel_dict[channel_url]).replace(' ', '_')
+        source_playlist_file = playlist_path + channel_id + '__' + ob.source_channel_dict[channel_url] + '.txt'
 
         os.system(
-            ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" {3} {4} '.format(
-                channel_url, match_title_string, reject_title_string, create_or_append, source_playlist_file))
-
-        os.system('echo {0} > {1}_url.txt'.format(channel_url, 'urls/' + ob.source_channel_dict[channel_url]))
+            ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" > {3} '.format(
+                channel_url, match_title_string, reject_title_string, source_playlist_file))
 
 
 def get_playlist_count(file):
@@ -137,12 +131,6 @@ def check_and_log_download_output(ob, downloader_output):
     formatted_output = downloader_output.stdout.decode("utf-8").split("\n")
     for _ in formatted_output:
         logging.info(str(_))
-
-
-def read_website_url(source):
-    with open('urls/' + source + '_url.txt') as file:
-        url = file.readline().strip()
-        return url
 
 
 def remove_rejected_video(ob, video_id):

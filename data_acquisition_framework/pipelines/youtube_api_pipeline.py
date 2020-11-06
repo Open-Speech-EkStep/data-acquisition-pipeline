@@ -12,7 +12,7 @@ from data_acquisition_framework.utilites import config_json, create_metadata, \
     retrieve_archive_from_bucket, upload_media_and_metadata_to_bucket, upload_archive_to_bucket
 from data_acquisition_framework.youtube_api import YoutubeApiUtils, YoutubePlaylistCollector
 from data_acquisition_framework.youtube_utilites import create_channel_playlist, get_video_batch, \
-    check_and_log_download_output, get_speaker, get_gender, read_website_url, check_mode, get_playlist_count
+    check_and_log_download_output, get_speaker, get_gender, check_mode, get_playlist_count
 from data_acquisition_framework.configs.paths import download_path, archives_path, playlist_path
 
 
@@ -40,6 +40,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         self.youtube_call = "/app/python/bin/youtube-dl " if "scrapinghub" in os.path.abspath("~") else "youtube-dl "
         self.source_channel_dict = None
         self.source_file = None
+        self.source_without_channel_id = None
         self.t_duration = 0
 
     def scrape_links(self):
@@ -54,26 +55,24 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
     def create_download_batch(self):
         return get_video_batch(self)
 
-    def youtube_download(self, video_id, file):
+    def youtube_download(self, video_id, source_file_name):
         command = self.youtube_call + '-f "best[ext=mp4][filesize<1024M]" -o "{2}%(duration)sfile-id%(id)s.%(ext)s" ' \
                                       '"https://www.youtube.com/watch?v={0}" --download-archive {1} --proxy "" ' \
                                       '--abort-on-error'.format(video_id, archives_path.replace('<source>',
-                                                                                                file.replace(
-                                                                                                    download_path,
-                                                                                                    "").replace(".txt",
+                                                                                                source_file_name.replace(".txt",
                                                                                                                 "")),
                                                                 download_path)
         downloader_output = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         check_and_log_download_output(self, downloader_output)
 
-    def download_files(self, file):
+    def download_files(self, source_file_name):
         with ThreadPoolExecutor(max_workers=1) as executor:
             with open(self.VIDEO_BATCH_FILE_NAME, 'r') as f:
                 for video_id in f.readlines():
-                    executor.submit(self.youtube_download, video_id, file)
+                    executor.submit(self.youtube_download, video_id, source_file_name)
         return self
 
-    def extract_metadata(self, source_file, file, url=None):
+    def extract_metadata(self, source_file, file, channel_id, url=None):
         video_info = {}
         file_format = file.split('.')[-1]
         meta_file_name = file.replace(file_format, "csv")
@@ -95,7 +94,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
             video_info['gender'] = None
         video_info['source_url'] = source_url
         if mode == "channel":
-            video_info['source_website'] = read_website_url(video_info['source'])
+            video_info['source_website'] = "https://www.youtube.com/channel/"+channel_id
         video_info['license'] = self.youtube_api_utils.get_license_info(video_id)
         metadata = create_metadata(video_info, self.config_json)
         metadata_df = pd.DataFrame([metadata])
@@ -106,12 +105,15 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         self.check_speaker = True if check_mode(self) else False
         for source_file in glob.glob(playlist_path + '*.txt'):
             source_file_name = source_file.replace(playlist_path, '')
+            channel_id = source_file_name.split("__")[0]
+            source_without_channel_id = source_file_name.replace(channel_id + "__", "")
             logging.info(
                 str("Channel {0}".format(source_file_name)))
 
             self.source_file = source_file_name
+            self.source_without_channel_id = source_without_channel_id
             self.batch_count = 0
-            retrieve_archive_from_bucket(source_file_name.replace(".txt", ""))
+            retrieve_archive_from_bucket(source_without_channel_id.replace(".txt", ""))
             playlist_count = get_playlist_count(source_file)
             logging.info(
                 str("Total playlist count with valid videos is {0}".format(playlist_count)))
@@ -121,7 +123,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
                 logging.info(str("Attempt to download videos with batch size of {0}".format(
                     last_video_batch_count)))
                 try:
-                    self.download_files(source_file_name)
+                    self.download_files(source_without_channel_id)
                 except Exception as e:
                     print("error", e)
                 finally:
@@ -132,9 +134,9 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
                         logging.info(
                             str("Uploading {0} files to gcs bucket...".format(media_files_count)))
                         for file in media_paths:
-                            self.extract_metadata(source_file_name, file)
-                            upload_media_and_metadata_to_bucket(source_file_name.replace(".txt", ""), file)
-                        upload_archive_to_bucket(source_file_name.replace(".txt", ""))
+                            self.extract_metadata(source_without_channel_id, file, channel_id)
+                            upload_media_and_metadata_to_bucket(source_without_channel_id.replace(".txt", ""), file)
+                        upload_archive_to_bucket(source_without_channel_id.replace(".txt", ""))
                         logging.info(
                             str("Uploaded files till now: {0}".format(self.batch_count)))
                 last_video_batch_count = self.create_download_batch()
