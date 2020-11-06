@@ -199,7 +199,7 @@ As we already mentioned our framework is extensible for any new source. To add a
 * Starting youtube spider with Youtube pipeline.
     * Add youtube search api key in .youtube_api_key file in project root. (For license information)
 ```shell script
-scrapy crawl datacollector_youtube --set=ITEM_PIPELINES='{"data_acquisition_framework.pipelines.YoutubePipeline": 1}'
+scrapy crawl datacollector_youtube --set=ITEM_PIPELINES='{"data_acquisition_framework.pipelines.youtube_pipeline.YoutubePipeline": 1}'
 ```
 Note: You can download youtube video using youtube pipeline only.
 * Starting youtube spider with YoutubeApi pipeline.
