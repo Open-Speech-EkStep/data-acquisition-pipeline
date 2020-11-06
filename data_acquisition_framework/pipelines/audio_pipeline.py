@@ -11,14 +11,15 @@ from scrapy.pipelines.files import FilesPipeline
 from data_acquisition_framework.utilites import config_json, populate_local_archive, \
     upload_media_and_metadata_to_bucket, upload_archive_to_bucket, retrieve_archive_from_bucket, \
     retrieve_archive_from_local, get_mp3_duration_in_seconds, create_metadata_for_audio
+from data_acquisition_framework.configs.paths import download_path, archives_path
 
 
 class AudioPipeline(FilesPipeline):
 
     def __init__(self, store_uri, download_func=None, settings=None):
         super().__init__(store_uri, download_func, settings)
-        if not os.path.exists("downloads"):
-            os.system("mkdir downloads")
+        if not os.path.exists(download_path):
+            os.system("mkdir " + download_path)
         self.archive_list = {}
         self.config_json = config_json()['downloader']
 
@@ -35,12 +36,12 @@ class AudioPipeline(FilesPipeline):
             file_stats = item['files'][0]
             file = file_stats['path']
             url = file_stats['url']
-            if os.path.isfile("downloads/"+file):
+            if os.path.isfile(download_path + file):
                 logging.info(str("***File {0} downloaded ***".format(file)))
                 populate_local_archive(item["source"], url)
                 try:
-                    duration_in_seconds = self.extract_metadata("downloads/"+file, url, item)
-                    upload_media_and_metadata_to_bucket(item["source"], "downloads/"+file, item["language"])
+                    duration_in_seconds = self.extract_metadata(download_path + file, url, item)
+                    upload_media_and_metadata_to_bucket(item["source"], download_path + file, item["language"])
                     upload_archive_to_bucket(item["source"], item["language"])
                     logging.info(str("***File {0} uploaded ***".format(file)))
                 except Exception as exception:
@@ -55,7 +56,7 @@ class AudioPipeline(FilesPipeline):
         urls = ItemAdapter(item).get(self.files_urls_field, [])
         if item["source"] not in self.archive_list:
             self.archive_list[item["source"]] = []
-        if not os.path.isdir("archives/" + item["source"]):
+        if not os.path.isdir(archives_path.split('/')[0] + '/' + item["source"]):
             retrieve_archive_from_bucket(item["source"], item["language"])
             self.archive_list[item["source"]] = retrieve_archive_from_local(item["source"])
         return [Request(u) for u in urls if u not in self.archive_list[item["source"]]]
@@ -77,7 +78,7 @@ class AudioPipeline(FilesPipeline):
         else:
             duration_in_seconds = get_mp3_duration_in_seconds(file)
         video_info['duration'] = duration_in_seconds / 60
-        video_info['raw_file_name'] = file.replace("downloads/", "")
+        video_info['raw_file_name'] = file.replace(download_path, "")
         video_info['name'] = None
         video_info['gender'] = None
         video_info['source_url'] = source_url

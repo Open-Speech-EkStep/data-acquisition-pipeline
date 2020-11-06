@@ -6,13 +6,15 @@ from pandas.io.common import EmptyDataError
 
 from .gcs_operations import *
 from data_acquisition_framework.configs.pipeline_config import *
+from data_acquisition_framework.configs.paths import archives_path, playlist_path
 
 logging.basicConfig(level=logging.DEBUG)
 
 
 def get_video_batch(ob):
-    playlist_file_name = 'playlist/' + ob.source_file
-    archive_file_name = "archives/" + ob.source_file.replace(".txt", "") + "/archive.txt"
+    source = ob.source_file.replace('.txt', '')
+    playlist_file_name = playlist_path + ob.source_file
+    archive_file_name = archives_path.replace('<source>', source)
     try:
         full_playlist = pd.read_csv(playlist_file_name, header=None)
     except EmptyDataError:
@@ -66,21 +68,20 @@ def create_playlist_for_file_mode(ob, source_file, file_url_name_column):
     df[file_url_name_column] = df[file_url_name_column].apply(
         lambda x: str(x).replace("https://www.youtube.com/watch?v=", ""))
     df[file_url_name_column] = df[file_url_name_column].apply(lambda x: str(x).replace("https://youtu.be/", ""))
-    if not os.path.exists("playlist"):
-        os.system("mkdir playlist")
-    df[file_url_name_column].to_csv("playlist/" + source_file.replace(".csv", ".txt"), index=False, header=None)
+    if not os.path.exists(playlist_path):
+        os.system("mkdir "+playlist_path)
+    df[file_url_name_column].to_csv(playlist_path + source_file.replace(".csv", ".txt"), index=False, header=None)
     return df
 
 
-def create_channel_playlist_for_api(ob):
-    path = ob.PLAYLIST_PATH
-    if not (os.path.exists(path)):
-        os.mkdir(path)
+def create_channel_playlist(ob):
+    if not (os.path.exists(playlist_path)):
+        os.mkdir(playlist_path)
     if not (os.path.exists('urls')):
         os.mkdir('urls')
     for channel_url in ob.source_channel_dict.keys():
         ob.source_channel_dict[channel_url] = str(ob.source_channel_dict[channel_url]).replace(' ', '_')
-        source_playlist_file = path + '/' + ob.source_channel_dict[channel_url] + '.txt'
+        source_playlist_file = playlist_path + ob.source_channel_dict[channel_url] + '.txt'
 
         create_or_append = '>'
         if os.path.exists(source_playlist_file):
@@ -146,6 +147,6 @@ def read_website_url(source):
 
 def remove_rejected_video(ob, video_id):
     if hasattr(ob, 'source_file'):
-        os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, 'playlist/' + ob.source_file))
+        os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, playlist_path + ob.source_file))
     else:
         os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, ob.FULL_PLAYLIST_FILE_NAME))

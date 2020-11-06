@@ -11,20 +11,18 @@ from data_acquisition_framework.token_utilities import get_token_from_bucket, up
 from data_acquisition_framework.utilites import config_json, create_metadata, \
     retrieve_archive_from_bucket, upload_media_and_metadata_to_bucket, upload_archive_to_bucket
 from data_acquisition_framework.youtube_api import YoutubeApiUtils, YoutubePlaylistCollector
-from data_acquisition_framework.youtube_utilites import create_channel_playlist_for_api, get_video_batch, \
+from data_acquisition_framework.youtube_utilites import create_channel_playlist, get_video_batch, \
     check_and_log_download_output, get_speaker, get_gender, read_website_url, check_mode, get_playlist_count
+from data_acquisition_framework.configs.paths import download_path, archives_path, playlist_path
 
 
 class YoutubeApiPipeline(DataAcqusitionPipeline):
     FILE_FORMAT = 'mp4'
-    ARCHIVE_FILE_NAME = 'archive.txt'
     VIDEO_BATCH_FILE_NAME = 'video_list.txt'
-    FULL_PLAYLIST_FILE_NAME = "full_playlist.txt"
-    PLAYLIST_PATH = 'playlist'
 
     def __init__(self):
-        if not os.path.exists("downloads"):
-            os.system("mkdir downloads")
+        if not os.path.exists(download_path):
+            os.system("mkdir " + download_path)
         logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
         # logging.info(str("Downloading videos for source : {0}".format(source_name)))
 
@@ -44,16 +42,21 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         else:
             get_token_from_bucket()
             self.source_channel_dict = YoutubePlaylistCollector().get_urls()
-        create_channel_playlist_for_api(self)
+        create_channel_playlist(self)
         return self
 
     def create_download_batch(self):
         return get_video_batch(self)
 
     def youtube_download(self, video_id, file):
-        command = self.youtube_call + '-f "best[ext=mp4][filesize<1024M]" -o "downloads/%(duration)sfile-id%(id)s.%(ext)s" ' \
+        command = self.youtube_call + '-f "best[ext=mp4][filesize<1024M]" -o "{2}%(duration)sfile-id%(id)s.%(ext)s" ' \
                                       '"https://www.youtube.com/watch?v={0}" --download-archive {1} --proxy "" ' \
-                                      '--abort-on-error'.format(video_id, 'archives/' + file.replace("downloads/", "").replace(".txt", "") + "/archive.txt")
+                                      '--abort-on-error'.format(video_id, archives_path.replace('<source>',
+                                                                                                file.replace(
+                                                                                                    download_path,
+                                                                                                    "").replace(".txt",
+                                                                                                                "")),
+                                                                download_path)
         downloader_output = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         check_and_log_download_output(self, downloader_output)
 
@@ -68,14 +71,14 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         video_info = {}
         file_format = file.split('.')[-1]
         meta_file_name = file.replace(file_format, "csv")
-        video_id = file.replace("downloads/", "").split('file-id')[-1][:-4]
+        video_id = file.replace(download_path, "").split('file-id')[-1][:-4]
         source_url = "https://www.youtube.com/watch?v=" + video_id
-        video_duration = int(file.replace("downloads/", "").split('file-id')[0]) / 60
+        video_duration = int(file.replace(download_path, "").split('file-id')[0]) / 60
         video_info['duration'] = video_duration
         self.t_duration += video_duration
         logging.info('$$$$$$$    ' + str(self.t_duration // 60) + '   $$$$$$$')
         video_info['source'] = source_file.replace('.txt', '')
-        video_info['raw_file_name'] = file.replace("downloads/", "")
+        video_info['raw_file_name'] = file.replace(download_path, "")
         if self.check_speaker:
             video_info['name'] = get_speaker(self.scraped_data, video_id)
         else:
@@ -95,8 +98,8 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
 
     def process_item(self, item, spider):
         self.check_speaker = True if check_mode(self) else False
-        for source_file in glob.glob(self.PLAYLIST_PATH + '/*.txt'):
-            source_file_name = source_file.replace('playlist/', '')
+        for source_file in glob.glob(playlist_path + '*.txt'):
+            source_file_name = source_file.replace(playlist_path, '')
             logging.info(
                 str("Channel {0}".format(source_file_name)))
 
@@ -116,7 +119,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
                 except Exception as e:
                     print("error", e)
                 finally:
-                    media_paths = glob.glob('downloads/*.' + self.FILE_FORMAT)
+                    media_paths = glob.glob(download_path + '*.' + self.FILE_FORMAT)
                     media_files_count = len(media_paths)
                     if media_files_count > 0:
                         self.batch_count += media_files_count

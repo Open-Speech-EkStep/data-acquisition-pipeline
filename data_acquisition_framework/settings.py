@@ -8,6 +8,7 @@
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 from .gcs_operations import *
 import scrapy
+from data_acquisition_framework.configs.paths import download_path
 
 BOT_NAME = 'data_acquisition_framework'
 GCS_CREDS = '{"Credentials": 24242}'
@@ -18,7 +19,7 @@ SPIDER_MODULES = ['data_acquisition_framework.spiders']
 NEWSPIDER_MODULE = 'data_acquisition_framework.spiders'
 # ITEM_PIPELINES = {'data_acquisition_framework.pipelines.MediaPipeline': 2}
 # ITEM_PIPELINES = {'data_acquisition_framework.pipelines.YoutubePipeline': 2}
-FILES_STORE = './downloads/'
+FILES_STORE = download_path if download_path is not None else '.'
 # FILES_STORE = 'gs://ekstepspeechrecognition-dev/scrapydump/music4programming/'
 # GCS_PROJECT_ID = 'ekstepspeechrecognition'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
