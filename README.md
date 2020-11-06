@@ -205,7 +205,7 @@ Note: You can download youtube video using youtube pipeline only.
 * Starting youtube spider with YoutubeApi pipeline.
     * Add youtube search api key in .youtube_api_key file in project root. 
 ```shell script
-scrapy crawl datacollector_youtube --set=ITEM_PIPELINES='{"data_acquisition_framework.pipelines.YoutubeApiPipeline": 1}'
+scrapy crawl datacollector_youtube --set=ITEM_PIPELINES='{"data_acquisition_framework.pipelines.youtube_api_pipeline.YoutubeApiPipeline": 1}'
 ```
 Note: file mode in pipeline_config is not supported for this spider.
 * Starting datacollector_music spider with media pipeline.
