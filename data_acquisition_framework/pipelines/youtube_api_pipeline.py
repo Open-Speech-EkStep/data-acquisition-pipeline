@@ -23,6 +23,12 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
     def __init__(self):
         if not os.path.exists(download_path):
             os.system("mkdir " + download_path)
+        if os.path.exists(playlist_path):
+            os.system('rm -rf ' + playlist_path)
+        if os.path.exists('urls/'):
+            os.system('rm -rf urls/')
+        if os.path.exists('video_list.txt'):
+            os.system('rm video_list.txt')
         logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
         # logging.info(str("Downloading videos for source : {0}".format(source_name)))
 
