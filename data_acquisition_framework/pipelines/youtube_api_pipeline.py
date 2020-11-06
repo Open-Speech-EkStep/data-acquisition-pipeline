@@ -25,8 +25,6 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
             os.system("mkdir " + download_path)
         if os.path.exists(playlist_path):
             os.system('rm -rf ' + playlist_path)
-        if os.path.exists('urls/'):
-            os.system('rm -rf urls/')
         if os.path.exists('video_list.txt'):
             os.system('rm video_list.txt')
         logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
@@ -63,7 +61,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
                                                                                                                 "")),
                                                                 download_path)
         downloader_output = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        check_and_log_download_output(self, downloader_output)
+        check_and_log_download_output(self.source_file, downloader_output)
 
     def download_files(self, source_file_name):
         with ThreadPoolExecutor(max_workers=1) as executor:

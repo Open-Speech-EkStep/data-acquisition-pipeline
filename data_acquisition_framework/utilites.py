@@ -27,7 +27,7 @@ def create_metadata(video_info, meta_json):
                 'audio_id': meta_json['audio_id'],
                 'cleaned_duration': meta_json['cleaned_duration'],
                 'num_of_speakers': meta_json['num_of_speakers'],  # check
-                'language': meta_json['language'],
+                'language': video_info['language'] if 'language' in video_info else meta_json['language'],
                 'has_other_audio_signature': meta_json['has_other_audio_signature'],
                 'type': meta_json['type'],
                 'source': video_info['source'] if 'source' in video_info else meta_json['source'],

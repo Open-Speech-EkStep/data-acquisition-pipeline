@@ -69,7 +69,7 @@ def create_playlist_for_file_mode(ob, source_file, file_url_name_column):
         lambda x: str(x).replace("https://www.youtube.com/watch?v=", ""))
     df[file_url_name_column] = df[file_url_name_column].apply(lambda x: str(x).replace("https://youtu.be/", ""))
     if not os.path.exists(playlist_path):
-        os.system("mkdir "+playlist_path)
+        os.system("mkdir " + playlist_path)
     df[file_url_name_column].to_csv(playlist_path + source_file.replace(".csv", ".txt"), index=False, header=None)
     return df
 
@@ -105,7 +105,7 @@ def get_gender(scraped_data, video_id):
     return str(scraped_data[scraped_data[file_url_name_column] == video_id].iloc[0][file_speaker_gender_column]).lower()
 
 
-def check_and_log_download_output(ob, downloader_output):
+def check_and_log_download_output(source, downloader_output):
     if downloader_output.stderr:
         formatted_error = str(downloader_output.stderr.decode("utf-8"))
         check = False
@@ -113,12 +113,12 @@ def check_and_log_download_output(ob, downloader_output):
             logging.error(formatted_error)
         if ": YouTube said: Unable to extract video data" in formatted_error:
             video_id = formatted_error.split(":")[1].strip()
-            remove_rejected_video(ob, video_id)
+            remove_rejected_video(source, video_id)
             check = True
             logging.info(str("Video I'd {0} removed from playlist and won't be downloaded".format(video_id)))
         if "Did not get any data blocks" in formatted_error or "HTTP Error 404: Not Found" in formatted_error:
             video_id = open("video_list.txt").readlines()[0].replace("\n", "")
-            remove_rejected_video(ob, video_id)
+            remove_rejected_video(source, video_id)
             check = True
             logging.info(str("ERROR Handeled"))
         if "HTTP Error 429" in formatted_error:
@@ -126,15 +126,12 @@ def check_and_log_download_output(ob, downloader_output):
             exit()
         if len(formatted_error) > 5 and check == False:
             video_id = open("video_list.txt").readlines()[0].replace("\n", "")
-            remove_rejected_video(ob, video_id)
+            remove_rejected_video(source, video_id)
             logging.info(str("ERROR Handeled"))
     formatted_output = downloader_output.stdout.decode("utf-8").split("\n")
     for _ in formatted_output:
         logging.info(str(_))
 
 
-def remove_rejected_video(ob, video_id):
-    if hasattr(ob, 'source_file'):
-        os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, playlist_path + ob.source_file))
-    else:
-        os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, ob.FULL_PLAYLIST_FILE_NAME))
+def remove_rejected_video(source, video_id):
+    os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, playlist_path + source))
