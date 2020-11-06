@@ -34,7 +34,7 @@ class YoutubePlaylistCollector:
 
     def __init__(self):
         print(os.getcwd())
-        with open('./data_acquisition_framework/youtube_api_config.json', 'r') as f:
+        with open('./data_acquisition_framework/configs/youtube_api_config.json', 'r') as f:
             config = json.load(f)
 
         self.TYPE = "channel"
@@ -112,6 +112,6 @@ class YoutubePlaylistCollector:
             
         
 if __name__ == "__main__":
-    with open('youtube_api_config.json','r') as f:
+    with open('configs/youtube_api_config.json', 'r') as f:
         config = json.load(f)
         YoutubePlaylistCollector(config).generate_playlist_files("playlists")

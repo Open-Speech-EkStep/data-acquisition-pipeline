@@ -56,7 +56,7 @@ class UrlSearchSpider(scrapy.Spider):
 
     def start_requests(self):
         config_path = (
-            os.path.dirname(os.path.realpath(__file__)) + "/../web_crawl_config.json"
+            os.path.dirname(os.path.realpath(__file__)) + "/../configs/web_crawl_config.json"
         )
         with open(config_path, "r") as f:
             config = json.load(f)

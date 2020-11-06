@@ -5,8 +5,8 @@ import subprocess
 from concurrent.futures.thread import ThreadPoolExecutor
 import pandas as pd
 
-from data_acquisition_framework.data_acquisition_pipeline import DataAcqusitionPipeline
-from data_acquisition_framework.pipeline_config import source_name, channel_url_dict
+from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcqusitionPipeline
+from data_acquisition_framework.configs.pipeline_config import source_name, channel_url_dict
 from data_acquisition_framework.token_utilities import get_token_from_bucket, update_token_in_bucket
 from data_acquisition_framework.utilites import config_yaml, create_metadata_for_api, \
     retrive_archive_from_bucket_for_api, upload_media_and_metadata_to_bucket_for_api, upload_archive_to_bucket_for_api

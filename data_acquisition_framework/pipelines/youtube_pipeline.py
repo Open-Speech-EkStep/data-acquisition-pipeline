@@ -1,4 +1,4 @@
-from data_acquisition_framework.data_acquisition_pipeline import DataAcqusitionPipeline
+from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcqusitionPipeline
 import glob
 from data_acquisition_framework.utilites import *
 from data_acquisition_framework.youtube_utilites import *

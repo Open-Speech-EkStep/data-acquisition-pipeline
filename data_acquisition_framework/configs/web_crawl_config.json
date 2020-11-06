@@ -1,16 +1,9 @@
 {
-    "language": "ગુજરાતી",
+    "language": "Gujarati",
+    "language_code": "gu",
     "keywords": [
-        "audiobooks",
-        "iડિયોબુક્સ",
-        "poems download",
-        "કવિતાઓ",
-        "debates",
-        "ચર્ચાઓ",
-        "speeches",
-        "ભાષણો",
-        "news interviews",
-        "સમાચાર ઇન્ટરવ્યુ"
+        "songs download",
+        "kavita download"
     ],
     "word_to_ignore": [
         "mailto:",
@@ -98,7 +91,7 @@
     "pages": 10,
     "depth": 3,
     "continue_page": "NO",
-    "last_visited": 0,
+    "last_visited": 100,
     "enable_hours_restriction": "NO",
     "max_hours": 1
 }

@@ -5,7 +5,7 @@ import pandas as pd
 from pandas.io.common import EmptyDataError
 
 from .gcs_operations import *
-from .pipeline_config import *
+from data_acquisition_framework.configs.pipeline_config import *
 
 logging.basicConfig(level=logging.DEBUG)
 

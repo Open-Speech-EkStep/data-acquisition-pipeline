@@ -1,10 +1,9 @@
 import logging
 
-import yaml
 from tinytag import TinyTag
-import shutil
+
+from data_acquisition_framework.configs.pipeline_config import *
 from .gcs_operations import *
-from .pipeline_config import *
 
 ARCHIVE_FILE_NAME = 'archive.txt'
 logging.basicConfig(level=logging.DEBUG)
@@ -13,12 +12,10 @@ logging.basicConfig(level=logging.DEBUG)
 def config_yaml():
     config_path = os.path.dirname(os.path.realpath(__file__))
     logging.info(os.listdir(config_path))
-    config_file = config_path + '/config.py'
-    config_yaml_file = config_file.replace('.py', '.yaml')
-    shutil.copyfile(config_file, config_yaml_file)
-    with open(config_yaml_file) as file:
-        yml = yaml.load(file, Loader=yaml.FullLoader)
-    return yml
+    config_file = os.path.join(config_path, "configs", "config.json")
+    with open(config_file, 'r') as file:
+        metadata = json.load(file)
+    return metadata
 
 
 def create_metadata(video_info, yml):
@@ -48,7 +45,7 @@ def create_metadata(video_info, yml):
                 'recorded_date': yml['recorded_date'],
                 'purpose': yml['purpose'],
                 'license': video_info["license"] if "license" in video_info else ""
-    }
+                }
     return metadata
 
 
@@ -98,7 +95,7 @@ def set_gcs_creds(gcs_credentials_string):
 
 
 def get_archive_file_path_for_api(source_file):
-    source_name=source_file.replace(".txt",'')
+    source_name = source_file.replace(".txt", '')
     return channel_blob_path + '/' + archive_blob_path + '/' + source_name + '/' + ARCHIVE_FILE_NAME
 
 
@@ -107,7 +104,8 @@ def get_archive_file_path():
 
 
 def get_archive_file_path_by_source(item):
-    return channel_blob_path.replace("<language>",item["language"]) + '/' + archive_blob_path + '/' + item["source"] + '/' + ARCHIVE_FILE_NAME
+    return channel_blob_path.replace("<language>", item["language"]) + '/' + archive_blob_path + '/' + item[
+        "source"] + '/' + ARCHIVE_FILE_NAME
 
 
 def retrive_archive_from_bucket():
@@ -132,22 +130,21 @@ def retrive_archive_from_bucket_for_api(source_file):
         os.system('touch {0}'.format(archive_file_name))
 
 
-
 def retrive_archive_from_bucket_by_source(item):
     source = item["source"]
     if check_blob(bucket, get_archive_file_path_by_source(item)):
         if not os.path.exists("archives"):
             os.system('mkdir archives')
-        if not os.path.exists("archives/"+source+"/"):
+        if not os.path.exists("archives/" + source + "/"):
             os.system('mkdir archives/{0}'.format(source))
-        download_blob(bucket, get_archive_file_path_by_source(item), "archives/"+source+"/"+ARCHIVE_FILE_NAME)
+        download_blob(bucket, get_archive_file_path_by_source(item), "archives/" + source + "/" + ARCHIVE_FILE_NAME)
         logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(bucket)))
-        num_downloaded = sum(1 for line in open("archives/"+source+"/"+ARCHIVE_FILE_NAME))
+        num_downloaded = sum(1 for line in open("archives/" + source + "/" + ARCHIVE_FILE_NAME))
         logging.info(str("Count of Previously downloaded files are : {0}".format(num_downloaded)))
     else:
         os.system('mkdir archives')
         os.system('mkdir archives/{0}'.format(source))
-        os.system('touch {0}'.format("archives/"+source+"/"+ARCHIVE_FILE_NAME))
+        os.system('touch {0}'.format("archives/" + source + "/" + ARCHIVE_FILE_NAME))
         logging.info("No Archive file has been found on bucket...Downloading all files...")
 
 
@@ -157,7 +154,7 @@ def populate_archive(url):
 
 
 def populate_archive_to_source(source, url):
-    with open("archives/"+source+'/archive.txt', 'a+') as f:
+    with open("archives/" + source + '/archive.txt', 'a+') as f:
         f.write(url + '\n')
 
 
@@ -172,8 +169,8 @@ def retrieve_archive_from_local():
 
 
 def retrieve_archive_from_local_by_source(source):
-    if os.path.exists("archives/"+source+'/archive.txt'):
-        with open("archives/"+source+'/archive.txt', 'r') as f:
+    if os.path.exists("archives/" + source + '/archive.txt'):
+        with open("archives/" + source + '/archive.txt', 'r') as f:
             lines = f.readlines()
         return [line.replace('\n', '') for line in lines]
     else:
@@ -200,7 +197,7 @@ def upload_media_and_metadata_to_bucket_for_api(source_file, file):
 
 
 def upload_archive_to_bucket_by_source(item):
-    upload_blob(bucket, "archives/"+item["source"]+"/"+ARCHIVE_FILE_NAME, get_archive_file_path_by_source(item))
+    upload_blob(bucket, "archives/" + item["source"] + "/" + ARCHIVE_FILE_NAME, get_archive_file_path_by_source(item))
 
 
 def upload_media_and_metadata_to_bucket(file):

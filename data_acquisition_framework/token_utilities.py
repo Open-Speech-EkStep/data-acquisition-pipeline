@@ -1,8 +1,7 @@
 import logging
-import os
 
 from .gcs_operations import *
-from .pipeline_config import *
+from data_acquisition_framework.configs.pipeline_config import *
 
 logging.basicConfig(level=logging.DEBUG)
 

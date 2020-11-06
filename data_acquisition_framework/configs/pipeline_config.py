@@ -1,16 +1,16 @@
-mode = 'channel'  # [channel,file]
+mode = 'file'  # [channel,file]
 
 # Common configurations
 bucket = 'ekstepspeechrecognition-dev'
-channel_blob_path = 'data/audiotospeech/raw/download/downloaded/gujarati/audio'
+channel_blob_path = 'scrapydump/refactor_test'#'data/audiotospeech/raw/download/downloaded/gujarati/audio'
 archive_blob_path = 'archive'
-source_name = 'Demo_Source'  # Scraped Data file name(CSV)
-batch_num = 2  # keep batch small on free tier
-scraped_data_blob_path = "scraped_data"
+source_name = 'DEMO'  # Scraped Data file name(CSV)
+batch_num = 1  # keep batch small on free tier
+scraped_data_blob_path = "scraped"
 
 # Channel mode configurations
 channel_url_dict = {}
-channel_url = ''
+channel_url = 'https://www.youtube.com/channel/UCQvdU25Eqk3YS9-QnILhKKQ'
 match_title_string = ''
 reject_title_string = ''
 
