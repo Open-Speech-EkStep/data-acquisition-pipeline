@@ -1,2 +1,10 @@
 .idea
-
+.DS_Store
+.vscode/
+.youtube_api_key
+archives/
+**/__pycache__/*
+temp.json
+files/
+selenium_google_crawler/geckodriver.log
+selenium_youtube_crawler/geckodriver.log

@@ -6,7 +6,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 import pandas as pd
 
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcqusitionPipeline
-from data_acquisition_framework.configs.pipeline_config import source_name, channel_url_dict
+from data_acquisition_framework.configs.pipeline_config import source_name, channel_url_dict, mode
 from data_acquisition_framework.token_utilities import get_token_from_bucket, update_token_in_bucket
 from data_acquisition_framework.utilites import config_json, create_metadata_for_api, \
     retrieve_archive_from_bucket_for_api, upload_media_and_metadata_to_bucket_for_api, upload_archive_to_bucket_for_api
@@ -83,7 +83,8 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         else:
             video_info['gender'] = None
         video_info['source_url'] = source_url
-        video_info['source_website'] = read_website_url(video_info['source'])
+        if mode == "channel":
+            video_info['source_website'] = read_website_url(video_info['source'])
         video_info['license'] = self.youtube_api_utils.get_license_info(video_id)
         metadata = create_metadata_for_api(video_info, self.config_json)
         metadata_df = pd.DataFrame([metadata])

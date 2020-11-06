@@ -65,7 +65,7 @@ def create_metadata_for_api(video_info, meta_json):
                 'utterances_files_list': meta_json['utterances_files_list'],
                 'source_url': video_info['source_url'],
                 'speaker_gender': str(meta_json['speaker_gender']).lower() if meta_json['speaker_gender'] else video_info['gender'],
-                'source_website': video_info['source_website'],
+                'source_website': video_info['source_website'] if 'source_website' in video_info else meta_json["source_website"],
                 'experiment_name': meta_json['experiment_name'],
                 'mother_tongue': meta_json['mother_tongue'],
                 'age_group': meta_json['age_group'],  # -----------

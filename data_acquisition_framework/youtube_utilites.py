@@ -33,15 +33,15 @@ def get_video_batch(ob):
 
 def check_mode(ob):
     if mode == "file":
-        if check_blob(bucket, get_scraped_file_path()):
-            download_blob(bucket, get_scraped_file_path(), source_name + ".csv")
+        if check_blob(bucket, get_videos_file_path_in_bucket()):
+            download_blob(bucket, get_videos_file_path_in_bucket(), source_name + ".csv")
             logging.info(str("Source scraped file has been downloaded from bucket {0} to local path...".format(bucket)))
             ob.scraped_data = create_playlist(ob, source_name + ".csv", file_url_name_column)
             ob.check_speaker = True
             return ob.check_speaker
         else:
             logging.error(str("{0} File doesn't exists on the given location: {1}".format(source_name + ".csv",
-                                                                                          get_scraped_file_path())))
+                                                                                          get_videos_file_path_in_bucket())))
             exit()
     if mode == "channel":
         ob.scrape_links()
@@ -70,7 +70,9 @@ def create_playlist(ob, source_file, file_url_name_column):
     df[file_url_name_column] = df[file_url_name_column].apply(
         lambda x: str(x).replace("https://www.youtube.com/watch?v=", ""))
     df[file_url_name_column] = df[file_url_name_column].apply(lambda x: str(x).replace("https://youtu.be/", ""))
-    df[file_url_name_column].to_csv(ob.FULL_PLAYLIST_FILE_NAME, index=False, header=None)
+    if not os.path.exists("playlist"):
+        os.system("mkdir playlist")
+    df[file_url_name_column].to_csv("playlist/"+source_file.replace(".csv", ".txt"), index=False, header=None)
     return df
 
 
@@ -106,7 +108,7 @@ def get_playlist_count(file):
         "cat {0} | wc -l".format(file), shell=True).decode("utf-8").split('\n')[0])
 
 
-def get_scraped_file_path():
+def get_videos_file_path_in_bucket():
     return channel_blob_path + '/' + scraped_data_blob_path + '/' + source_name + '.csv'
 
 
