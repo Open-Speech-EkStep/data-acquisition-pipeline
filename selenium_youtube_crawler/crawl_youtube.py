@@ -98,7 +98,7 @@ class YoutubeCrawler:
         else:
             gcs_helper.download_token_from_bucket()
             playlists = read_playlist_from_youtube_api(self.config)
-
+        print(playlists)
         future_to_playlist = {
             self.playlist_executor.submit(
                 self.initiate_playlist_crawl, playlists, playlist

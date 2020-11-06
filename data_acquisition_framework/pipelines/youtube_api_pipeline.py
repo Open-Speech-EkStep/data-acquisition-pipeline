@@ -8,7 +8,7 @@ import pandas as pd
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcqusitionPipeline
 from data_acquisition_framework.configs.pipeline_config import source_name, channel_url_dict, mode
 from data_acquisition_framework.token_utilities import get_token_from_bucket, update_token_in_bucket
-from data_acquisition_framework.utilites import config_json, create_metadata_for_api, \
+from data_acquisition_framework.utilites import config_json, create_metadata, \
     retrieve_archive_from_bucket_for_api, upload_media_and_metadata_to_bucket_for_api, upload_archive_to_bucket_for_api
 from data_acquisition_framework.youtube_api import YoutubeApiUtils, YoutubePlaylistCollector
 from data_acquisition_framework.youtube_utilites import create_channel_playlist_for_api, get_video_batch, \
@@ -24,7 +24,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
 
     def __init__(self):
         logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
-        logging.info(str("Downloading videos for source : {0}".format(source_name)))
+        # logging.info(str("Downloading videos for source : {0}".format(source_name)))
 
         self.youtube_api_utils = YoutubeApiUtils()
         self.batch_count = 0
@@ -86,7 +86,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         if mode == "channel":
             video_info['source_website'] = read_website_url(video_info['source'])
         video_info['license'] = self.youtube_api_utils.get_license_info(video_id)
-        metadata = create_metadata_for_api(video_info, self.config_json)
+        metadata = create_metadata(video_info, self.config_json)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
         return self

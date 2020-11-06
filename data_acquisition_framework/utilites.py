@@ -29,38 +29,7 @@ def create_metadata(video_info, meta_json):
                 'language': meta_json['language'],
                 'has_other_audio_signature': meta_json['has_other_audio_signature'],
                 'type': meta_json['type'],
-                'source': meta_json['source'],  # --------
-                'experiment_use': meta_json['experiment_use'],  # check
-                'utterances_files_list': meta_json['utterances_files_list'],
-                # 'file_url': video_info['file_url'],
-                'source_url': video_info['source_url'],
-                'speaker_gender': str(meta_json['speaker_gender']).lower() if meta_json['speaker_gender'] else video_info['gender'],
-                'source_website': meta_json['source_website'],  # --------
-                'experiment_name': meta_json['experiment_name'],
-                'mother_tongue': meta_json['mother_tongue'],
-                'age_group': meta_json['age_group'],  # -----------
-                'recorded_state': meta_json['recorded_state'],
-                'recorded_district': meta_json['recorded_district'],
-                'recorded_place': meta_json['recorded_place'],
-                'recorded_date': meta_json['recorded_date'],
-                'purpose': meta_json['purpose'],
-                'license': video_info["license"] if "license" in video_info else ""
-                }
-    return metadata
-
-
-def create_metadata_for_api(video_info, meta_json):
-    metadata = {'raw_file_name': video_info['raw_file_name'],
-                'duration': str(video_info['duration']),
-                'title': video_info['raw_file_name'],
-                'speaker_name': meta_json['speaker_name'] if meta_json['speaker_name'] else video_info['name'],
-                'audio_id': meta_json['audio_id'],
-                'cleaned_duration': meta_json['cleaned_duration'],
-                'num_of_speakers': meta_json['num_of_speakers'],  # check
-                'language': meta_json['language'],
-                'has_other_audio_signature': meta_json['has_other_audio_signature'],
-                'type': meta_json['type'],
-                'source': video_info['source'],
+                'source': video_info['source'] if 'source' in video_info else meta_json['source'],
                 'experiment_use': meta_json['experiment_use'],  # check
                 'utterances_files_list': meta_json['utterances_files_list'],
                 'source_url': video_info['source_url'],
@@ -74,7 +43,7 @@ def create_metadata_for_api(video_info, meta_json):
                 'recorded_place': meta_json['recorded_place'],
                 'recorded_date': meta_json['recorded_date'],
                 'purpose': meta_json['purpose'],
-                'license': video_info['license']}
+                'license': video_info["license"] if "license" in video_info else ""}
     return metadata
 
 
@@ -83,7 +52,6 @@ def create_metadata_for_audio(video_info, yml, item):
     metadata["source"] = item["source"]
     metadata["language"] = item["language"]
     metadata['source_website'] = item["source_url"]
-    # metadata["file_url"] = video_info["file_url"]
     return metadata
 
 

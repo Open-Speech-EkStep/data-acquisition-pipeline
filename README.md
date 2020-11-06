@@ -138,7 +138,6 @@ file_url_name_column = "video_url"                Video url column name in csv f
 ```shell script
 # Channel mode configurations
 channel_url_dict = {}             Channel url dictionary (This will download all the videos from the given channels with corresponding source names)
-channel_url = ''                  Channel url (This will download all the videos from the given channel) 
 match_title_string = ''       REGEX   Download only matching titles (regex or caseless sub-string)
 reject_title_string = ''      REGEX    Skip download for matching titles (regex or caseless sub-string)
 
@@ -196,12 +195,6 @@ Note:
 As we already mentioned our framework is extensible for any new source. To add a new source user just need to write a spider for that source.<br>To add a spider you can follow the scrapy [documentation](https://docs.scrapy.org/en/latest/intro/tutorial.html) or you can check our [sample](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/spiders/datacollector_music.py) spider.</br> 
 
 #### Running spiders with appropriate pipeline
-* Starting youtube spider with Youtube pipeline.
-    * Add youtube search api key in .youtube_api_key file in project root. (For license information)
-```shell script
-scrapy crawl datacollector_youtube --set=ITEM_PIPELINES='{"data_acquisition_framework.pipelines.youtube_pipeline.YoutubePipeline": 1}'
-```
-Note: You can download youtube video using youtube pipeline only.
 * Starting youtube spider with YoutubeApi pipeline.
     * Add youtube search api key in .youtube_api_key file in project root. 
 ```shell script

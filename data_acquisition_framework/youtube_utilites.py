@@ -18,17 +18,17 @@ def get_video_batch(ob):
         playlist_file_name = ob.FULL_PLAYLIST_FILE_NAME
         archive_file_name = ob.ARCHIVE_FILE_NAME
     try:
-        FULL_PLAYLIST = pd.read_csv(playlist_file_name, header=None)
+        full_playlist = pd.read_csv(playlist_file_name, header=None)
     except EmptyDataError:
         return 0
     try:
-        ARCHIVE_FILE = pd.read_csv(archive_file_name, delimiter=' ', header=None, encoding='utf-8')[1]
+        archive_file = pd.read_csv(archive_file_name, delimiter=' ', header=None, encoding='utf-8')[1]
     except EmptyDataError:
-        ARCHIVE_FILE = pd.DataFrame(columns=[1])
-    VIDEO_BATCH = FULL_PLAYLIST[FULL_PLAYLIST.merge(ARCHIVE_FILE, left_on=0, right_on=1, how='left')[1].isnull()].head(
+        archive_file = pd.DataFrame(columns=[1])
+    video_batch = full_playlist[full_playlist.merge(archive_file, left_on=0, right_on=1, how='left')[1].isnull()].head(
         batch_num)
-    VIDEO_BATCH.to_csv(ob.VIDEO_BATCH_FILE_NAME, header=False, index=False)
-    return int(VIDEO_BATCH.count()[0])
+    video_batch.to_csv(ob.VIDEO_BATCH_FILE_NAME, header=False, index=False)
+    return int(video_batch.count()[0])
 
 
 def check_mode(ob):
@@ -36,7 +36,7 @@ def check_mode(ob):
         if check_blob(bucket, get_videos_file_path_in_bucket()):
             download_blob(bucket, get_videos_file_path_in_bucket(), source_name + ".csv")
             logging.info(str("Source scraped file has been downloaded from bucket {0} to local path...".format(bucket)))
-            ob.scraped_data = create_playlist(ob, source_name + ".csv", file_url_name_column)
+            ob.scraped_data = create_playlist_for_file_mode(ob, source_name + ".csv", file_url_name_column)
             ob.check_speaker = True
             return ob.check_speaker
         else:
@@ -52,18 +52,18 @@ def check_mode(ob):
 
 
 def check_dataframe_validity(df):
-    if not file_url_name_column in df.columns:
+    if file_url_name_column not in df.columns:
         logging.error("Url column entered wrong.")
         exit()
-    if not file_speaker_name_column in df.columns:
+    if file_speaker_name_column not in df.columns:
         logging.error("Speaker name column entered wrong.")
         exit()
-    if not file_speaker_gender_column in df.columns:
+    if file_speaker_gender_column not in df.columns:
         logging.error("Speaker gender column entered wrong.")
         exit()
 
 
-def create_playlist(ob, source_file, file_url_name_column):
+def create_playlist_for_file_mode(ob, source_file, file_url_name_column):
     df = pd.read_csv(source_file)
     check_dataframe_validity(df)
     df = df[df[file_url_name_column].notna()]
@@ -72,14 +72,8 @@ def create_playlist(ob, source_file, file_url_name_column):
     df[file_url_name_column] = df[file_url_name_column].apply(lambda x: str(x).replace("https://youtu.be/", ""))
     if not os.path.exists("playlist"):
         os.system("mkdir playlist")
-    df[file_url_name_column].to_csv("playlist/"+source_file.replace(".csv", ".txt"), index=False, header=None)
+    df[file_url_name_column].to_csv("playlist/" + source_file.replace(".csv", ".txt"), index=False, header=None)
     return df
-
-
-def create_channel_playlist(ob, channel_url):
-    os.system(
-        ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" > {3} '.format(
-            channel_url, match_title_string, reject_title_string, ob.FULL_PLAYLIST_FILE_NAME))
 
 
 def create_channel_playlist_for_api(ob):
@@ -100,7 +94,7 @@ def create_channel_playlist_for_api(ob):
             ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" {3} {4} '.format(
                 channel_url, match_title_string, reject_title_string, create_or_append, source_playlist_file))
 
-        os.system('echo {0} > {1}_url.txt'.format(channel_url, 'urls/'+ob.source_channel_dict[channel_url]))
+        os.system('echo {0} > {1}_url.txt'.format(channel_url, 'urls/' + ob.source_channel_dict[channel_url]))
 
 
 def get_playlist_count(file):
@@ -149,7 +143,7 @@ def check_and_log_download_output(ob, downloader_output):
 
 
 def read_website_url(source):
-    with open('urls/'+source+'_url.txt') as file:
+    with open('urls/' + source + '_url.txt') as file:
         url = file.readline().strip()
         return url
 
