@@ -18,7 +18,7 @@ SPIDER_MODULES = ['data_acquisition_framework.spiders']
 NEWSPIDER_MODULE = 'data_acquisition_framework.spiders'
 # ITEM_PIPELINES = {'data_acquisition_framework.pipelines.MediaPipeline': 2}
 # ITEM_PIPELINES = {'data_acquisition_framework.pipelines.YoutubePipeline': 2}
-FILES_STORE = '.'
+FILES_STORE = './downloads/'
 # FILES_STORE = 'gs://ekstepspeechrecognition-dev/scrapydump/music4programming/'
 # GCS_PROJECT_ID = 'ekstepspeechrecognition'
 # Crawl responsibly by identifying yourself (and your website) on the user-agent

@@ -9,7 +9,7 @@ batch_num = 1  # keep batch small on free tier
 scraped_data_blob_path = "scraped"
 
 # Channel mode configurations
-channel_url_dict = {"https://www.youtube.com/channel/UChlEKXoTTTizQN5trVkyNiQ": "Josh Talks"}  # eg {"https://www.youtube.com/channel/UCQvdU25Eqk3YS9-QnILhKKQ" : "Thoughtworks"}
+channel_url_dict = {"https://www.youtube.com/channel/UCZlp89ioAcju3Va7ADa1B-Q": "Tamil"}  # eg {"https://www.youtube.com/channel/UCQvdU25Eqk3YS9-QnILhKKQ" : "ABCD"}
 match_title_string = ''
 reject_title_string = ''
 

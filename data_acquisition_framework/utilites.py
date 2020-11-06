@@ -62,50 +62,17 @@ def set_gcs_creds(gcs_credentials_string):
     logging.info("**********Bucket Credentials Set**********")
 
 
-def get_archive_file_path_for_api(source_file):
-    source_name = source_file.replace(".txt", '')
-    return channel_blob_path + '/' + archive_blob_path + '/' + source_name + '/' + ARCHIVE_FILE_NAME
+def get_archive_file_bucket_path(source, language=""):
+    return channel_blob_path.replace("<language>", language) + '/' + archive_blob_path + '/' + source + '/' + ARCHIVE_FILE_NAME
 
 
-def get_archive_file_path():
-    return channel_blob_path + '/' + archive_blob_path + '/' + source_name + '/' + ARCHIVE_FILE_NAME
-
-
-def get_archive_file_path_by_source(item):
-    return channel_blob_path.replace("<language>", item["language"]) + '/' + archive_blob_path + '/' + item[
-        "source"] + '/' + ARCHIVE_FILE_NAME
-
-
-def retrieve_archive_from_bucket():
-    if check_blob(bucket, get_archive_file_path()):
-        download_blob(bucket, get_archive_file_path(), ARCHIVE_FILE_NAME)
-        logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(bucket)))
-        num_downloaded = sum(1 for line in open(ARCHIVE_FILE_NAME))
-        logging.info(str("Count of Previously downloaded files are : {0}".format(num_downloaded)))
-    else:
-        os.system('touch {0}'.format(ARCHIVE_FILE_NAME))
-        logging.info("No Archive file has been found on bucket...Downloading all files...")
-
-
-def retrieve_archive_from_bucket_for_api(source_file):
-    archive_file_name = 'archive_' + source_file
-    if check_blob(bucket, get_archive_file_path_for_api(source_file)):
-        download_blob(bucket, get_archive_file_path_for_api(source_file), archive_file_name)
-        logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(bucket)))
-        num_downloaded = sum(1 for line in open(archive_file_name))
-        logging.info(str("Count of Previously downloaded files are : {0}".format(num_downloaded)))
-    else:
-        os.system('touch {0}'.format(archive_file_name))
-
-
-def retrieve_archive_from_bucket_by_source(item):
-    source = item["source"]
-    if check_blob(bucket, get_archive_file_path_by_source(item)):
+def retrieve_archive_from_bucket(source, language=""):
+    if check_blob(bucket, get_archive_file_bucket_path(source, language)):
         if not os.path.exists("archives"):
             os.system('mkdir archives')
         if not os.path.exists("archives/" + source + "/"):
             os.system('mkdir archives/{0}'.format(source))
-        download_blob(bucket, get_archive_file_path_by_source(item), "archives/" + source + "/" + ARCHIVE_FILE_NAME)
+        download_blob(bucket, get_archive_file_bucket_path(source, language), "archives/" + source + "/" + ARCHIVE_FILE_NAME)
         logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(bucket)))
         num_downloaded = sum(1 for line in open("archives/" + source + "/" + ARCHIVE_FILE_NAME))
         logging.info(str("Count of Previously downloaded files are : {0}".format(num_downloaded)))
@@ -116,27 +83,12 @@ def retrieve_archive_from_bucket_by_source(item):
         logging.info("No Archive file has been found on bucket...Downloading all files...")
 
 
-def populate_archive(url):
-    with open('archive.txt', 'a+') as f:
-        f.write(url + '\n')
-
-
-def populate_archive_to_source(source, url):
+def populate_local_archive(source, url):
     with open("archives/" + source + '/archive.txt', 'a+') as f:
         f.write(url + '\n')
 
 
-def retrieve_archive_from_local():
-    if os.path.exists('archive.txt'):
-        with open('archive.txt', 'r') as f:
-            lines = f.readlines()
-        return [line.replace('\n', '') for line in lines]
-    else:
-        logging.info("No archive.txt is found.....")
-        return []
-
-
-def retrieve_archive_from_local_by_source(source):
+def retrieve_archive_from_local(source):
     if os.path.exists("archives/" + source + '/archive.txt'):
         with open("archives/" + source + '/archive.txt', 'r') as f:
             lines = f.readlines()
@@ -146,55 +98,20 @@ def retrieve_archive_from_local_by_source(source):
         return []
 
 
-def upload_archive_to_bucket_for_api(source_file):
-    upload_blob(bucket, 'archive_' + source_file, get_archive_file_path_for_api(source_file))
+def upload_archive_to_bucket(source, language=""):
+    upload_blob(bucket, "archives/" + source + "/" + ARCHIVE_FILE_NAME, get_archive_file_bucket_path(source, language))
 
 
-def upload_archive_to_bucket():
-    upload_blob(bucket, ARCHIVE_FILE_NAME, get_archive_file_path())
-
-
-def upload_media_and_metadata_to_bucket_for_api(source_file, file):
-    FILE_FORMAT = file.split('.')[-1]
-    meta_file_name = file.replace(FILE_FORMAT, "csv")
-    source_name = source_file.replace('.txt', '')
-    upload_blob(bucket, file, channel_blob_path + '/' + source_name + '/' + file)
-    os.remove(file)
-    upload_blob(bucket, meta_file_name, channel_blob_path + '/' + source_name + '/' + meta_file_name)
-    os.remove(meta_file_name)
-
-
-def upload_archive_to_bucket_by_source(item):
-    upload_blob(bucket, "archives/" + item["source"] + "/" + ARCHIVE_FILE_NAME, get_archive_file_path_by_source(item))
-
-
-def upload_media_and_metadata_to_bucket(file):
-    FILE_FORMAT = file.split('.')[-1]
-    meta_file_name = file.replace(FILE_FORMAT, "csv")
-    upload_blob(bucket, file, channel_blob_path + '/' + source_name + '/' + file)
-    os.remove(file)
-    upload_blob(bucket, meta_file_name, channel_blob_path + '/' + source_name + '/' + meta_file_name)
-    os.remove(meta_file_name)
-
-
-def upload_audio_and_metadata_to_bucket(file, item):
+def upload_media_and_metadata_to_bucket(source, file, language=""):
     blob_path = channel_blob_path
-    FILE_FORMAT = file.split('.')[-1]
-    meta_file_name = file.replace(FILE_FORMAT, "csv")
-    file_path = blob_path.replace("<language>", item["language"]) + '/' + item["source"] + '/' + file
-    print(file_path)
+    file_format = file.split('.')[-1]
+    meta_file_name = file.replace(file_format, "csv")
+    file_path = blob_path.replace("<language>", language) + '/' + source + '/' + file.replace("downloads/", "")
     upload_blob(bucket, file, file_path)
     os.remove(file)
-    meta_path = blob_path.replace("<language>", item["language"]) + '/' + item["source"] + '/' + meta_file_name
-    print(meta_path)
+    meta_path = blob_path.replace("<language>", language) + '/' + source + '/' + meta_file_name.replace("downloads/", "")
     upload_blob(bucket, meta_file_name, meta_path)
     os.remove(meta_file_name)
-
-
-def get_mp3_duration(file):
-    tag = TinyTag.get(file)
-    return round(tag.duration, 3) / 60
-
 
 def get_mp3_duration_in_seconds(file):
     tag = TinyTag.get(file)

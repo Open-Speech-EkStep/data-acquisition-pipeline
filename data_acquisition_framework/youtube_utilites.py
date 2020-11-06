@@ -11,12 +11,8 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def get_video_batch(ob):
-    if hasattr(ob, 'source_file'):
-        playlist_file_name = 'playlist/' + ob.source_file
-        archive_file_name = 'archive_' + ob.source_file
-    else:
-        playlist_file_name = ob.FULL_PLAYLIST_FILE_NAME
-        archive_file_name = ob.ARCHIVE_FILE_NAME
+    playlist_file_name = 'playlist/' + ob.source_file
+    archive_file_name = "archives/" + ob.source_file.replace(".txt", "") + "/archive.txt"
     try:
         full_playlist = pd.read_csv(playlist_file_name, header=None)
     except EmptyDataError:
