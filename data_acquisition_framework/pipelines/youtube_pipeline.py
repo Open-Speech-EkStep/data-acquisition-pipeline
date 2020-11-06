@@ -5,6 +5,7 @@ from data_acquisition_framework.youtube_utilites import *
 from data_acquisition_framework.youtube_api import YoutubeApiUtils
 import subprocess
 
+
 class YoutubePipeline(DataAcqusitionPipeline):
     FILE_FORMAT = 'mp4'
     ARCHIVE_FILE_NAME = 'archive.txt'
@@ -18,10 +19,10 @@ class YoutubePipeline(DataAcqusitionPipeline):
         self.youtube_api_utils = YoutubeApiUtils()
         self.batch_count = 0
         self.scraped_data = None
-        self.yml_config = config_yaml()['downloader']
+        self.config_json = config_json()['downloader']
         self.check_speaker = False
         self.youtube_call = "/app/python/bin/youtube-dl " if "scrapinghub" in os.path.abspath("~") else "youtube-dl "
-        retrive_archive_from_bucket()
+        retrieve_archive_from_bucket()
 
     def scrape_links(self):
         create_channel_playlist(self, channel_url)
@@ -34,7 +35,8 @@ class YoutubePipeline(DataAcqusitionPipeline):
         downloader_output = subprocess.run(
             self.youtube_call + '-f "best[ext=mp4]" -o "%(duration)sfile-id%(id)s.%(ext)s" --batch-file {0}  '
                                 '--restrict-filenames --download-archive {1} --proxy "" --abort-on-error '
-            .format(self.VIDEO_BATCH_FILE_NAME, self.ARCHIVE_FILE_NAME), shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            .format(self.VIDEO_BATCH_FILE_NAME, self.ARCHIVE_FILE_NAME), shell=True, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
         check_and_log_download_output(self, downloader_output)
         return self
 
@@ -58,7 +60,7 @@ class YoutubePipeline(DataAcqusitionPipeline):
             video_info['gender'] = None
         video_info['source_url'] = source_url
         video_info['license'] = self.youtube_api_utils.get_license_info(video_id)
-        metadata = create_metadata(video_info, self.yml_config)
+        metadata = create_metadata(video_info, self.config_json)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
         return self

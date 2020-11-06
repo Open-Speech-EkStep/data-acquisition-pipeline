@@ -9,7 +9,7 @@ ARCHIVE_FILE_NAME = 'archive.txt'
 logging.basicConfig(level=logging.DEBUG)
 
 
-def config_yaml():
+def config_json():
     config_path = os.path.dirname(os.path.realpath(__file__))
     logging.info(os.listdir(config_path))
     config_file = os.path.join(config_path, "configs", "config.json")
@@ -18,62 +18,62 @@ def config_yaml():
     return metadata
 
 
-def create_metadata(video_info, yml):
+def create_metadata(video_info, meta_json):
     metadata = {'raw_file_name': video_info['raw_file_name'],
                 'duration': str(video_info['duration']),
                 'title': video_info['raw_file_name'],
-                'speaker_name': yml['speaker_name'] if yml['speaker_name'] else video_info['name'],
-                'audio_id': yml['audio_id'],
-                'cleaned_duration': yml['cleaned_duration'],
-                'num_of_speakers': yml['num_of_speakers'],  # check
-                'language': yml['language'],
-                'has_other_audio_signature': yml['has_other_audio_signature'],
-                'type': yml['type'],
-                'source': yml['source'],  # --------
-                'experiment_use': yml['experiment_use'],  # check
-                'utterances_files_list': yml['utterances_files_list'],
+                'speaker_name': meta_json['speaker_name'] if meta_json['speaker_name'] else video_info['name'],
+                'audio_id': meta_json['audio_id'],
+                'cleaned_duration': meta_json['cleaned_duration'],
+                'num_of_speakers': meta_json['num_of_speakers'],  # check
+                'language': meta_json['language'],
+                'has_other_audio_signature': meta_json['has_other_audio_signature'],
+                'type': meta_json['type'],
+                'source': meta_json['source'],  # --------
+                'experiment_use': meta_json['experiment_use'],  # check
+                'utterances_files_list': meta_json['utterances_files_list'],
                 # 'file_url': video_info['file_url'],
                 'source_url': video_info['source_url'],
-                'speaker_gender': str(yml['speaker_gender']).lower() if yml['speaker_gender'] else video_info['gender'],
-                'source_website': yml['source_website'],  # --------
-                'experiment_name': yml['experiment_name'],
-                'mother_tongue': yml['mother_tongue'],
-                'age_group': yml['age_group'],  # -----------
-                'recorded_state': yml['recorded_state'],
-                'recorded_district': yml['recorded_district'],
-                'recorded_place': yml['recorded_place'],
-                'recorded_date': yml['recorded_date'],
-                'purpose': yml['purpose'],
+                'speaker_gender': str(meta_json['speaker_gender']).lower() if meta_json['speaker_gender'] else video_info['gender'],
+                'source_website': meta_json['source_website'],  # --------
+                'experiment_name': meta_json['experiment_name'],
+                'mother_tongue': meta_json['mother_tongue'],
+                'age_group': meta_json['age_group'],  # -----------
+                'recorded_state': meta_json['recorded_state'],
+                'recorded_district': meta_json['recorded_district'],
+                'recorded_place': meta_json['recorded_place'],
+                'recorded_date': meta_json['recorded_date'],
+                'purpose': meta_json['purpose'],
                 'license': video_info["license"] if "license" in video_info else ""
                 }
     return metadata
 
 
-def create_metadata_for_api(video_info, yml):
+def create_metadata_for_api(video_info, meta_json):
     metadata = {'raw_file_name': video_info['raw_file_name'],
                 'duration': str(video_info['duration']),
                 'title': video_info['raw_file_name'],
-                'speaker_name': yml['speaker_name'] if yml['speaker_name'] else video_info['name'],
-                'audio_id': yml['audio_id'],
-                'cleaned_duration': yml['cleaned_duration'],
-                'num_of_speakers': yml['num_of_speakers'],  # check
-                'language': yml['language'],
-                'has_other_audio_signature': yml['has_other_audio_signature'],
-                'type': yml['type'],
+                'speaker_name': meta_json['speaker_name'] if meta_json['speaker_name'] else video_info['name'],
+                'audio_id': meta_json['audio_id'],
+                'cleaned_duration': meta_json['cleaned_duration'],
+                'num_of_speakers': meta_json['num_of_speakers'],  # check
+                'language': meta_json['language'],
+                'has_other_audio_signature': meta_json['has_other_audio_signature'],
+                'type': meta_json['type'],
                 'source': video_info['source'],
-                'experiment_use': yml['experiment_use'],  # check
-                'utterances_files_list': yml['utterances_files_list'],
+                'experiment_use': meta_json['experiment_use'],  # check
+                'utterances_files_list': meta_json['utterances_files_list'],
                 'source_url': video_info['source_url'],
-                'speaker_gender': str(yml['speaker_gender']).lower() if yml['speaker_gender'] else video_info['gender'],
+                'speaker_gender': str(meta_json['speaker_gender']).lower() if meta_json['speaker_gender'] else video_info['gender'],
                 'source_website': video_info['source_website'],
-                'experiment_name': yml['experiment_name'],
-                'mother_tongue': yml['mother_tongue'],
-                'age_group': yml['age_group'],  # -----------
-                'recorded_state': yml['recorded_state'],
-                'recorded_district': yml['recorded_district'],
-                'recorded_place': yml['recorded_place'],
-                'recorded_date': yml['recorded_date'],
-                'purpose': yml['purpose'],
+                'experiment_name': meta_json['experiment_name'],
+                'mother_tongue': meta_json['mother_tongue'],
+                'age_group': meta_json['age_group'],  # -----------
+                'recorded_state': meta_json['recorded_state'],
+                'recorded_district': meta_json['recorded_district'],
+                'recorded_place': meta_json['recorded_place'],
+                'recorded_date': meta_json['recorded_date'],
+                'purpose': meta_json['purpose'],
                 'license': video_info['license']}
     return metadata
 
@@ -108,7 +108,7 @@ def get_archive_file_path_by_source(item):
         "source"] + '/' + ARCHIVE_FILE_NAME
 
 
-def retrive_archive_from_bucket():
+def retrieve_archive_from_bucket():
     if check_blob(bucket, get_archive_file_path()):
         download_blob(bucket, get_archive_file_path(), ARCHIVE_FILE_NAME)
         logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(bucket)))
@@ -119,7 +119,7 @@ def retrive_archive_from_bucket():
         logging.info("No Archive file has been found on bucket...Downloading all files...")
 
 
-def retrive_archive_from_bucket_for_api(source_file):
+def retrieve_archive_from_bucket_for_api(source_file):
     archive_file_name = 'archive_' + source_file
     if check_blob(bucket, get_archive_file_path_for_api(source_file)):
         download_blob(bucket, get_archive_file_path_for_api(source_file), archive_file_name)
@@ -130,7 +130,7 @@ def retrive_archive_from_bucket_for_api(source_file):
         os.system('touch {0}'.format(archive_file_name))
 
 
-def retrive_archive_from_bucket_by_source(item):
+def retrieve_archive_from_bucket_by_source(item):
     source = item["source"]
     if check_blob(bucket, get_archive_file_path_by_source(item)):
         if not os.path.exists("archives"):

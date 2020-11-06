@@ -8,7 +8,7 @@ from itemadapter import ItemAdapter
 from scrapy import Request
 from scrapy.pipelines.files import FilesPipeline
 
-from data_acquisition_framework.utilites import retrive_archive_from_bucket, retrieve_archive_from_local, config_yaml, \
+from data_acquisition_framework.utilites import retrieve_archive_from_bucket, retrieve_archive_from_local, config_json, \
     populate_archive, upload_media_and_metadata_to_bucket, upload_archive_to_bucket, get_mp3_duration, create_metadata
 
 
@@ -16,9 +16,9 @@ class MediaPipeline(FilesPipeline):
 
     def __init__(self, store_uri, download_func=None, settings=None):
         super().__init__(store_uri, download_func, settings)
-        retrive_archive_from_bucket()
+        retrieve_archive_from_bucket()
         self.archive_list = retrieve_archive_from_local()
-        self.yml_config = config_yaml()['downloader']
+        self.config_json = config_json()['downloader']
 
     def file_path(self, request, response=None, info=None):
         file_name: str = request.url.split("/")[-1]
@@ -61,6 +61,6 @@ class MediaPipeline(FilesPipeline):
         video_info['name'] = None
         video_info['gender'] = None
         video_info['source_url'] = source_url
-        metadata = create_metadata(video_info, self.yml_config)
+        metadata = create_metadata(video_info, self.config_json)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)

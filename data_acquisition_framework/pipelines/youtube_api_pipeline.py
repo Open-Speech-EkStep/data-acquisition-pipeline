@@ -8,8 +8,8 @@ import pandas as pd
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcqusitionPipeline
 from data_acquisition_framework.configs.pipeline_config import source_name, channel_url_dict
 from data_acquisition_framework.token_utilities import get_token_from_bucket, update_token_in_bucket
-from data_acquisition_framework.utilites import config_yaml, create_metadata_for_api, \
-    retrive_archive_from_bucket_for_api, upload_media_and_metadata_to_bucket_for_api, upload_archive_to_bucket_for_api
+from data_acquisition_framework.utilites import config_json, create_metadata_for_api, \
+    retrieve_archive_from_bucket_for_api, upload_media_and_metadata_to_bucket_for_api, upload_archive_to_bucket_for_api
 from data_acquisition_framework.youtube_api import YoutubeApiUtils, YoutubePlaylistCollector
 from data_acquisition_framework.youtube_utilites import create_channel_playlist_for_api, get_video_batch, \
     check_and_log_download_output, get_speaker, get_gender, read_website_url, check_mode, get_playlist_count
@@ -29,7 +29,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         self.youtube_api_utils = YoutubeApiUtils()
         self.batch_count = 0
         self.scraped_data = None
-        self.yml_config = config_yaml()['downloader']
+        self.config_json = config_json()['downloader']
         self.check_speaker = False
         self.youtube_call = "/app/python/bin/youtube-dl " if "scrapinghub" in os.path.abspath("~") else "youtube-dl "
         self.source_channel_dict = None
@@ -85,7 +85,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         video_info['source_url'] = source_url
         video_info['source_website'] = read_website_url(video_info['source'])
         video_info['license'] = self.youtube_api_utils.get_license_info(video_id)
-        metadata = create_metadata_for_api(video_info, self.yml_config)
+        metadata = create_metadata_for_api(video_info, self.config_json)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
         return self
@@ -99,7 +99,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
 
             self.source_file = source_file_name
             self.batch_count = 0
-            retrive_archive_from_bucket_for_api(source_file_name)
+            retrieve_archive_from_bucket_for_api(source_file_name)
             playlist_count = get_playlist_count(source_file)
             logging.info(
                 str("Total playlist count with valid videos is {0}".format(playlist_count)))
