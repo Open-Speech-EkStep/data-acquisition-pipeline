@@ -1,20 +1,16 @@
-# Define your item pipelines here
-#
-# Don't forget to add your pipeline to the ITEM_PIPELINES setting
-# See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-
-
+import logging
+import os
 from contextlib import suppress
 
 import moviepy.editor
+import pandas as pd
 from itemadapter import ItemAdapter
-# useful for handling different item types with a single interface
-from scrapy.http import Request
+from scrapy import Request
 from scrapy.pipelines.files import FilesPipeline
 
-from .utilites import *
-from .youtube_utilites import *
-from .token_utilities import *
+from data_acquisition_framework.utilites import config_yaml, populate_archive_to_source, \
+    upload_audio_and_metadata_to_bucket, upload_archive_to_bucket_by_source, retrive_archive_from_bucket_by_source, \
+    retrieve_archive_from_local_by_source, get_mp3_duration_in_seconds, create_metadata_for_audio
 
 
 class AudioPipeline(FilesPipeline):
@@ -71,10 +67,10 @@ class AudioPipeline(FilesPipeline):
     def extract_metadata(self, file, url, item):
         video_info = {}
         duration_in_seconds = 0
-        FILE_FORMAT = file.split('.')[-1]
-        meta_file_name = file.replace(FILE_FORMAT, "csv")
+        file_format = file.split('.')[-1]
+        meta_file_name = file.replace(file_format, "csv")
         source_url = url
-        if FILE_FORMAT == 'mp4':
+        if file_format == 'mp4':
             video = moviepy.editor.VideoFileClip(file)
             duration_in_seconds = int(video.duration)
         else:

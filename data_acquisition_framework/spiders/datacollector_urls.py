@@ -18,7 +18,7 @@ class UrlSearchSpider(scrapy.Spider):
         "DOWNLOAD_WARNSIZE": "999999999",
         "RETRY_TIMES": "0",
         "ROBOTSTXT_OBEY": "False",
-        "ITEM_PIPELINES": '{"data_acquisition_framework.pipelines.AudioPipeline": 1}',
+        "ITEM_PIPELINES": '{"data_acquisition_framework.pipelines.audio_pipeline.AudioPipeline": 1}',
         "MEDIA_ALLOW_REDIRECTS": "True",
         "REACTOR_THREADPOOL_MAXSIZE": "20",
         # "DOWNLOAD_DELAY":'2.0',

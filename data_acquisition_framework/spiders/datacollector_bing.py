@@ -11,14 +11,14 @@ from urllib.parse import urlparse
 
 
 class BingSearchSpider(scrapy.Spider):
-    name = "data_collector_bing"
+    name = "datacollector_bing"
 
     custom_settings = {
         'DOWNLOAD_MAXSIZE': '0',
         'DOWNLOAD_WARNSIZE': '999999999',
         'RETRY_TIMES': '0',
         'ROBOTSTXT_OBEY':'False',
-        'ITEM_PIPELINES':'{"data_acquisition_framework.pipelines.AudioPipeline": 1}',
+        'ITEM_PIPELINES':'{"data_acquisition_framework.pipelines.audio_pipeline.AudioPipeline": 1}',
         'MEDIA_ALLOW_REDIRECTS':'True',
         'REACTOR_THREADPOOL_MAXSIZE':'20',
         # 'DOWNLOAD_DELAY':'2.0',
@@ -117,6 +117,9 @@ class BingSearchSpider(scrapy.Spider):
 
     def parse_results_url(self, url):
         return scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
+    
+    def parse_license_page(self, response, source):
+        pass
 
     def parse(self, response, depth):
         if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
@@ -161,11 +164,11 @@ class BingSearchSpider(scrapy.Spider):
             yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=(depth+1)))
 
     def extract_license_urls(self, urls, all_a_tags, response):
-        license_urls = []
+        license_urls = set()
         for url in urls:
             url = url.rstrip().lstrip()
             if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith("https://creativecommons.org/publicdomain/zero") or url.startswith("https://creativecommons.org/licenses/by"):
-                license_urls.append(url)
+                license_urls.add(url)
         if len(license_urls) == 0:
             for a_tag in all_a_tags:
                 texts = a_tag.xpath('text()').extract()
@@ -174,7 +177,7 @@ class BingSearchSpider(scrapy.Spider):
                     if "terms" in text or "license" in text or "copyright" in text or "usage policy" in text or "conditions" in text or "website policies" in text:
                         for link in a_tag.xpath('@href').extract():
                             license_urls.add(response.urljoin(link))
-        return license_urls
+        return list(license_urls)
     
     def is_unwanted_words_present(self, url):
         for word in self.word_to_ignore:
