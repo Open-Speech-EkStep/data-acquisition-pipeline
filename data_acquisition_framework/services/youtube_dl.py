@@ -11,7 +11,7 @@ class YoutubeDL:
         command = self.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}"'.format(
             channel_url, match_title_string, reject_title_string)
         downloaded_output = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        video_list = downloaded_output.stdout.decode().rstrip().lstrip().split("\n")
+        video_list = downloaded_output.stdout.decode("utf-8").rstrip().lstrip().split("\n")
         return video_list
 
     def youtube_download(self, video_id, archive_path, download_path):

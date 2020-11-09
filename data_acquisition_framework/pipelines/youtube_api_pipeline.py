@@ -1,13 +1,12 @@
 import glob
 import logging
 import os
-import subprocess
 from concurrent.futures.thread import ThreadPoolExecutor
 from concurrent.futures import as_completed
 import pandas as pd
 
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcqusitionPipeline
-from data_acquisition_framework.configs.pipeline_config import source_name, channel_url_dict, mode
+from data_acquisition_framework.configs.pipeline_config import channel_url_dict, mode
 from data_acquisition_framework.token_utilities import get_token_from_bucket, update_token_in_bucket
 from data_acquisition_framework.utilites import config_json, create_metadata, \
     retrieve_archive_from_bucket, upload_media_and_metadata_to_bucket, upload_archive_to_bucket
@@ -20,15 +19,12 @@ from data_acquisition_framework.services.youtube_dl import YoutubeDL
 
 class YoutubeApiPipeline(DataAcqusitionPipeline):
     FILE_FORMAT = 'mp4'
-    VIDEO_BATCH_FILE_NAME = 'video_list.txt'
 
     def __init__(self):
         if not os.path.exists(download_path):
             os.system("mkdir " + download_path)
         if os.path.exists(playlist_path):
             os.system('rm -rf ' + playlist_path)
-        if os.path.exists('video_list.txt'):
-            os.system('rm video_list.txt')
         logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
         # logging.info(str("Downloading videos for source : {0}".format(source_name)))
 
@@ -55,20 +51,18 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
     def create_download_batch(self):
         return get_video_batch(self)
 
-    def download_files(self, source_file_name):
+    def download_files(self, source_with_channel_id, source_file_name, batch_list):
         archive_path = archives_path.replace('<source>', source_file_name.replace(".txt", ""))
         with ThreadPoolExecutor(max_workers=1) as executor:
             futures = []
-            with open(self.VIDEO_BATCH_FILE_NAME, 'r') as f:
-                for video_id in f.readlines():
-                    futures.append(executor.submit(self.youtube_dl_service.youtube_download, video_id,
-                                                   archive_path,
-                                                   download_path))
-                for future in as_completed(futures):
-                    remove_video_flag, video_id = future.result()
-                    print(remove_video_flag, video_id)
-                    if remove_video_flag:
-                        remove_rejected_video(source_file_name, video_id)
+            for video_id in batch_list:
+                futures.append(executor.submit(self.youtube_dl_service.youtube_download, video_id,
+                                               archive_path,
+                                               download_path))
+            for future in as_completed(futures):
+                remove_video_flag, video_id = future.result()
+                if remove_video_flag:
+                    remove_rejected_video(source_file_name, video_id)
         return self
 
     def extract_metadata(self, source_file, file, channel_id, url=None):
@@ -117,12 +111,13 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
             logging.info(
                 str("Total playlist count with valid videos is {0}".format(playlist_count)))
 
-            last_video_batch_count = self.create_download_batch()
+            batch_list = self.create_download_batch()
+            last_video_batch_count = len(batch_list)
             while last_video_batch_count > 0:
                 logging.info(str("Attempt to download videos with batch size of {0}".format(
                     last_video_batch_count)))
                 try:
-                    self.download_files(source_without_channel_id)
+                    self.download_files(source_file_name, source_without_channel_id, batch_list)
                 except Exception as e:
                     print("error", e)
                 finally:
@@ -138,7 +133,8 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
                         upload_archive_to_bucket(source_without_channel_id.replace(".txt", ""))
                         logging.info(
                             str("Uploaded files till now: {0}".format(self.batch_count)))
-                last_video_batch_count = self.create_download_batch()
+                batch_list = self.create_download_batch()
+                last_video_batch_count = len(batch_list)
             logging.info(str("Last Batch has no more videos to be downloaded,so finishing downloads..."))
             logging.info(
                 str("Total Uploaded files for this run was : {0}".format(self.batch_count)))

@@ -25,8 +25,7 @@ def get_video_batch(ob):
         archive_file = pd.DataFrame(columns=[1])
     video_batch = full_playlist[full_playlist.merge(archive_file, left_on=0, right_on=1, how='left')[1].isnull()].head(
         batch_num)
-    video_batch.to_csv(ob.VIDEO_BATCH_FILE_NAME, header=False, index=False)
-    return int(video_batch.count()[0])
+    return video_batch[0].tolist()
 
 
 def check_mode(ob):
@@ -85,7 +84,8 @@ def create_channel_playlist(ob):
 
         videos_list = ob.youtube_dl_service.get_videos(channel_url, match_title_string, reject_title_string)
         with open(source_playlist_file, 'w') as playlist_file:
-            playlist_file.writelines(videos_list)
+            for video_id in videos_list:
+                playlist_file.write(video_id+"\n")
 
 
 def get_playlist_count(file):
