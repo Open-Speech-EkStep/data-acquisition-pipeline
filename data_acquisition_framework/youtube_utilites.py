@@ -11,9 +11,9 @@ from data_acquisition_framework.configs.paths import archives_path, playlist_pat
 logging.basicConfig(level=logging.DEBUG)
 
 
-def get_video_batch(ob):
-    source = ob.source_without_channel_id.replace('.txt', '')
-    playlist_file_name = playlist_path + ob.source_file
+def get_video_batch(source, source_file):
+    source = source.replace('.txt', '')
+    playlist_file_name = playlist_path + source_file
     archive_file_name = archives_path.replace('<source>', source)
     try:
         full_playlist = pd.read_csv(playlist_file_name, header=None)
@@ -28,21 +28,19 @@ def get_video_batch(ob):
     return video_batch[0].tolist()
 
 
-def check_mode(ob):
+def check_mode():
     if mode == "file":
         if check_blob(bucket, get_videos_file_path_in_bucket()):
             download_blob(bucket, get_videos_file_path_in_bucket(), source_name + ".csv")
             logging.info(str("Source scraped file has been downloaded from bucket {0} to local path...".format(bucket)))
-            ob.scraped_data = create_playlist_for_file_mode(source_name + ".csv", file_url_name_column)
-            ob.check_speaker = True
-            return ob.check_speaker
+            scraped_data = create_playlist_for_file_mode(source_name + ".csv", file_url_name_column)
+            return scraped_data, True
         else:
             logging.error(str("{0} File doesn't exists on the given location: {1}".format(source_name + ".csv",
                                                                                           get_videos_file_path_in_bucket())))
             exit()
     if mode == "channel":
-        ob.scrape_links()
-        return False
+        return None, False
     else:
         logging.error("Invalid mode")
         exit()
@@ -73,16 +71,16 @@ def create_playlist_for_file_mode(source_file, file_url_column):
     return df
 
 
-def create_channel_playlist(ob):
+def create_channel_playlist(source_channel_dict, youtube_dl_service):
     if not (os.path.exists(playlist_path)):
         os.mkdir(playlist_path)
 
-    for channel_url in ob.source_channel_dict.keys():
+    for channel_url in source_channel_dict.keys():
         channel_id = channel_url.split('/')[-1]
-        ob.source_channel_dict[channel_url] = str(ob.source_channel_dict[channel_url]).replace(' ', '_')
-        source_playlist_file = playlist_path + channel_id + '__' + ob.source_channel_dict[channel_url] + '.txt'
+        source_channel_dict[channel_url] = str(source_channel_dict[channel_url]).replace(' ', '_')
+        source_playlist_file = playlist_path + channel_id + '__' + source_channel_dict[channel_url] + '.txt'
 
-        videos_list = ob.youtube_dl_service.get_videos(channel_url, match_title_string, reject_title_string)
+        videos_list = youtube_dl_service.get_videos(channel_url, match_title_string, reject_title_string)
         with open(source_playlist_file, 'w') as playlist_file:
             for video_id in videos_list:
                 playlist_file.write(video_id+"\n")

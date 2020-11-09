@@ -21,3 +21,10 @@ class Media(scrapy.Item):
     license_urls = scrapy.Field()
     language = scrapy.Field()
     duration = scrapy.Field()
+
+
+class YoutubeItem(scrapy.Item):
+    channel_name = scrapy.Field()
+    channel_id = scrapy.Field()
+    filename = scrapy.Field()
+    filemode_data = scrapy.Field()
