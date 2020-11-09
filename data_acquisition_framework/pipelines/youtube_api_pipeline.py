@@ -3,6 +3,7 @@ import logging
 import os
 import subprocess
 from concurrent.futures.thread import ThreadPoolExecutor
+from concurrent.futures import as_completed
 import pandas as pd
 
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcqusitionPipeline
@@ -12,8 +13,9 @@ from data_acquisition_framework.utilites import config_json, create_metadata, \
     retrieve_archive_from_bucket, upload_media_and_metadata_to_bucket, upload_archive_to_bucket
 from data_acquisition_framework.youtube_api import YoutubeApiUtils, YoutubePlaylistCollector
 from data_acquisition_framework.youtube_utilites import create_channel_playlist, get_video_batch, \
-    check_and_log_download_output, get_speaker, get_gender, check_mode, get_playlist_count
+    get_speaker, get_gender, check_mode, get_playlist_count, remove_rejected_video
 from data_acquisition_framework.configs.paths import download_path, archives_path, playlist_path
+from data_acquisition_framework.services.youtube_dl import YoutubeDL
 
 
 class YoutubeApiPipeline(DataAcqusitionPipeline):
@@ -31,11 +33,11 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
         # logging.info(str("Downloading videos for source : {0}".format(source_name)))
 
         self.youtube_api_utils = YoutubeApiUtils()
+        self.youtube_dl_service = YoutubeDL()
         self.batch_count = 0
         self.scraped_data = None
         self.config_json = config_json()['downloader']
         self.check_speaker = False
-        self.youtube_call = "/app/python/bin/youtube-dl " if "scrapinghub" in os.path.abspath("~") else "youtube-dl "
         self.source_channel_dict = None
         self.source_file = None
         self.source_without_channel_id = None
@@ -53,21 +55,20 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
     def create_download_batch(self):
         return get_video_batch(self)
 
-    def youtube_download(self, video_id, source_file_name):
-        command = self.youtube_call + '-f "best[ext=mp4][filesize<1024M]" -o "{2}%(duration)sfile-id%(id)s.%(ext)s" ' \
-                                      '"https://www.youtube.com/watch?v={0}" --download-archive {1} --proxy "" ' \
-                                      '--abort-on-error'.format(video_id, archives_path.replace('<source>',
-                                                                                                source_file_name.replace(".txt",
-                                                                                                                "")),
-                                                                download_path)
-        downloader_output = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        check_and_log_download_output(self.source_file, downloader_output)
-
     def download_files(self, source_file_name):
+        archive_path = archives_path.replace('<source>', source_file_name.replace(".txt", ""))
         with ThreadPoolExecutor(max_workers=1) as executor:
+            futures = []
             with open(self.VIDEO_BATCH_FILE_NAME, 'r') as f:
                 for video_id in f.readlines():
-                    executor.submit(self.youtube_download, video_id, source_file_name)
+                    futures.append(executor.submit(self.youtube_dl_service.youtube_download, video_id,
+                                                   archive_path,
+                                                   download_path))
+                for future in as_completed(futures):
+                    remove_video_flag, video_id = future.result()
+                    print(remove_video_flag, video_id)
+                    if remove_video_flag:
+                        remove_rejected_video(source_file_name, video_id)
         return self
 
     def extract_metadata(self, source_file, file, channel_id, url=None):
@@ -92,7 +93,7 @@ class YoutubeApiPipeline(DataAcqusitionPipeline):
             video_info['gender'] = None
         video_info['source_url'] = source_url
         if mode == "channel":
-            video_info['source_website'] = "https://www.youtube.com/channel/"+channel_id
+            video_info['source_website'] = "https://www.youtube.com/channel/" + channel_id
         video_info['license'] = self.youtube_api_utils.get_license_info(video_id)
         metadata = create_metadata(video_info, self.config_json)
         metadata_df = pd.DataFrame([metadata])

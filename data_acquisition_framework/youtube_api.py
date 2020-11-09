@@ -33,7 +33,7 @@ class YoutubeApiUtils:
 class YoutubePlaylistCollector:
 
     def __init__(self):
-        print(os.getcwd())
+        self.youtube_dl_service = YoutubeDL()
         with open('./data_acquisition_framework/configs/youtube_api_config.json', 'r') as f:
             config = json.load(f)
 
@@ -91,11 +91,11 @@ class YoutubePlaylistCollector:
     
     def get_playlist_collection(self):
         playlist_collection = {}
-        urls = self.getUrls()
+        urls = self.get_urls()
         for channel, name in urls.items():
             try:
-                video_ids = subprocess.check_output('youtube-dl {0} --flat-playlist --get-id'.format(channel), shell=True)
-            except:
+                video_ids = self.youtube_dl_service.get_videos(channel, "", "")
+            except :
                 continue
             video_ids = video_ids.decode("utf-8").rstrip().lstrip().split("\n")
             name = name.replace(" ","_")

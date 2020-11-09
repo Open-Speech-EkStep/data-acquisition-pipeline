@@ -34,7 +34,7 @@ def check_mode(ob):
         if check_blob(bucket, get_videos_file_path_in_bucket()):
             download_blob(bucket, get_videos_file_path_in_bucket(), source_name + ".csv")
             logging.info(str("Source scraped file has been downloaded from bucket {0} to local path...".format(bucket)))
-            ob.scraped_data = create_playlist_for_file_mode(ob, source_name + ".csv", file_url_name_column)
+            ob.scraped_data = create_playlist_for_file_mode(source_name + ".csv", file_url_name_column)
             ob.check_speaker = True
             return ob.check_speaker
         else:
@@ -61,16 +61,16 @@ def check_dataframe_validity(df):
         exit()
 
 
-def create_playlist_for_file_mode(ob, source_file, file_url_name_column):
+def create_playlist_for_file_mode(source_file, file_url_column):
     df = pd.read_csv(source_file)
     check_dataframe_validity(df)
-    df = df[df[file_url_name_column].notna()]
-    df[file_url_name_column] = df[file_url_name_column].apply(
+    df = df[df[file_url_column].notna()]
+    df[file_url_column] = df[file_url_column].apply(
         lambda x: str(x).replace("https://www.youtube.com/watch?v=", ""))
-    df[file_url_name_column] = df[file_url_name_column].apply(lambda x: str(x).replace("https://youtu.be/", ""))
+    df[file_url_column] = df[file_url_column].apply(lambda x: str(x).replace("https://youtu.be/", ""))
     if not os.path.exists(playlist_path):
         os.system("mkdir " + playlist_path)
-    df[file_url_name_column].to_csv(playlist_path + source_file.replace(".csv", ".txt"), index=False, header=None)
+    df[file_url_column].to_csv(playlist_path + source_file.replace(".csv", ".txt"), index=False, header=None)
     return df
 
 
@@ -83,9 +83,9 @@ def create_channel_playlist(ob):
         ob.source_channel_dict[channel_url] = str(ob.source_channel_dict[channel_url]).replace(' ', '_')
         source_playlist_file = playlist_path + channel_id + '__' + ob.source_channel_dict[channel_url] + '.txt'
 
-        os.system(
-            ob.youtube_call + '{0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}" > {3} '.format(
-                channel_url, match_title_string, reject_title_string, source_playlist_file))
+        videos_list = ob.youtube_dl_service.get_videos(channel_url, match_title_string, reject_title_string)
+        with open(source_playlist_file, 'w') as playlist_file:
+            playlist_file.writelines(videos_list)
 
 
 def get_playlist_count(file):
@@ -105,33 +105,5 @@ def get_gender(scraped_data, video_id):
     return str(scraped_data[scraped_data[file_url_name_column] == video_id].iloc[0][file_speaker_gender_column]).lower()
 
 
-def check_and_log_download_output(source, downloader_output):
-    if downloader_output.stderr:
-        formatted_error = str(downloader_output.stderr.decode("utf-8"))
-        check = False
-        if not ("WARNING" in formatted_error):
-            logging.error(formatted_error)
-        if ": YouTube said: Unable to extract video data" in formatted_error:
-            video_id = formatted_error.split(":")[1].strip()
-            remove_rejected_video(source, video_id)
-            check = True
-            logging.info(str("Video I'd {0} removed from playlist and won't be downloaded".format(video_id)))
-        if "Did not get any data blocks" in formatted_error or "HTTP Error 404: Not Found" in formatted_error:
-            video_id = open("video_list.txt").readlines()[0].replace("\n", "")
-            remove_rejected_video(source, video_id)
-            check = True
-            logging.info(str("ERROR Handeled"))
-        if "HTTP Error 429" in formatted_error:
-            logging.error("Too many Requests... \nAborting..... \nPlease Re-Deploy")
-            exit()
-        if len(formatted_error) > 5 and check == False:
-            video_id = open("video_list.txt").readlines()[0].replace("\n", "")
-            remove_rejected_video(source, video_id)
-            logging.info(str("ERROR Handeled"))
-    formatted_output = downloader_output.stdout.decode("utf-8").split("\n")
-    for _ in formatted_output:
-        logging.info(str(_))
-
-
 def remove_rejected_video(source, video_id):
-    os.system(" sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, playlist_path + source))
+    os.system("sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, playlist_path + source))
