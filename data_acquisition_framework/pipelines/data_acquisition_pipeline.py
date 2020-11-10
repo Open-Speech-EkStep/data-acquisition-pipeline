@@ -1,19 +1,16 @@
 import abc
 
 
-class DataAcqusitionPipeline(metaclass=abc.ABCMeta):
+class DataAcquisitionPipeline(metaclass=abc.ABCMeta):
+
     @abc.abstractmethod
-    def scrape_links(self):
+    def create_download_batch(self, item):
         pass
 
     @abc.abstractmethod
-    def create_download_batch(self):
+    def download_files(self, item, batch_list):
         pass
 
     @abc.abstractmethod
-    def download_files(self):
-        pass
-
-    @abc.abstractmethod
-    def extract_metadata(self, file, url):
+    def extract_metadata(self, item, file, url):
         pass
