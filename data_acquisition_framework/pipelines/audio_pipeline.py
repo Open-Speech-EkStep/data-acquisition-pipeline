@@ -8,10 +8,11 @@ from itemadapter import ItemAdapter
 from scrapy import Request
 from scrapy.pipelines.files import FilesPipeline
 
-from data_acquisition_framework.utilites import config_json, populate_local_archive, \
-    upload_media_and_metadata_to_bucket, upload_archive_to_bucket, retrieve_archive_from_bucket, \
-    retrieve_archive_from_local, get_mp3_duration_in_seconds, create_metadata_for_audio
 from data_acquisition_framework.configs.paths import download_path, archives_path
+from data_acquisition_framework.metadata.metadata import MediaMetadata
+from data_acquisition_framework.utilites import populate_local_archive, \
+    upload_media_and_metadata_to_bucket, upload_archive_to_bucket, retrieve_archive_from_bucket, \
+    retrieve_archive_from_local, get_mp3_duration_in_seconds
 
 
 class AudioPipeline(FilesPipeline):
@@ -21,7 +22,7 @@ class AudioPipeline(FilesPipeline):
         if not os.path.exists(download_path):
             os.system("mkdir " + download_path)
         self.archive_list = {}
-        self.config_json = config_json()['downloader']
+        self.metadata_creator = MediaMetadata()
 
     def file_path(self, request, response=None, info=None):
         file_name: str = request.url.split("/")[-1]
@@ -84,7 +85,10 @@ class AudioPipeline(FilesPipeline):
         video_info['source_url'] = source_url
         # have to rephrase to check if creative commons is present otherwise give comma separated license page links
         video_info['license'] = self.get_license_info(item["license_urls"])
-        metadata = create_metadata_for_audio(video_info, self.config_json, item)
+        metadata = self.metadata_creator.create_metadata(video_info)
+        metadata["source"] = item["source"]
+        metadata["language"] = item["language"]
+        metadata['source_website'] = item["source_url"]
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
         return duration_in_seconds

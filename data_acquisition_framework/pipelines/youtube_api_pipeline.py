@@ -4,9 +4,10 @@ import logging
 import pandas as pd
 
 from data_acquisition_framework.configs.paths import download_path, playlist_path
+from data_acquisition_framework.metadata.metadata import MediaMetadata
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcquisitionPipeline
-from data_acquisition_framework.utilites import config_json, retrieve_archive_from_bucket, \
-    upload_media_and_metadata_to_bucket, upload_archive_to_bucket, create_metadata
+from data_acquisition_framework.utilites import retrieve_archive_from_bucket, \
+    upload_media_and_metadata_to_bucket, upload_archive_to_bucket
 from data_acquisition_framework.youtube_util import YoutubeUtil, get_video_batch, get_playlist_count, get_speaker, \
     get_gender, mode
 
@@ -18,9 +19,9 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
     def __init__(self):
         logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
         self.youtube_util = YoutubeUtil()
+        self.metadata_creator = MediaMetadata()
         self.batch_count = 0
         self.scraped_data = None
-        self.config_json = config_json()['downloader']
         self.t_duration = 0
 
     def create_download_batch(self, item):
@@ -32,7 +33,7 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
     def extract_metadata(self, item, file, url=None):
         meta_file_name = self.get_meta_filename(file)
         video_info = self.get_video_info(file, item)
-        metadata = create_metadata(video_info, self.config_json)
+        metadata = self.metadata_creator.create_metadata(video_info)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
         return self

@@ -10,54 +10,6 @@ ARCHIVE_FILE_NAME = archives_path.split('/')[-1]
 logging.basicConfig(level=logging.DEBUG)
 
 
-def config_json():
-    config_path = os.path.dirname(os.path.realpath(__file__))
-    logging.info(os.listdir(config_path))
-    config_file = os.path.join(config_path, "configs", "config.json")
-    with open(config_file, 'r') as file:
-        metadata = json.load(file)
-    return metadata
-
-
-def create_metadata(video_info, meta_json):
-    metadata = {'raw_file_name': video_info['raw_file_name'],
-                'duration': str(video_info['duration']),
-                'title': video_info['raw_file_name'],
-                'speaker_name': meta_json['speaker_name'] if meta_json['speaker_name'] else video_info['name'],
-                'audio_id': meta_json['audio_id'],
-                'cleaned_duration': meta_json['cleaned_duration'],
-                'num_of_speakers': meta_json['num_of_speakers'],  # check
-                'language': video_info['language'] if 'language' in video_info else meta_json['language'],
-                'has_other_audio_signature': meta_json['has_other_audio_signature'],
-                'type': meta_json['type'],
-                'source': video_info['source'] if 'source' in video_info else meta_json['source'],
-                'experiment_use': meta_json['experiment_use'],  # check
-                'utterances_files_list': meta_json['utterances_files_list'],
-                'source_url': video_info['source_url'],
-                'speaker_gender': str(meta_json['speaker_gender']).lower() if meta_json['speaker_gender'] else
-                video_info['gender'],
-                'source_website': video_info['source_website'] if 'source_website' in video_info else meta_json[
-                    "source_website"],
-                'experiment_name': meta_json['experiment_name'],
-                'mother_tongue': meta_json['mother_tongue'],
-                'age_group': meta_json['age_group'],  # -----------
-                'recorded_state': meta_json['recorded_state'],
-                'recorded_district': meta_json['recorded_district'],
-                'recorded_place': meta_json['recorded_place'],
-                'recorded_date': meta_json['recorded_date'],
-                'purpose': meta_json['purpose'],
-                'license': video_info["license"] if "license" in video_info else ""}
-    return metadata
-
-
-def create_metadata_for_audio(video_info, yml, item):
-    metadata = create_metadata(video_info, yml)
-    metadata["source"] = item["source"]
-    metadata["language"] = item["language"]
-    metadata['source_website'] = item["source_url"]
-    return metadata
-
-
 def set_gcs_creds(gcs_credentials_string):
     gcs_credentials = json.loads(gcs_credentials_string)["Credentials"]
     logging.info("**********Setting Bucket Credentials**********")

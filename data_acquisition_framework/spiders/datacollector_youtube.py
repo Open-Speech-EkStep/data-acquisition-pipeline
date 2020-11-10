@@ -43,6 +43,8 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
             os.system("mkdir " + download_path)
         if os.path.exists(playlist_path):
             os.system('rm -rf ' + playlist_path)
+        if os.path.exists(archives_path):
+            os.system('rm -rf ' + archives_path)
         scraped_data = check_mode()
         is_file_mode = True
         if scraped_data is None:
