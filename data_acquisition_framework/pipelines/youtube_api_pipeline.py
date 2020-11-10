@@ -8,12 +8,10 @@ from data_acquisition_framework.metadata.metadata import MediaMetadata
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcquisitionPipeline
 from data_acquisition_framework.services.storage_util import StorageUtil
 from data_acquisition_framework.services.youtube_util import YoutubeUtil, get_video_batch, get_channel_videos_count, \
-    get_speaker, \
-    get_gender, mode
+    get_meta_filename
 
 
 class YoutubeApiPipeline(DataAcquisitionPipeline):
-
     FILE_FORMAT = 'mp4'
 
     def __init__(self):
@@ -32,8 +30,8 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
         self.youtube_util.download_files(item, batch_list)
 
     def extract_metadata(self, item, file, url=None):
-        meta_file_name = self.get_meta_filename(file)
-        video_info = self.get_video_info(file, item)
+        meta_file_name = get_meta_filename(file)
+        video_info = self.youtube_util.get_video_info(file, item)
         metadata = self.metadata_creator.create_metadata(video_info)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
@@ -47,28 +45,6 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
         self.batch_download(item)
         # update_token_in_bucket()
         return item
-
-    def get_video_info(self, file, item):
-        video_id = file.replace(download_path, "").split('file-id')[-1][:-4]
-        video_url_prefix = 'https://www.youtube.com/watch?v='
-        channel_url_prefix = 'https://www.youtube.com/channel/'
-        source_url = video_url_prefix + video_id
-        video_duration = int(file.replace(download_path, "").split('file-id')[0]) / 60
-        video_info = {'duration': video_duration, 'source': item['channel_name'],
-                      'raw_file_name': file.replace(download_path, ""),
-                      'name': get_speaker(item['filemode_data'], video_id) if mode == 'file' else None,
-                      'gender': get_gender(item['filemode_data'], video_id) if mode == 'file' else None,
-                      'source_url': source_url, 'license': self.youtube_util.get_license_info(video_id)}
-        self.t_duration += video_duration
-        logging.info('$$$$$$$    ' + str(self.t_duration // 60) + '   $$$$$$$')
-        if mode == "channel":
-            video_info['source_website'] = channel_url_prefix + item['channel_id']
-        return video_info
-
-    def get_meta_filename(self, file):
-        file_format = file.split('.')[-1]
-        meta_file_name = file.replace(file_format, "csv")
-        return meta_file_name
 
     def batch_download(self, item):
         batch_list = self.create_download_batch(item)

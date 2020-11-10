@@ -1,4 +1,5 @@
 import logging
+import os
 import subprocess
 from concurrent.futures import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor
@@ -8,8 +9,7 @@ from pandas.io.common import EmptyDataError
 
 from data_acquisition_framework.configs.paths import archives_path, channels_path, download_path
 from data_acquisition_framework.configs.pipeline_config import batch_num, file_url_name_column, \
-    file_speaker_name_column, file_speaker_gender_column
-from data_acquisition_framework.services.storage.gcs_operations import *
+    file_speaker_name_column, file_speaker_gender_column, mode
 from data_acquisition_framework.services.youtube.youtube_api import YoutubeApiUtils
 from data_acquisition_framework.services.youtube.youtube_dl import YoutubeDL
 
@@ -53,6 +53,23 @@ class YoutubeUtil:
 
     def get_channels(self):
         return self.youtube_api_service.get_channels()
+
+    def get_video_info(self, file, item):
+        video_id = file.replace(download_path, "").split('file-id')[-1][:-4]
+        video_url_prefix = 'https://www.youtube.com/watch?v='
+        channel_url_prefix = 'https://www.youtube.com/channel/'
+        source_url = video_url_prefix + video_id
+        video_duration = int(file.replace(download_path, "").split('file-id')[0]) / 60
+        video_info = {'duration': video_duration, 'source': item['channel_name'],
+                      'raw_file_name': file.replace(download_path, ""),
+                      'name': get_speaker(item['filemode_data'], video_id) if mode == 'file' else None,
+                      'gender': get_gender(item['filemode_data'], video_id) if mode == 'file' else None,
+                      'source_url': source_url, 'license': self.get_license_info(video_id)}
+        # self.t_duration += video_duration
+        # logging.info('$$$$$$$    ' + str(self.t_duration // 60) + '   $$$$$$$')
+        if mode == "channel":
+            video_info['source_website'] = channel_url_prefix + item['channel_id']
+        return video_info
 
 
 def get_video_batch(source, source_file):
@@ -113,3 +130,9 @@ def get_gender(scraped_data, video_id):
 
 def remove_rejected_video(source, video_id):
     os.system("sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, channels_path + source))
+
+
+def get_meta_filename(file):
+    file_format = file.split('.')[-1]
+    meta_file_name = file.replace(file_format, "csv")
+    return meta_file_name

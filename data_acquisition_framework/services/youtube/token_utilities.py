@@ -1,9 +1,7 @@
-import logging
+import os
 
-from data_acquisition_framework.services.storage.gcs_operations import *
-from data_acquisition_framework.configs.pipeline_config import *
-
-logging.basicConfig(level=logging.DEBUG)
+from data_acquisition_framework.configs.pipeline_config import channel_blob_path
+from data_acquisition_framework.services.storage_util import StorageUtil
 
 
 def get_token_path():
@@ -12,12 +10,11 @@ def get_token_path():
 
 def update_token_in_bucket():
     if os.path.exists('token.txt'):
-        upload_blob(bucket, 'token.txt', get_token_path())
+        StorageUtil().upload('token.txt', get_token_path())
 
 
 def get_token_from_bucket():
-    if check_blob(bucket, get_token_path()):
-        download_blob(bucket, get_token_path(),
-                      "token.txt")
+    if StorageUtil().check(get_token_path()):
+        StorageUtil().download('token.txt', get_token_path())
     else:
-        os.system('touch {0}'.format("token.txt"))
+        os.system('touch {0}'.format('token.txt'))
