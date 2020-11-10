@@ -1,14 +1,55 @@
 import logging
 import subprocess
+from concurrent.futures import as_completed
+from concurrent.futures.thread import ThreadPoolExecutor
 
 import pandas as pd
 from pandas.io.common import EmptyDataError
 
 from .gcs_operations import *
 from data_acquisition_framework.configs.pipeline_config import *
-from data_acquisition_framework.configs.paths import archives_path, playlist_path
+from data_acquisition_framework.configs.paths import archives_path, playlist_path, download_path
+from .services.youtube_dl import YoutubeDL
+from .youtube_api import YoutubeApiUtils
 
 logging.basicConfig(level=logging.DEBUG)
+
+
+class YoutubeUtil:
+    def __init__(self):
+        self.youtube_dl_service = YoutubeDL()
+        self.youtube_api_service = YoutubeApiUtils()
+
+    def create_channel_playlist(self, source_channel_dict):
+        if not (os.path.exists(playlist_path)):
+            os.mkdir(playlist_path)
+
+        for channel_url in source_channel_dict.keys():
+            channel_id = channel_url.split('/')[-1]
+            source_channel_dict[channel_url] = str(source_channel_dict[channel_url]).replace(' ', '_')
+            source_playlist_file = playlist_path + channel_id + '__' + source_channel_dict[channel_url] + '.txt'
+
+            videos_list = self.youtube_api_service.get_channel_videos(channel_id)
+            with open(source_playlist_file, 'w') as playlist_file:
+                for video_id in videos_list:
+                    playlist_file.write(video_id + "\n")
+
+    def download_files(self, item, batch_list):
+        archive_path = archives_path.replace('<source>', item['channel_name'])
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            futures = []
+            for video_id in batch_list:
+                futures.append(executor.submit(self.youtube_dl_service.youtube_download, video_id,
+                                               archive_path,
+                                               download_path))
+            for future in as_completed(futures):
+                remove_video_flag, video_id = future.result()
+                if remove_video_flag:
+                    remove_rejected_video(item['filename'], video_id)
+        return self
+
+    def get_license_info(self, video_id):
+        return self.youtube_api_service.get_license_info(video_id)
 
 
 def get_video_batch(source, source_file):
@@ -18,7 +59,7 @@ def get_video_batch(source, source_file):
     try:
         full_playlist = pd.read_csv(playlist_file_name, header=None)
     except EmptyDataError:
-        return 0
+        return []
     try:
         archive_file = pd.read_csv(archive_file_name, delimiter=' ', header=None, encoding='utf-8')[1]
     except EmptyDataError:
@@ -34,13 +75,13 @@ def check_mode():
             download_blob(bucket, get_videos_file_path_in_bucket(), source_name + ".csv")
             logging.info(str("Source scraped file has been downloaded from bucket {0} to local path...".format(bucket)))
             scraped_data = create_playlist_for_file_mode(source_name + ".csv", file_url_name_column)
-            return scraped_data, True
+            return scraped_data
         else:
             logging.error(str("{0} File doesn't exists on the given location: {1}".format(source_name + ".csv",
                                                                                           get_videos_file_path_in_bucket())))
             exit()
     if mode == "channel":
-        return None, False
+        return None
     else:
         logging.error("Invalid mode")
         exit()
@@ -69,21 +110,6 @@ def create_playlist_for_file_mode(source_file, file_url_column):
         os.system("mkdir " + playlist_path)
     df[file_url_column].to_csv(playlist_path + source_file.replace(".csv", ".txt"), index=False, header=None)
     return df
-
-
-def create_channel_playlist(source_channel_dict, youtube_dl_service):
-    if not (os.path.exists(playlist_path)):
-        os.mkdir(playlist_path)
-
-    for channel_url in source_channel_dict.keys():
-        channel_id = channel_url.split('/')[-1]
-        source_channel_dict[channel_url] = str(source_channel_dict[channel_url]).replace(' ', '_')
-        source_playlist_file = playlist_path + channel_id + '__' + source_channel_dict[channel_url] + '.txt'
-
-        videos_list = youtube_dl_service.get_videos(channel_url, match_title_string, reject_title_string)
-        with open(source_playlist_file, 'w') as playlist_file:
-            for video_id in videos_list:
-                playlist_file.write(video_id+"\n")
 
 
 def get_playlist_count(file):

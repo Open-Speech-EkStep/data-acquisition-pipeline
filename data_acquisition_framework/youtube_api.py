@@ -1,17 +1,16 @@
-import os
-import subprocess
 import json
+import os
+
 from googleapiclient.discovery import build
+
+from data_acquisition_framework.services.youtube_dl import YoutubeDL
 
 
 class YoutubeApiBuilder:
 
     def __init__(self):
-        self.load_api_key()
-    
-    def load_api_key(self):
         self.youtube_api_key = os.environ["youtube_api_key"]
-    
+
     def get_youtube_object(self):
         return build('youtube', 'v3', developerKey=self.youtube_api_key)
 
@@ -20,14 +19,34 @@ class YoutubeApiUtils:
 
     def __init__(self):
         self.youtube = YoutubeApiBuilder().get_youtube_object()
-    
+
     def get_license_info(self, video_id):
         result = self.youtube.videos().list(part='status', id=video_id).execute()
-        license = result['items'][0]['status']['license']
-        if license == 'creativeCommon':
+        license_value = result['items'][0]['status']['license']
+        if license_value == 'creativeCommon':
             return 'Creative Commons'
         else:
             return 'Standard Youtube'
+
+    def get_page_playlist(self, token, channel_id):
+        res = self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='any', maxResults=50,
+                                         pageToken=token).execute()
+        if 'nextPageToken' in res.keys():
+            next_page_token = res['nextPageToken']
+        else:
+            next_page_token = ''
+        return next_page_token, res
+
+    def get_channel_videos(self, channel_id):
+        token = ''
+        complete_video_ids = []
+        while True:
+            token, result = self.get_page_playlist(token, channel_id)
+            for item in result['items']:
+                complete_video_ids.append(item['id']['videoId'])
+            if token == '':
+                break
+        return complete_video_ids
 
 
 class YoutubePlaylistCollector:
@@ -50,7 +69,7 @@ class YoutubePlaylistCollector:
         self.KEYWORDS = ['in', config["language"], words_to_include, '-song']
 
     def calculate_pages(self, max_results):
-        if max_results <= 50: 
+        if max_results <= 50:
             num_results = max_results
             num_pages = 1
         else:
@@ -59,17 +78,17 @@ class YoutubePlaylistCollector:
             if not max_results % 50 == 0:
                 num_pages += 1
         return num_pages, num_results
-        
+
     def youtube_extract(self):
         token = self.get_token()
-        results = self.youtube.search().list(part="id,snippet", type=self.TYPE, q=(' ').join(
+        results = self.youtube.search().list(part="id,snippet", type=self.TYPE, q=' '.join(
             self.KEYWORDS), maxResults=self.MAX_RESULTS, relevanceLanguage=self.REL_LANGUAGE, pageToken=token).execute()
         next_token = results['nextPageToken']
         self.set_next_token(next_token)
         page_channels = {}
         for item in results['items']:
             page_channels['https://www.youtube.com/channel/' +
-                        item['snippet']['channelId']] = item['snippet']['channelTitle']
+                          item['snippet']['channelId']] = item['snippet']['channelTitle']
         return page_channels
 
     def get_token(self):
@@ -88,17 +107,17 @@ class YoutubePlaylistCollector:
             page_channels = self.youtube_extract()
             complete_channels.update(page_channels)
         return complete_channels
-    
+
     def get_playlist_collection(self):
         playlist_collection = {}
         urls = self.get_urls()
         for channel, name in urls.items():
             try:
                 video_ids = self.youtube_dl_service.get_videos(channel, "", "")
-            except :
+            except:
                 continue
             video_ids = video_ids.decode("utf-8").rstrip().lstrip().split("\n")
-            name = name.replace(" ","_")
+            name = name.replace(" ", "_")
             print(name, len(video_ids))
             playlist_collection[name] = video_ids
         return playlist_collection
@@ -106,12 +125,6 @@ class YoutubePlaylistCollector:
     def generate_playlist_files(self, folder):
         playlist_collection = self.get_playlist_collection()
         for playlist, video_ids in playlist_collection.items():
-            with open(folder+"/"+playlist+".txt", 'w') as f:
+            with open(folder + "/" + playlist + ".txt", 'w') as f:
                 for video_id in video_ids:
-                    f.write(video_id+"\n")
-            
-        
-if __name__ == "__main__":
-    with open('configs/youtube_api_config.json', 'r') as f:
-        config = json.load(f)
-        YoutubePlaylistCollector(config).generate_playlist_files("playlists")
+                    f.write(video_id + "\n")

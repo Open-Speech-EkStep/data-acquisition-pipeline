@@ -9,7 +9,7 @@ from ..utilites import *
 import os
 
 from ..youtube_api import YoutubePlaylistCollector
-from ..youtube_utilites import check_mode, create_channel_playlist
+from ..youtube_util import YoutubeUtil, check_mode
 
 
 class DatacollectorYoutubeSpider(scrapy.Spider):
@@ -45,7 +45,7 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
             os.system("mkdir " + download_path)
         if os.path.exists(playlist_path):
             os.system('rm -rf ' + playlist_path)
-        scraped_data, check_speaker = check_mode()
+        scraped_data = check_mode()
         is_file_mode = True
         if scraped_data is None:
             is_file_mode = False
@@ -72,4 +72,4 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
                 pass
             # get_token_from_bucket()
             source_channel_dict = YoutubePlaylistCollector().get_urls()
-        create_channel_playlist(source_channel_dict, YoutubeDL())
+        YoutubeUtil().create_channel_playlist(source_channel_dict)

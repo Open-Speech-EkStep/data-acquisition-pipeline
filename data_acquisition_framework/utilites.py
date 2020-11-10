@@ -1,10 +1,12 @@
 import logging
-
+import pandas as pd
 from tinytag import TinyTag
 
 from data_acquisition_framework.configs.pipeline_config import *
 from data_acquisition_framework.configs.paths import download_path, archives_path
 from .gcs_operations import *
+from .youtube_api import YoutubeApiUtils
+from .youtube_util import get_speaker, get_gender
 
 ARCHIVE_FILE_NAME = archives_path.split('/')[-1]
 logging.basicConfig(level=logging.DEBUG)
