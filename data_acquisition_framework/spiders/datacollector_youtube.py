@@ -1,13 +1,11 @@
 import glob
+import os
 
 import scrapy
 
 from ..configs.paths import playlist_path
 from ..items import YoutubeItem
-from ..services.youtube_dl import YoutubeDL
 from ..utilites import *
-import os
-
 from ..youtube_api import YoutubePlaylistCollector
 from ..youtube_util import YoutubeUtil, check_mode
 

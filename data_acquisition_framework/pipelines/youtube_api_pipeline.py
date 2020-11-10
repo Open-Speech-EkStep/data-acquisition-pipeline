@@ -5,10 +5,8 @@ import pandas as pd
 
 from data_acquisition_framework.configs.paths import download_path, playlist_path
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcquisitionPipeline
-from data_acquisition_framework.token_utilities import update_token_in_bucket
 from data_acquisition_framework.utilites import config_json, retrieve_archive_from_bucket, \
-    upload_media_and_metadata_to_bucket, upload_archive_to_bucket, extract_metadata, create_metadata
-from data_acquisition_framework.youtube_api import YoutubeApiUtils
+    upload_media_and_metadata_to_bucket, upload_archive_to_bucket, create_metadata
 from data_acquisition_framework.youtube_util import YoutubeUtil, get_video_batch, get_playlist_count, get_speaker, \
     get_gender, mode
 
