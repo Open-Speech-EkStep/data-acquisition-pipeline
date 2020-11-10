@@ -1,10 +1,11 @@
+import os
+
 import scrapy
-from datetime import datetime
 import json
 import scrapy.settings
 import concurrent.futures
 
-from ..utilites import *
+from ..services.storage_util import StorageUtil
 from ..items import Media
 from scrapy.exceptions import CloseSpider
 from urllib.parse import urlparse
@@ -30,7 +31,7 @@ class UrlSearchSpider(scrapy.Spider):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        set_gcs_creds(str(kwargs["my_setting"]).replace("'", ""))
+        StorageUtil().set_gcs_creds(str(kwargs["my_setting"]).replace("'", ""))
         self.total_duration_in_seconds = 0
 
     @classmethod

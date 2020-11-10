@@ -6,11 +6,12 @@ from concurrent.futures.thread import ThreadPoolExecutor
 import pandas as pd
 from pandas.io.common import EmptyDataError
 
-from data_acquisition_framework.gcs_operations import *
-from data_acquisition_framework.configs.pipeline_config import *
 from data_acquisition_framework.configs.paths import archives_path, channels_path, download_path
-from data_acquisition_framework.services.youtube.youtube_dl import YoutubeDL
+from data_acquisition_framework.configs.pipeline_config import batch_num, file_url_name_column, \
+    file_speaker_name_column, file_speaker_gender_column
+from data_acquisition_framework.services.storage.gcs_operations import *
 from data_acquisition_framework.services.youtube.youtube_api import YoutubeApiUtils
+from data_acquisition_framework.services.youtube.youtube_dl import YoutubeDL
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -66,27 +67,10 @@ def get_video_batch(source, source_file):
         channel_archive = pd.read_csv(archive_file_name, delimiter=' ', header=None, encoding='utf-8')[1]
     except EmptyDataError:
         channel_archive = pd.DataFrame(columns=[1])
-    video_batch = channel_videos[channel_videos.merge(channel_archive, left_on=0, right_on=1, how='left')[1].isnull()].head(
+    video_batch = channel_videos[
+        channel_videos.merge(channel_archive, left_on=0, right_on=1, how='left')[1].isnull()].head(
         batch_num)
     return video_batch[0].tolist()
-
-
-def check_mode():
-    if mode == "file":
-        if check_blob(bucket, get_videos_file_path_in_bucket()):
-            download_blob(bucket, get_videos_file_path_in_bucket(), source_name + ".csv")
-            logging.info(str("Source scraped file has been downloaded from bucket {0} to local path...".format(bucket)))
-            scraped_data = create_channel_file_for_file_mode(source_name + ".csv", file_url_name_column)
-            return scraped_data
-        else:
-            logging.error(str("{0} File doesn't exists on the given location: {1}".format(source_name + ".csv",
-                                                                                          get_videos_file_path_in_bucket())))
-            exit()
-    if mode == "channel":
-        return None
-    else:
-        logging.error("Invalid mode")
-        exit()
 
 
 def check_dataframe_validity(df):
@@ -117,10 +101,6 @@ def create_channel_file_for_file_mode(source_file, file_url_column):
 def get_channel_videos_count(file):
     return int(subprocess.check_output(
         "cat {0} | wc -l".format(file), shell=True).decode("utf-8").split('\n')[0])
-
-
-def get_videos_file_path_in_bucket():
-    return channel_blob_path + '/' + scraped_data_blob_path + '/' + source_name + '.csv'
 
 
 def get_speaker(scraped_data, video_id):

@@ -1,4 +1,6 @@
 import concurrent.futures
+import json
+import os
 from urllib.parse import urlparse
 
 import scrapy
@@ -6,7 +8,7 @@ import scrapy.settings
 from scrapy import signals
 
 from ..items import Media
-from ..utilites import *
+from ..services.storage_util import StorageUtil
 
 
 class BingSearchSpider(scrapy.Spider):
@@ -32,7 +34,7 @@ class BingSearchSpider(scrapy.Spider):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        set_gcs_creds(str(kwargs["my_setting"]).replace("\'", ""))
+        StorageUtil().set_gcs_creds(str(kwargs["my_setting"]).replace("\'", ""))
         self.total_duration_in_seconds = 0
 
     @classmethod

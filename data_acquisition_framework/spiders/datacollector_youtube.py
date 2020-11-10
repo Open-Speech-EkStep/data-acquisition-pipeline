@@ -1,17 +1,21 @@
 import glob
+import logging
+import os
 
 import scrapy
 
-from ..configs.paths import channels_path
+from data_acquisition_framework.services.youtube_util import YoutubeUtil, create_channel_file_for_file_mode
+from ..configs.paths import channels_path, download_path, archives_path
+from ..configs.pipeline_config import channel_url_dict, mode, source_name, file_url_name_column, channel_blob_path, \
+    scraped_data_blob_path
 from ..items import YoutubeItem
-from ..utilites import *
-from data_acquisition_framework.services.youtube_util import YoutubeUtil, check_mode
+from ..services.storage_util import StorageUtil
 
 
 class DatacollectorYoutubeSpider(scrapy.Spider):
     name = 'datacollector_youtube'
     allowed_domains = ['youtube.com']
-    start_urls = ['http://youtube.com/']
+    start_urls = ['https://youtube.com/']
     count = 0
 
     custom_settings = {
@@ -20,7 +24,8 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        set_gcs_creds(str(kwargs["my_setting"]).replace("\'", ""))
+        self.storage_util = StorageUtil()
+        self.storage_util.set_gcs_creds(str(kwargs["my_setting"]).replace("\'", ""))
         os.environ["youtube_api_key"] = str(kwargs["youtube_api_key"])
 
     @classmethod
@@ -43,7 +48,7 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
             os.system('rm -rf ' + channels_path)
         if os.path.exists(archives_path):
             os.system('rm -rf ' + archives_path)
-        scraped_data = check_mode()
+        scraped_data = self.check_mode()
         is_file_mode = True
         if scraped_data is None:
             is_file_mode = False
@@ -72,3 +77,25 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
             # get_token_from_bucket()
             source_channel_dict = youtube_util.get_channels()
         youtube_util.create_channel_file(source_channel_dict)
+
+    def check_mode(self):
+        if mode == "file":
+            videos_file_path = self.get_videos_file_path_in_bucket()
+            if self.storage_util.check(videos_file_path):
+                self.storage_util.download(videos_file_path, source_name + ".csv")
+                logging.info(
+                    str("Source scraped file has been downloaded from bucket to local path..."))
+                scraped_data = create_channel_file_for_file_mode(source_name + ".csv", file_url_name_column)
+                return scraped_data
+            else:
+                logging.error(str("{0} File doesn't exists on the given location: {1}".format(source_name + ".csv",
+                                                                                              videos_file_path)))
+                exit()
+        if mode == "channel":
+            return None
+        else:
+            logging.error("Invalid mode")
+            exit()
+
+    def get_videos_file_path_in_bucket(self):
+        return channel_blob_path + '/' + scraped_data_blob_path + '/' + source_name + '.csv'

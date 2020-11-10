@@ -1,6 +1,6 @@
 import logging
 
-from .gcs_operations import *
+from data_acquisition_framework.services.storage.gcs_operations import *
 from data_acquisition_framework.configs.pipeline_config import *
 
 logging.basicConfig(level=logging.DEBUG)

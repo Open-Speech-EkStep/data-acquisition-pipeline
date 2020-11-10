@@ -6,24 +6,19 @@
 #     https://docs.scrapy.org/en/latest/topics/settings.html
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-from .gcs_operations import *
-import scrapy
 from data_acquisition_framework.configs.paths import download_path
 
 BOT_NAME = 'data_acquisition_framework'
 GCS_CREDS = '{"Credentials": 24242}'
-# spider_obj = scrapy.spiders.('music')
-# gcs_credentials = json.loads(GCS_CREDS)["Credentials"]
-# set_gcs_credentials("abc")
+
 SPIDER_MODULES = ['data_acquisition_framework.spiders']
 NEWSPIDER_MODULE = 'data_acquisition_framework.spiders'
-# ITEM_PIPELINES = {'data_acquisition_framework.pipelines.MediaPipeline': 2}
-# ITEM_PIPELINES = {'data_acquisition_framework.pipelines.YoutubePipeline': 2}
+
 FILES_STORE = download_path if download_path is not None else '.'
-# FILES_STORE = 'gs://ekstepspeechrecognition-dev/scrapydump/music4programming/'
-# GCS_PROJECT_ID = 'ekstepspeechrecognition'
+
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36'
+USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_2) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+             'Chrome/86.0.4240.111 Safari/537.36 '
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -95,14 +90,3 @@ ROBOTSTXT_OBEY = True
 # HTTPCACHE_DIR = 'httpcache'
 # HTTPCACHE_IGNORE_HTTP_CODES = []
 # HTTPCACHE_STORAGE = 'scrapy.extensions.httpcache.FilesystemCacheStorage'
-
-#
-# class SetGcsCreds(scrapy.Spider):
-#     name = 'datacollector_music'
-#     allowed_domains = ["musicforprogramming.net"]
-#     start_urls = ['http://musicforprogramming.net/']
-#     def __init__(self):
-#         gcs_credentials = json.loads(super(SetGcsCreds, self).__init__(name = 'datacollector_music').settings['GCS_CREDS'])["Credentials"]
-#         set_gcs_credentials(gcs_credentials)
-#
-# SetGcsCreds()

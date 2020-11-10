@@ -10,9 +10,8 @@ from scrapy.pipelines.files import FilesPipeline
 
 from data_acquisition_framework.configs.paths import download_path, archives_path
 from data_acquisition_framework.metadata.metadata import MediaMetadata
-from data_acquisition_framework.utilites import populate_local_archive, \
-    upload_media_and_metadata_to_bucket, upload_archive_to_bucket, retrieve_archive_from_bucket, \
-    retrieve_archive_from_local, get_mp3_duration_in_seconds
+from data_acquisition_framework.services.storage_util import StorageUtil
+from data_acquisition_framework.utilites import get_mp3_duration_in_seconds
 
 
 class AudioPipeline(FilesPipeline):
@@ -23,6 +22,7 @@ class AudioPipeline(FilesPipeline):
             os.system("mkdir " + download_path)
         self.archive_list = {}
         self.metadata_creator = MediaMetadata()
+        self.storage_util = StorageUtil()
 
     def file_path(self, request, response=None, info=None):
         file_name: str = request.url.split("/")[-1]
@@ -39,11 +39,11 @@ class AudioPipeline(FilesPipeline):
             url = file_stats['url']
             if os.path.isfile(download_path + file):
                 logging.info(str("***File {0} downloaded ***".format(file)))
-                populate_local_archive(item["source"], url)
+                self.storage_util.populate_local_archive(item["source"], url)
                 try:
                     duration_in_seconds = self.extract_metadata(download_path + file, url, item)
-                    upload_media_and_metadata_to_bucket(item["source"], download_path + file, item["language"])
-                    upload_archive_to_bucket(item["source"], item["language"])
+                    self.storage_util.upload_media_and_metadata_to_bucket(item["source"], download_path + file, item["language"])
+                    self.storage_util.upload_archive_to_bucket(item["source"], item["language"])
                     logging.info(str("***File {0} uploaded ***".format(file)))
                 except Exception as exception:
                     logging.error(exception)
@@ -58,8 +58,8 @@ class AudioPipeline(FilesPipeline):
         if item["source"] not in self.archive_list:
             self.archive_list[item["source"]] = []
         if not os.path.isdir(archives_path.split('/')[0] + '/' + item["source"]):
-            retrieve_archive_from_bucket(item["source"], item["language"])
-            self.archive_list[item["source"]] = retrieve_archive_from_local(item["source"])
+            self.storage_util.retrieve_archive_from_bucket(item["source"], item["language"])
+            self.archive_list[item["source"]] = self.storage_util.retrieve_archive_from_local(item["source"])
         return [Request(u) for u in urls if u not in self.archive_list[item["source"]]]
 
     def get_license_info(self, license_urls):

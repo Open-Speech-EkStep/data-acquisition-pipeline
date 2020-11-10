@@ -6,9 +6,9 @@ import pandas as pd
 from data_acquisition_framework.configs.paths import download_path, channels_path
 from data_acquisition_framework.metadata.metadata import MediaMetadata
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcquisitionPipeline
-from data_acquisition_framework.utilites import retrieve_archive_from_bucket, \
-    upload_media_and_metadata_to_bucket, upload_archive_to_bucket
-from data_acquisition_framework.services.youtube_util import YoutubeUtil, get_video_batch, get_channel_videos_count, get_speaker, \
+from data_acquisition_framework.services.storage_util import StorageUtil
+from data_acquisition_framework.services.youtube_util import YoutubeUtil, get_video_batch, get_channel_videos_count, \
+    get_speaker, \
     get_gender, mode
 
 
@@ -17,6 +17,7 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
     FILE_FORMAT = 'mp4'
 
     def __init__(self):
+        self.storage_util = StorageUtil()
         logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
         self.youtube_util = YoutubeUtil()
         self.metadata_creator = MediaMetadata()
@@ -39,7 +40,7 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
 
     def process_item(self, item, spider):
         self.batch_count = 0
-        retrieve_archive_from_bucket(item["channel_name"])
+        self.storage_util.retrieve_archive_from_bucket(item["channel_name"])
         channel_videos_count = get_channel_videos_count(channels_path + item['filename'])
         logging.info(
             str("Total channel count with valid videos is {0}".format(channel_videos_count)))
@@ -97,7 +98,7 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
                 str("Uploading {0} files to gcs bucket...".format(media_files_count)))
             for file in media_paths:
                 self.extract_metadata(item, file)
-                upload_media_and_metadata_to_bucket(channel_name, file)
-            upload_archive_to_bucket(channel_name)
+                self.storage_util.upload_media_and_metadata_to_bucket(channel_name, file)
+            self.storage_util.upload_archive_to_bucket(channel_name)
             logging.info(
                 str("Uploaded files till now: {0}".format(self.batch_count)))
