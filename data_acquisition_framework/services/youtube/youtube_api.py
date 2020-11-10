@@ -3,8 +3,6 @@ import os
 
 from googleapiclient.discovery import build
 
-from data_acquisition_framework.services.youtube_dl import YoutubeDL
-
 
 class YoutubeApiBuilder:
 
@@ -19,6 +17,7 @@ class YoutubeApiUtils:
 
     def __init__(self):
         self.youtube = YoutubeApiBuilder().get_youtube_object()
+        self.channel_collector = YoutubeChannelCollector(self.youtube)
 
     def get_license_info(self, video_id):
         result = self.youtube.videos().list(part='status', id=video_id).execute()
@@ -28,7 +27,7 @@ class YoutubeApiUtils:
         else:
             return 'Standard Youtube'
 
-    def get_page_playlist(self, token, channel_id):
+    def __next_page(self, token, channel_id):
         res = self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='any', maxResults=50,
                                          pageToken=token).execute()
         if 'nextPageToken' in res.keys():
@@ -37,27 +36,45 @@ class YoutubeApiUtils:
             next_page_token = ''
         return next_page_token, res
 
-    def get_channel_videos(self, channel_id):
+    def get_videos(self, channel_id):
         token = ''
         complete_video_ids = []
         while True:
-            token, result = self.get_page_playlist(token, channel_id)
+            token, result = self.__next_page(token, channel_id)
             for item in result['items']:
                 complete_video_ids.append(item['id']['videoId'])
             if token == '':
                 break
         return complete_video_ids
 
+    def __get_channels_with_videos(self):
+        channel_collection = {}
+        channels = self.get_channels()
+        for channel_url, channel_name in channels.items():
+            video_ids = self.get_videos(channel_url.split('/')[-1])
+            channel_name = channel_name.replace(" ", "_")
+            channel_collection[channel_name] = video_ids
+        return channel_collection
 
-class YoutubePlaylistCollector:
+    def generate_channel_files(self, folder):
+        channel_collection = self.__get_channels_with_videos()
+        for channel_name, video_ids in channel_collection.items():
+            with open(folder + "/" + channel_name + ".txt", 'w') as f:
+                for video_id in video_ids:
+                    f.write(video_id + "\n")
 
-    def __init__(self):
-        self.youtube_dl_service = YoutubeDL()
+    def get_channels(self):
+        return self.channel_collector.get_urls()
+
+
+class YoutubeChannelCollector:
+
+    def __init__(self, youtube):
         with open('./data_acquisition_framework/configs/youtube_api_config.json', 'r') as f:
             config = json.load(f)
 
         self.TYPE = "channel"
-        self.youtube = YoutubeApiBuilder().get_youtube_object()
+        self.youtube = youtube
 
         num_pages, num_results = self.calculate_pages(config["max_results"])
 
@@ -107,24 +124,3 @@ class YoutubePlaylistCollector:
             page_channels = self.youtube_extract()
             complete_channels.update(page_channels)
         return complete_channels
-
-    def get_playlist_collection(self):
-        playlist_collection = {}
-        urls = self.get_urls()
-        for channel, name in urls.items():
-            try:
-                video_ids = self.youtube_dl_service.get_videos(channel, "", "")
-            except:
-                continue
-            video_ids = video_ids.decode("utf-8").rstrip().lstrip().split("\n")
-            name = name.replace(" ", "_")
-            print(name, len(video_ids))
-            playlist_collection[name] = video_ids
-        return playlist_collection
-
-    def generate_playlist_files(self, folder):
-        playlist_collection = self.get_playlist_collection()
-        for playlist, video_ids in playlist_collection.items():
-            with open(folder + "/" + playlist + ".txt", 'w') as f:
-                for video_id in video_ids:
-                    f.write(video_id + "\n")

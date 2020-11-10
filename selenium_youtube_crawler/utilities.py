@@ -17,7 +17,7 @@ def read_playlist_from_file(folder_name):
 
 def read_playlist_from_youtube_api(config):
     youtube_playlist_collector = YoutubePlaylistCollector(config)
-    return youtube_playlist_collector.get_playlist_collection()
+    return youtube_playlist_collector.__get_channels_with_videos()
 
 def populate_local_archive(source, video_id):        
     with open("archive/"+source+"/archive.txt", 'a') as f:

@@ -3,12 +3,12 @@ import logging
 
 import pandas as pd
 
-from data_acquisition_framework.configs.paths import download_path, playlist_path
+from data_acquisition_framework.configs.paths import download_path, channels_path
 from data_acquisition_framework.metadata.metadata import MediaMetadata
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcquisitionPipeline
 from data_acquisition_framework.utilites import retrieve_archive_from_bucket, \
     upload_media_and_metadata_to_bucket, upload_archive_to_bucket
-from data_acquisition_framework.youtube_util import YoutubeUtil, get_video_batch, get_playlist_count, get_speaker, \
+from data_acquisition_framework.services.youtube_util import YoutubeUtil, get_video_batch, get_channel_videos_count, get_speaker, \
     get_gender, mode
 
 
@@ -36,7 +36,16 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
         metadata = self.metadata_creator.create_metadata(video_info)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
-        return self
+
+    def process_item(self, item, spider):
+        self.batch_count = 0
+        retrieve_archive_from_bucket(item["channel_name"])
+        channel_videos_count = get_channel_videos_count(channels_path + item['filename'])
+        logging.info(
+            str("Total channel count with valid videos is {0}".format(channel_videos_count)))
+        self.batch_download(item)
+        # update_token_in_bucket()
+        return item
 
     def get_video_info(self, file, item):
         video_id = file.replace(download_path, "").split('file-id')[-1][:-4]
@@ -49,8 +58,8 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
                       'name': get_speaker(item['filemode_data'], video_id) if mode == 'file' else None,
                       'gender': get_gender(item['filemode_data'], video_id) if mode == 'file' else None,
                       'source_url': source_url, 'license': self.youtube_util.get_license_info(video_id)}
-        # self.t_duration += video_duration
-        # logging.info('$$$$$$$    ' + str(self.t_duration // 60) + '   $$$$$$$')
+        self.t_duration += video_duration
+        logging.info('$$$$$$$    ' + str(self.t_duration // 60) + '   $$$$$$$')
         if mode == "channel":
             video_info['source_website'] = channel_url_prefix + item['channel_id']
         return video_info
@@ -59,16 +68,6 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
         file_format = file.split('.')[-1]
         meta_file_name = file.replace(file_format, "csv")
         return meta_file_name
-
-    def process_item(self, item, spider):
-        self.batch_count = 0
-        retrieve_archive_from_bucket(item["channel_name"])
-        playlist_count = get_playlist_count(playlist_path + item['filename'])
-        logging.info(
-            str("Total playlist count with valid videos is {0}".format(playlist_count)))
-        self.batch_download(item)
-        # update_token_in_bucket()
-        return item
 
     def batch_download(self, item):
         batch_list = self.create_download_batch(item)

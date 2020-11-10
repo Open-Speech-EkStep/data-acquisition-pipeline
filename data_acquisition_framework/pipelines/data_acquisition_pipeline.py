@@ -14,3 +14,7 @@ class DataAcquisitionPipeline(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def extract_metadata(self, item, file, url):
         pass
+
+    @abc.abstractmethod
+    def process_item(self, item, spider):
+        pass

@@ -34,7 +34,7 @@ class YoutubeDL:
                 video_id = formatted_error.split(":")[1].strip()
                 remove_video_flag = True
                 check = True
-                logging.info(str("Video I'd {0} removed from playlist and won't be downloaded".format(video_id)))
+                logging.info(str("Video I'd {0} removed from channel and won't be downloaded".format(video_id)))
             if "Did not get any data blocks" in formatted_error or "HTTP Error 404: Not Found" in formatted_error:
                 remove_video_flag = True
                 check = True

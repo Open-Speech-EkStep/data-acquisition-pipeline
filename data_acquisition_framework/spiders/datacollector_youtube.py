@@ -1,13 +1,11 @@
 import glob
-import os
 
 import scrapy
 
-from ..configs.paths import playlist_path
+from ..configs.paths import channels_path
 from ..items import YoutubeItem
 from ..utilites import *
-from ..youtube_api import YoutubePlaylistCollector
-from ..youtube_util import YoutubeUtil, check_mode
+from data_acquisition_framework.services.youtube_util import YoutubeUtil, check_mode
 
 
 class DatacollectorYoutubeSpider(scrapy.Spider):
@@ -41,8 +39,8 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
     def parse(self, response, **kwargs):
         if not os.path.exists(download_path):
             os.system("mkdir " + download_path)
-        if os.path.exists(playlist_path):
-            os.system('rm -rf ' + playlist_path)
+        if os.path.exists(channels_path):
+            os.system('rm -rf ' + channels_path)
         if os.path.exists(archives_path):
             os.system('rm -rf ' + archives_path)
         scraped_data = check_mode()
@@ -50,8 +48,8 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
         if scraped_data is None:
             is_file_mode = False
             self.scrape_links()
-        for source_file in glob.glob(playlist_path + '*.txt'):
-            source_file_name = source_file.replace(playlist_path, '')
+        for source_file in glob.glob(channels_path + '*.txt'):
+            source_file_name = source_file.replace(channels_path, '')
             channel_id = source_file_name.split("__")[0]
             channel_name = source_file_name.replace(channel_id + "__", "").replace('.txt', '')
             if is_file_mode:
@@ -65,11 +63,12 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
                 filemode_data=scraped_data)
 
     def scrape_links(self):
+        youtube_util = YoutubeUtil()
         if len(channel_url_dict) != 0:
             source_channel_dict = channel_url_dict
         else:
             with open('token.txt', 'w') as f:
                 pass
             # get_token_from_bucket()
-            source_channel_dict = YoutubePlaylistCollector().get_urls()
-        YoutubeUtil().create_channel_playlist(source_channel_dict)
+            source_channel_dict = youtube_util.get_channels()
+        youtube_util.create_channel_file(source_channel_dict)
