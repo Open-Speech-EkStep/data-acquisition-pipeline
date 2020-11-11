@@ -12,7 +12,7 @@ class DataAcquisitionPipeline(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def extract_metadata(self, item, file, url):
+    def extract_metadata(self, item, media_file_name, url):
         pass
 
     @abc.abstractmethod

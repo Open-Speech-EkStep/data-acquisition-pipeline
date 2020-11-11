@@ -66,13 +66,13 @@ class StorageUtil:
         archive_bucket_path = self.get_archive_file_bucket_path(source, language)
         self.upload(archive_path, archive_bucket_path)
 
-    def upload_media_and_metadata_to_bucket(self, source, file, language=""):
+    def upload_media_and_metadata_to_bucket(self, source, media_filename, language=""):
         blob_path = channel_blob_path
-        file_format = file.split('.')[-1]
-        meta_file_name = file.replace(file_format, "csv")
-        file_path = blob_path.replace("<language>", language) + '/' + source + '/' + file.replace(download_path, "")
-        self.upload(file, file_path)
-        os.remove(file)
+        file_format = media_filename.split('.')[-1]
+        meta_file_name = media_filename.replace(file_format, "csv")
+        file_path = blob_path.replace("<language>", language) + '/' + source + '/' + media_filename.replace(download_path, "")
+        self.upload(media_filename, file_path)
+        os.remove(media_filename)
         meta_path = blob_path.replace("<language>", language) + '/' + source + '/' + meta_file_name.replace(
             download_path,
             "")

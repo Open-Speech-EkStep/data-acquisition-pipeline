@@ -1,3 +1,4 @@
+import glob
 import logging
 import os
 import subprocess
@@ -54,21 +55,21 @@ class YoutubeUtil:
     def get_channels(self):
         return self.youtube_api_service.get_channels()
 
-    def get_video_info(self, file, item):
+    def get_video_info(self, file, channel_name, filemode_data, channel_id):
         video_id = file.replace(download_path, "").split('file-id')[-1][:-4]
         video_url_prefix = 'https://www.youtube.com/watch?v='
         channel_url_prefix = 'https://www.youtube.com/channel/'
         source_url = video_url_prefix + video_id
         video_duration = int(file.replace(download_path, "").split('file-id')[0]) / 60
-        video_info = {'duration': video_duration, 'source': item['channel_name'],
+        video_info = {'duration': video_duration, 'source': channel_name,
                       'raw_file_name': file.replace(download_path, ""),
-                      'name': get_speaker(item['filemode_data'], video_id) if mode == 'file' else None,
-                      'gender': get_gender(item['filemode_data'], video_id) if mode == 'file' else None,
+                      'name': get_speaker(filemode_data, video_id) if mode == 'file' else None,
+                      'gender': get_gender(filemode_data, video_id) if mode == 'file' else None,
                       'source_url': source_url, 'license': self.get_license_info(video_id)}
         # self.t_duration += video_duration
         # logging.info('$$$$$$$    ' + str(self.t_duration // 60) + '   $$$$$$$')
         if mode == "channel":
-            video_info['source_website'] = channel_url_prefix + item['channel_id']
+            video_info['source_website'] = channel_url_prefix + channel_id
         return video_info
 
 
@@ -115,9 +116,14 @@ def create_channel_file_for_file_mode(source_file, file_url_column):
     return df
 
 
-def get_channel_videos_count(file):
+def get_channel_videos_count(file_name):
+    file_path = channels_path + file_name
     return int(subprocess.check_output(
-        "cat {0} | wc -l".format(file), shell=True).decode("utf-8").split('\n')[0])
+        "cat {0} | wc -l".format(file_path), shell=True).decode("utf-8").split('\n')[0])
+
+
+def get_media_paths():
+    return glob.glob(download_path + '*.mp4')
 
 
 def get_speaker(scraped_data, video_id):
