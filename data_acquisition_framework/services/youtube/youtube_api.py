@@ -10,7 +10,7 @@ class YoutubeApiBuilder:
         self.youtube_api_key = os.environ["youtube_api_key"]
 
     def get_youtube_object(self):
-        return build('youtube', 'v3', developerKey=self.youtube_api_key)
+        return build('youtube', 'v3', developerKey=self.youtube_api_key, cache_discovery=False)
 
 
 class YoutubeApiUtils:

@@ -5,7 +5,7 @@ import os
 import scrapy
 
 from data_acquisition_framework.services.youtube_util import YoutubeUtil, create_channel_file_for_file_mode
-from ..configs.paths import channels_path, download_path, archives_path
+from ..configs.paths import channels_path, download_path, archives_path, archives_base_path
 from ..configs.pipeline_config import channel_url_dict, mode, source_name, file_url_name_column, channel_blob_path, \
     scraped_data_blob_path
 from ..items import YoutubeItem
@@ -42,12 +42,14 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
         return spider
 
     def parse(self, response, **kwargs):
+        if os.path.exists(download_path):
+            os.system('rm -rf ' + download_path)
         if not os.path.exists(download_path):
             os.system("mkdir " + download_path)
         if os.path.exists(channels_path):
             os.system('rm -rf ' + channels_path)
-        if os.path.exists(archives_path):
-            os.system('rm -rf ' + archives_path)
+        if os.path.exists(archives_base_path):
+            os.system('rm -rf ' + archives_base_path)
         scraped_data = self.check_mode()
         is_file_mode = True
         if scraped_data is None:
