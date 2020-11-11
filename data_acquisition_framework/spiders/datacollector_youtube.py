@@ -5,7 +5,7 @@ import os
 import scrapy
 
 from data_acquisition_framework.services.youtube_util import YoutubeUtil, create_channel_file_for_file_mode
-from ..configs.paths import channels_path, download_path, archives_path, archives_base_path
+from ..configs.paths import channels_path, download_path, archives_base_path
 from ..configs.pipeline_config import channel_url_dict, mode, source_name, file_url_name_column, channel_blob_path, \
     scraped_data_blob_path
 from ..items import YoutubeItem
@@ -15,7 +15,6 @@ from ..services.storage_util import StorageUtil
 class DatacollectorYoutubeSpider(scrapy.Spider):
     name = 'datacollector_youtube'
     allowed_domains = ['youtube.com']
-    start_urls = ['https://youtube.com/']
     count = 0
 
     custom_settings = {
@@ -41,15 +40,8 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
         spider._set_crawler(crawler)
         return spider
 
-    def parse(self, response, **kwargs):
-        if os.path.exists(download_path):
-            os.system('rm -rf ' + download_path)
-        if not os.path.exists(download_path):
-            os.system("mkdir " + download_path)
-        if os.path.exists(channels_path):
-            os.system('rm -rf ' + channels_path)
-        if os.path.exists(archives_base_path):
-            os.system('rm -rf ' + archives_base_path)
+    def start_requests(self):
+        self.clear_required_directories()
         scraped_data = self.check_mode()
         is_file_mode = True
         if scraped_data is None:
@@ -68,6 +60,16 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
                 channel_id=channel_id,
                 filename=source_file_name,
                 filemode_data=scraped_data)
+
+    def clear_required_directories(self):
+        if os.path.exists(download_path):
+            os.system('rm -rf ' + download_path)
+        else:
+            os.system("mkdir " + download_path)
+        if os.path.exists(channels_path):
+            os.system('rm -rf ' + channels_path)
+        if os.path.exists(archives_base_path):
+            os.system('rm -rf ' + archives_base_path)
 
     def scrape_links(self):
         youtube_util = YoutubeUtil()

@@ -32,27 +32,32 @@ class AudioPipeline(FilesPipeline):
         duration_in_seconds = 0
         with suppress(KeyError):
             ItemAdapter(item)[self.files_result_field] = [x for ok, x in results if ok]
-        if len(item['files']) > 0:
+        if self.is_download_success(item):
             file_stats = item['files'][0]
             file = file_stats['path']
             url = file_stats['url']
             media_file_path = download_path + file
             if os.path.isfile(media_file_path):
                 logging.info(str("***File {0} downloaded ***".format(file)))
-                self.storage_util.populate_local_archive(item["source"], url)
-                try:
-                    duration_in_seconds = self.extract_metadata(media_file_path, url, item)
-                    self.storage_util.upload_media_and_metadata_to_bucket(item["source"], media_file_path,
-                                                                          item["language"])
-                    self.storage_util.upload_archive_to_bucket(item["source"], item["language"])
-                    logging.info(str("***File {0} uploaded ***".format(file)))
-                except Exception as exception:
-                    logging.error(exception)
-                    os.remove(file)
+                duration_in_seconds = self.upload_file_to_storage(file, item, media_file_path, url)
             else:
                 logging.info(str("***File {0} not downloaded ***".format(item["title"])))
         item["duration"] = duration_in_seconds
         return item
+
+    def upload_file_to_storage(self, file, item, media_file_path, url):
+        duration_in_seconds = 0
+        self.storage_util.populate_local_archive(item["source"], url)
+        try:
+            duration_in_seconds = self.extract_metadata(media_file_path, url, item)
+            self.storage_util.upload_media_and_metadata_to_bucket(item["source"], media_file_path,
+                                                                  item["language"])
+            self.storage_util.upload_archive_to_bucket(item["source"], item["language"])
+            logging.info(str("***File {0} uploaded ***".format(file)))
+        except Exception as exception:
+            logging.error(exception)
+            os.remove(file)
+        return duration_in_seconds
 
     def get_media_requests(self, item, info):
         urls = ItemAdapter(item).get(self.files_urls_field, [])
@@ -71,3 +76,6 @@ class AudioPipeline(FilesPipeline):
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
         return duration_in_seconds
+
+    def is_download_success(self, item):
+        return len(item['files']) > 0

@@ -36,6 +36,21 @@ class BingSearchSpider(scrapy.Spider):
         super().__init__(*args, **kwargs)
         StorageUtil().set_gcs_creds(str(kwargs["my_setting"]).replace("\'", ""))
         self.total_duration_in_seconds = 0
+        self.web_crawl_config = os.path.dirname(os.path.realpath(__file__)) + "/../configs/web_crawl_config.json"
+        with open(self.web_crawl_config, 'r') as f:
+            config = json.load(f)
+            self.config = config
+            self.language = config["language"]
+            self.language_code = config["language_code"]
+            self.max_seconds = config["max_hours"] * 3600
+            self.depth = config["depth"]
+            self.pages = config["pages"]
+            self.max_hours = config["max_hours"]
+            self.extensions_to_include = config["extensions_to_include"]
+            self.word_to_ignore = config["word_to_ignore"]
+            self.extensions_to_ignore = config["extensions_to_ignore"]
+            self.is_continued = config["continue_page"].lower() == "yes"
+            self.enable_hours_restriction = config["enable_hours_restriction"].lower() == "yes"
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
@@ -53,54 +68,27 @@ class BingSearchSpider(scrapy.Spider):
         self.total_duration_in_seconds += item["duration"]
         hours = self.total_duration_in_seconds / 3600
         print(spider.name + " has downloaded %s hours" % str(hours))
-        # if self.total_duration_in_seconds >= self.max_seconds:
-        #     # raise CloseSpider("Stopped since %s hours of data scraped"% hours)
-        #     self.crawler.engine.close_spider(spider,"Scraped estimated hours")
 
     def start_requests(self):
-        self.web_crawl_config = os.path.dirname(os.path.realpath(__file__)) + "/../configs/web_crawl_config.json"
-        with open(self.web_crawl_config, 'r') as f:
-            config = json.load(f)
-            self.language = config["language"]
-            self.language_code = config["language_code"]
-            self.max_seconds = config["max_hours"] * 3600
-            self.depth = config["depth"]
-            self.pages = config["pages"]
-            self.max_hours = config["max_hours"]
-            self.extensions_to_include = config["extensions_to_include"]
-            self.word_to_ignore = config["word_to_ignore"]
-            self.extensions_to_ignore = config["extensions_to_ignore"]
-            self.is_continued = config["continue_page"].lower() == "yes"
-            self.enable_hours_restriction = config["enable_hours_restriction"].lower() == "yes"
-            page = 0
-            if self.is_continued:
-                page = config["last_visited"]
-            for keyword in config["keywords"]:
-                keyword = self.language + "+" + keyword.replace(" ", "+")
-                if page == 0:
-                    url = "https://www.bing.com/search?q={0}".format(keyword)
-                else:
-                    url = "https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
-                yield scrapy.Request(url=url, callback=self.bing_parse, cb_kwargs=dict(page_number=1, keyword=keyword))
-            config["last_visited"] = (self.pages * 10) + page
-            with open(self.web_crawl_config, 'w') as jsonfile:
-                json.dump(config, jsonfile, indent=4)
+        start_page = 0
+        if self.is_continued:
+            start_page = self.config["last_visited"]
+        for keyword in self.config["keywords"]:
+            keyword = self.language + "+" + keyword.replace(" ", "+")
+            if start_page == 0:
+                url = "https://www.bing.com/search?q={0}".format(keyword)
+            else:
+                url = "https://www.bing.com/search?q={0}&first={1}".format(keyword, start_page)
+            yield scrapy.Request(url=url, callback=self.parse_search_page, cb_kwargs=dict(page_number=1, keyword=keyword))
+        self.config["last_visited"] = (self.pages * 10) + start_page
+        with open(self.web_crawl_config, 'w') as web_crawl_config_file:
+            json.dump(self.config, web_crawl_config_file, indent=4)
 
-    def bing_parse(self, response, page_number, keyword):
-        self.write("base_url.txt", response.url)
+    def parse_search_page(self, response, page_number, keyword):
         urls = response.css('a::attr(href)').getall()
-        print("bing search page urls count=>", len(urls))
-        search_result_urls = []
-        self.write("results.txt", "%s results = [\n" % response.url)
-        for url in urls:
-            if url.startswith("http:") or url.startswith("https:"):
-                if "go.microsoft.com" not in url and not "microsofttranslator.com" in url:
-                    search_result_urls.append(url)
-                    self.write("results.txt", url + "\n")
-        self.write("results.txt", "\n]\n")
-        print("filtered search page urls count=>", len(search_result_urls))
+        search_result_urls = self.filter_unwanted_urls(response, urls)
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            future_to_url = {executor.submit(self.parse_results_url, url): url for url in search_result_urls}
+            future_to_url = {executor.submit(self.get_request_for_search_result, url): url for url in search_result_urls}
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
@@ -110,14 +98,26 @@ class BingSearchSpider(scrapy.Spider):
                 except Exception as exc:
                     print('%r generated an exception: %s' % (url, exc))
         page = page_number * 10
-        formattedUrl = "https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
+        formatted_url = "https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
         page_number += 1
         if page_number <= self.pages:
-            yield scrapy.Request(formattedUrl, callback=self.bing_parse,
+            yield scrapy.Request(formatted_url, callback=self.parse_search_page,
                                  cb_kwargs=dict(page_number=page_number, keyword=keyword))
 
-    def parse_results_url(self, url):
+    def get_request_for_search_result(self, url):
         return scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
+
+    def filter_unwanted_urls(self, response, urls):
+        self.write("base_url.txt", response.url)
+        search_result_urls = []
+        self.write("results.txt", "%s results = [\n" % response.url)
+        for url in urls:
+            if url.startswith("http:") or url.startswith("https:"):
+                if "go.microsoft.com" not in url and "microsofttranslator.com" not in url:
+                    search_result_urls.append(url)
+                    self.write("results.txt", url + "\n")
+        self.write("results.txt", "\n]\n")
+        return search_result_urls
 
     def parse_license_page(self, response, source):
         pass
@@ -142,6 +142,7 @@ class BingSearchSpider(scrapy.Spider):
         for url in urls:
             if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
                 return
+
             url = response.urljoin(url)
 
             try:
@@ -155,7 +156,7 @@ class BingSearchSpider(scrapy.Spider):
             # iterate for search of wanted files
             if self.is_extension_present(url):
                 url_parts = url.split("/")
-                yield Media(title=url_parts[len(url_parts) - 1], file_urls=[url], source_url=base_url,
+                yield Media(title=url_parts[-1], file_urls=[url], source_url=base_url,
                             source=source_domain, license_urls=license_urls, language=self.language)
                 continue
 
@@ -171,7 +172,7 @@ class BingSearchSpider(scrapy.Spider):
             url = url.rstrip().lstrip()
             if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith(
                     "https://creativecommons.org/publicdomain/zero") or url.startswith(
-                    "https://creativecommons.org/licenses/by"):
+                "https://creativecommons.org/licenses/by"):
                 license_urls.add(url)
         if len(license_urls) == 0:
             for a_tag in all_a_tags:
