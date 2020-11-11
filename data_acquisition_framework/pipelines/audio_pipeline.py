@@ -2,7 +2,6 @@ import logging
 import os
 from contextlib import suppress
 
-import moviepy.editor
 import pandas as pd
 from itemadapter import ItemAdapter
 from scrapy import Request
@@ -11,7 +10,7 @@ from scrapy.pipelines.files import FilesPipeline
 from data_acquisition_framework.configs.paths import download_path, archives_path
 from data_acquisition_framework.metadata.metadata import MediaMetadata
 from data_acquisition_framework.services.storage_util import StorageUtil
-from data_acquisition_framework.utilites import get_mp3_duration_in_seconds
+from data_acquisition_framework.utilities import get_file_format, get_media_info
 
 
 class AudioPipeline(FilesPipeline):
@@ -24,7 +23,7 @@ class AudioPipeline(FilesPipeline):
         self.metadata_creator = MediaMetadata()
         self.storage_util = StorageUtil()
 
-    def file_path(self, request, response=None, info=None):
+    def file_path(self, request, response=None, info=None, **kwargs):
         file_name: str = request.url.split("/")[-1]
         file_name = file_name.replace("%", "_").replace(",", "_")
         return file_name
@@ -37,12 +36,14 @@ class AudioPipeline(FilesPipeline):
             file_stats = item['files'][0]
             file = file_stats['path']
             url = file_stats['url']
-            if os.path.isfile(download_path + file):
+            media_file_path = download_path + file
+            if os.path.isfile(media_file_path):
                 logging.info(str("***File {0} downloaded ***".format(file)))
                 self.storage_util.populate_local_archive(item["source"], url)
                 try:
-                    duration_in_seconds = self.extract_metadata(download_path + file, url, item)
-                    self.storage_util.upload_media_and_metadata_to_bucket(item["source"], download_path + file, item["language"])
+                    duration_in_seconds = self.extract_metadata(media_file_path, url, item)
+                    self.storage_util.upload_media_and_metadata_to_bucket(item["source"], media_file_path,
+                                                                          item["language"])
                     self.storage_util.upload_archive_to_bucket(item["source"], item["language"])
                     logging.info(str("***File {0} uploaded ***".format(file)))
                 except Exception as exception:
@@ -62,33 +63,11 @@ class AudioPipeline(FilesPipeline):
             self.archive_list[item["source"]] = self.storage_util.retrieve_archive_from_local(item["source"])
         return [Request(u) for u in urls if u not in self.archive_list[item["source"]]]
 
-    def get_license_info(self, license_urls):
-        for url in license_urls:
-            if "creativecommons" in url:
-                return "Creative Commons"
-        return ', '.join(license_urls)
-
     def extract_metadata(self, file, url, item):
-        video_info = {}
-        file_format = file.split('.')[-1]
+        file_format = get_file_format(file)
         meta_file_name = file.replace(file_format, "csv")
-        source_url = url
-        if file_format == 'mp4':
-            video = moviepy.editor.VideoFileClip(file)
-            duration_in_seconds = int(video.duration)
-        else:
-            duration_in_seconds = get_mp3_duration_in_seconds(file)
-        video_info['duration'] = duration_in_seconds / 60
-        video_info['raw_file_name'] = file.replace(download_path, "")
-        video_info['name'] = None
-        video_info['gender'] = None
-        video_info['source_url'] = source_url
-        # have to rephrase to check if creative commons is present otherwise give comma separated license page links
-        video_info['license'] = self.get_license_info(item["license_urls"])
-        metadata = self.metadata_creator.create_metadata(video_info)
-        metadata["source"] = item["source"]
-        metadata["language"] = item["language"]
-        metadata['source_website'] = item["source_url"]
+        media_info, duration_in_seconds = get_media_info(file, item['source'], item['language'], item['source_url'], item['license_urls'], url)
+        metadata = self.metadata_creator.create_metadata(media_info)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
         return duration_in_seconds

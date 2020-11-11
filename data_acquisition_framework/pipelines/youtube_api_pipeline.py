@@ -10,7 +10,6 @@ from data_acquisition_framework.services.youtube_util import YoutubeUtil, get_vi
 
 
 class YoutubeApiPipeline(DataAcquisitionPipeline):
-    FILE_FORMAT = 'mp4'
 
     def __init__(self):
         self.storage_util = StorageUtil()

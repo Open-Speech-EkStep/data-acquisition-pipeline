@@ -7,6 +7,9 @@ from gcs_helper import GCSHelper
 from utilities import populate_local_archive
 from youtube_api import YoutubeApiUtils
 
+from data_acquisition_framework.utilities import get_license_info
+
+
 class Downloader:
 
     # file-dir is the directory where files get downloads
@@ -50,7 +53,7 @@ class Downloader:
         meta_file['raw_file_name'] = modified_file_name
         meta_file['title'] = modified_file_name
         meta_file['language'] = self.language.lower()
-        meta_file['license'] = YoutubeApiUtils().get_license_info(video_id)
+        meta_file['license'] = get_license_info(video_id)
         meta_file.to_csv(self.file_dir+"/"+csv_name, index=False)
 
         # upload media and metadata to bucket
