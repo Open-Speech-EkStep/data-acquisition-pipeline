@@ -7,8 +7,8 @@ class MediaMetadata:
         self.config_json = self.config_json()['downloader']
 
     def config_json(self):
-        config_path = os.path.dirname(os.path.realpath(__file__))
-        config_file = os.path.join(config_path, '..', "configs", "config.json")
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        config_file = os.path.join(current_path, '..', "configs", "config.json")
         with open(config_file, 'r') as file:
             metadata = json.load(file)
         return metadata

@@ -70,7 +70,9 @@ class YoutubeApiUtils:
 class YoutubeChannelCollector:
 
     def __init__(self, youtube):
-        with open('./data_acquisition_framework/configs/youtube_api_config.json', 'r') as f:
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        api_config_file = os.path.join(current_path, '..', '..', "configs", "youtube_api_config.json")
+        with open(api_config_file, 'r') as f:
             config = json.load(f)
 
         self.TYPE = "channel"
