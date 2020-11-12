@@ -4,7 +4,7 @@ import json
 import os
 import re
 from urllib.parse import urlparse
-
+import logging
 import scrapy
 import scrapy.settings
 
@@ -34,6 +34,19 @@ class UrlSearchSpider(scrapy.Spider):
         super().__init__(*args, **kwargs)
         StorageUtil().set_gcs_creds(str(kwargs["my_setting"]).replace("'", ""))
         self.total_duration_in_seconds = 0
+        config_path = (
+                os.path.dirname(os.path.realpath(__file__)) + "/../configs/web_crawl_config.json"
+        )
+        with open(config_path, "r") as f:
+            config = json.load(f)
+            self.language = config["language"]
+            self.language_code = config["language_code"]
+            self.max_seconds = config["max_hours"] * 3600
+            self.word_to_ignore = config["word_to_ignore"]
+            self.extensions_to_include = config["extensions_to_include"]
+            self.extensions_to_ignore = config["extensions_to_ignore"]
+            self.enable_hours_restriction = config["enable_hours_restriction"].lower() == "yes"
+            self.depth = config["depth"]
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
@@ -52,22 +65,9 @@ class UrlSearchSpider(scrapy.Spider):
         if item is not None and "duration" in item:
             self.total_duration_in_seconds += item["duration"]
         hours = self.total_duration_in_seconds / 3600
-        print(spider.name + " has downloaded %s hours" % str(hours))
+        logging.info(spider.name + " has downloaded %s hours" % str(hours))
 
     def start_requests(self):
-        config_path = (
-                os.path.dirname(os.path.realpath(__file__)) + "/../configs/web_crawl_config.json"
-        )
-        with open(config_path, "r") as f:
-            config = json.load(f)
-            self.language = config["language"]
-            self.language_code = config["language_code"]
-            self.max_seconds = config["max_hours"] * 3600
-            self.word_to_ignore = config["word_to_ignore"]
-            self.extensions_to_include = config["extensions_to_include"]
-            self.extensions_to_ignore = config["extensions_to_ignore"]
-            self.enable_hours_restriction = config["enable_hours_restriction"].lower() == "yes"
-            self.depth = config["depth"]
         urls_path = os.path.dirname(os.path.realpath(__file__)) + "/../urls.txt"
         with open(urls_path, "r") as f:
             with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
@@ -82,7 +82,7 @@ class UrlSearchSpider(scrapy.Spider):
                         if data is not None:
                             yield data
                     except Exception as exc:
-                        print("%r generated an exception: %s" % (url, exc))
+                        logging.info("%r generated an exception: %s" % (url, exc))
 
     def parse_results_url(self, url):
         return scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
@@ -177,7 +177,6 @@ class UrlSearchSpider(scrapy.Spider):
             if self.is_extension_present(url):
                 if not license_extracted:
                     for license_item in self.extract_license(license_urls, source_domain):
-                        print("requesting license " + str(type(license_item)))
                         yield license_item
                     license_extracted = True
                 url_parts = url.split("/")

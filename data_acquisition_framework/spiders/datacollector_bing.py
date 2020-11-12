@@ -3,6 +3,7 @@ import html
 import json
 import os
 import re
+import logging
 from urllib.parse import urlparse
 
 import scrapy
@@ -70,7 +71,7 @@ class BingSearchSpider(scrapy.Spider):
         if item is not None and "duration" in item:
             self.total_duration_in_seconds += item["duration"]
         hours = self.total_duration_in_seconds / 3600
-        print(spider.name + " has downloaded %s hours" % str(hours))
+        logging.info(spider.name + " has downloaded %s hours" % str(hours))
 
     def start_requests(self):
         start_page = 0
@@ -101,7 +102,7 @@ class BingSearchSpider(scrapy.Spider):
                     if data is not None:
                         yield data
                 except Exception as exc:
-                    print('%r generated an exception: %s' % (url, exc))
+                    logging.error('%r generated an exception: %s' % (url, exc))
         page = page_number * 10
         formatted_url = "https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
         page_number += 1
@@ -158,7 +159,7 @@ class BingSearchSpider(scrapy.Spider):
             if self.is_extension_present(url):
                 if not license_extracted:
                     for license_item in self.extract_license(license_urls, source_domain):
-                        print("requesting license " + str(type(license_item)))
+                        logging.info("requesting license " + str(type(license_item)))
                         yield license_item
                     license_extracted = True
                 url_parts = url.split("/")

@@ -11,7 +11,7 @@ from ..services.storage_util import StorageUtil
 class DatacollectorYoutubeSpider(scrapy.Spider):
     name = 'datacollector_youtube'
     allowed_domains = ['youtube.com']
-    start_urls= ['https://www.youtube.com']
+    start_urls = ['https://www.youtube.com']
     count = 0
 
     custom_settings = {
@@ -24,7 +24,6 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
         self.storage_util.set_gcs_creds(str(kwargs["my_setting"]).replace("\'", ""))
         os.environ["youtube_api_key"] = str(kwargs["youtube_api_key"])
         self.youtube_util = YoutubeUtil()
-
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):

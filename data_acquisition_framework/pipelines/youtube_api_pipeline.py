@@ -13,12 +13,9 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
 
     def __init__(self):
         self.storage_util = StorageUtil()
-        logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
         self.youtube_util = YoutubeUtil()
         self.metadata_creator = MediaMetadata()
         self.batch_count = 0
-        self.scraped_data = None
-        self.t_duration = 0
 
     def create_download_batch(self, item):
         return get_video_batch(item['channel_name'], item['filename'])
@@ -53,7 +50,7 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
             try:
                 self.download_files(item, batch_list)
             except Exception as e:
-                print("error", e)
+                logging.error(e)
             finally:
                 self.upload_files_to_storage(item)
             batch_list = self.create_download_batch(item)

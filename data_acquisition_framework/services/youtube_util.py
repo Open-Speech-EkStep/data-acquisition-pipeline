@@ -15,11 +15,10 @@ from data_acquisition_framework.services.storage_util import StorageUtil
 from data_acquisition_framework.services.youtube.youtube_api import YoutubeApiUtils
 from data_acquisition_framework.services.youtube.youtube_dl import YoutubeDL
 
-logging.basicConfig(level=logging.DEBUG)
-
 
 class YoutubeUtil:
     def __init__(self):
+        self.t_duration = 0
         self.storage_util = StorageUtil()
         self.youtube_dl_service = YoutubeDL()
         self.youtube_api_service = YoutubeApiUtils()
@@ -68,8 +67,8 @@ class YoutubeUtil:
                       'name': get_speaker(filemode_data, video_id) if mode == 'file' else None,
                       'gender': get_gender(filemode_data, video_id) if mode == 'file' else None,
                       'source_url': source_url, 'license': self.get_license_info(video_id)}
-        # self.t_duration += video_duration
-        # logging.info('$$$$$$$    ' + str(self.t_duration // 60) + '   $$$$$$$')
+        self.t_duration += video_duration
+        logging.info('$$$$$$$    ' + str(self.t_duration // 60) + '   $$$$$$$')
         if mode == "channel":
             video_info['source_website'] = channel_url_prefix + channel_id
         return video_info

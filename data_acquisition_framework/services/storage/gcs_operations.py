@@ -1,5 +1,6 @@
 from google.cloud import storage
 import os
+import logging
 import json
 
 
@@ -9,7 +10,7 @@ def set_gcs_credentials(dictionary):
     # Writing to sample.json
     with open("temp.json", "w") as outfile:
         outfile.write(json_object)
-    print("Setting GOOGLE_APPLICATION_CREDENTIALS ....")
+    logging.info("Setting GOOGLE_APPLICATION_CREDENTIALS ....")
     os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'temp.json'
 
 
@@ -25,7 +26,7 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
 
     blob.upload_from_filename(source_file_name)
 
-    print(
+    logging.info(
         "File {} uploaded to {}/{}.".format(
             source_file_name, bucket_name, destination_blob_name
         )
@@ -44,7 +45,7 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     blob = bucket.blob(source_blob_name)
     blob.download_to_filename(destination_file_name)
 
-    print(
+    logging.info(
         "Blob {} from Bucket {} downloaded to {}.".format(
             source_blob_name, bucket_name, destination_file_name
         )
