@@ -8,6 +8,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 import geckodriver_autoinstaller
+
 geckodriver_autoinstaller.install()
 
 
@@ -18,8 +19,8 @@ class GoogleCrawler:
         self.links_count = 0
         if os.path.exists('archive.txt'):
             with open('archive.txt', 'r') as f:
-                self.archive = f.read().splitlines()            
-        with open(config_path,'r') as f:
+                self.archive = f.read().splitlines()
+        with open(config_path, 'r') as f:
             config = json.load(f)
             self.language = config["language"]
             self.language_code = config["language_code"]
@@ -50,35 +51,36 @@ class GoogleCrawler:
     def is_unwanted_wiki(self, url):
         url = self.sanitize(url)
         if "wikipedia.org" in url or "wikimedia.org" in url:
-            url = url.replace("https://","").replace("http://","")
+            url = url.replace("https://", "").replace("http://", "")
             if not url.startswith("en") or not url.startswith(self.language_code) or not url.startswith("wiki"):
                 return True
         return False
 
-    def extract_and_move_next(self, browser ,current_page):
+    def extract_and_move_next(self, browser, current_page):
         try:
             WebDriverWait(browser, 20).until(EC.presence_of_element_located((By.CLASS_NAME, "yuRUbf")))
         except:
             print("Load failed")
-            return 
+            return
         link_elements = browser.find_elements_by_class_name('yuRUbf')
         for link_element in link_elements:
             a_element = link_element.find_element_by_tag_name("a")
             link = a_element.get_attribute('href')
-            if self.is_present_in_archive(link) or self.is_unwanted_present(link) or self.is_unwanted_extension_present(link) or self.is_unwanted_wiki(link):
+            if self.is_present_in_archive(link) or self.is_unwanted_present(link) or self.is_unwanted_extension_present(
+                    link) or self.is_unwanted_wiki(link):
                 continue
-            self.links_count+=1
-            self.archive.append(link+"\n")
-            with open('urls.txt','a') as f:
-                f.write(link+"\n")   
+            self.links_count += 1
+            self.archive.append(link + "\n")
+            with open('urls.txt', 'a') as f:
+                f.write(link + "\n")
         try:
             next_btn = browser.find_element_by_id("pnnext")
             next_btn.click()
-            current_page+=1
+            current_page += 1
             if current_page < self.max_pages:
                 self.extract_and_move_next(browser, current_page)
         except:
-            pass        
+            pass
 
     def crawl(self):
         options = Options()
@@ -90,18 +92,17 @@ class GoogleCrawler:
             browser.get("https://www.google.com/")
             # Get search bar
             search_element = browser.find_element_by_class_name("gLFyf.gsfi")
-            search_element.send_keys(self.language+' '+keyword + Keys.RETURN)
+            search_element.send_keys(self.language + ' ' + keyword + Keys.RETURN)
             start_page = 1
             self.extract_and_move_next(browser, start_page)
 
-        print("Extracted %s urls"%str(self.links_count))
+        print("Extracted %s urls" % str(self.links_count))
         with open('archive.txt', 'w') as f:
             f.writelines(self.archive)
         browser.quit()
 
+
 if __name__ == "__main__":
-    config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),"config.json")
+    config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.json")
     google_crawler = GoogleCrawler(config_path)
     google_crawler.crawl()
-
-
