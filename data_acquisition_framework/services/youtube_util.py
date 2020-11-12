@@ -11,7 +11,8 @@ from pandas.io.common import EmptyDataError
 
 from data_acquisition_framework.configs.paths import archives_path, channels_path, download_path
 from data_acquisition_framework.configs.pipeline_config import batch_num, file_url_name_column, \
-    file_speaker_name_column, file_speaker_gender_column, mode
+    file_speaker_name_column, file_speaker_gender_column, mode, source_name, channel_url_dict
+from data_acquisition_framework.services.storage_util import StorageUtil
 from data_acquisition_framework.services.youtube.youtube_api import YoutubeApiUtils
 from data_acquisition_framework.services.youtube.youtube_dl import YoutubeDL
 
@@ -20,6 +21,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 class YoutubeUtil:
     def __init__(self):
+        self.storage_util = StorageUtil()
         self.youtube_dl_service = YoutubeDL()
         self.youtube_api_service = YoutubeApiUtils()
 
@@ -72,6 +74,37 @@ class YoutubeUtil:
         if mode == "channel":
             video_info['source_website'] = channel_url_prefix + channel_id
         return video_info
+
+    def validate_mode_and_get_result(self):
+        scraped_data = None
+        if mode == "file":
+            videos_file_path = self.storage_util.get_videos_file_path_in_bucket()
+            if self.storage_util.check(videos_file_path):
+                self.storage_util.download(videos_file_path, source_name + ".csv")
+                logging.info(
+                    str("Source scraped file has been downloaded from bucket to local path..."))
+                scraped_data = create_channel_file_for_file_mode(source_name + ".csv", file_url_name_column)
+            else:
+                logging.error(str("{0} File doesn't exists on the given location: {1}".format(source_name + ".csv",
+                                                                                              videos_file_path)))
+        elif mode == "channel":
+            self.get_channels_from_source()
+        else:
+            logging.error("Invalid mode")
+
+        for channel_file in glob.glob(channels_path + '*.txt'):
+            yield mode, channel_file.replace(channels_path, ''), scraped_data
+
+    def get_channels_from_source(self):
+        if len(channel_url_dict) != 0:
+            source_channel_dict = channel_url_dict
+        else:
+            with open('token.txt', 'w') as f:
+                pass
+            # get_token_from_bucket()
+            source_channel_dict = self.get_channels()
+        self.create_channel_file(source_channel_dict)
+
 
 
 def get_video_batch(source, source_file):

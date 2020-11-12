@@ -204,12 +204,12 @@ class UrlSearchSpider(scrapy.Spider):
     def extract_license(self, license_urls, source_domain):
         for license_url in license_urls:
             if "creativecommons" in license_url:
-                yield LicenseItem(file_urls=[license_url], name="creativecommons", source=source_domain,
+                yield LicenseItem(file_urls=[license_url], key_name="creativecommons", source=source_domain,
                                   language=self.language)
             elif license_url.endswith(".pdf") or license_url.endswith(".epub") or license_url.endswith(
                     ".docx") or license_url.endswith(".doc"):
                 name = "document"
-                yield LicenseItem(file_urls=[license_url], name=name, source=source_domain,
+                yield LicenseItem(file_urls=[license_url], key_name=name, source=source_domain,
                                   language=self.language)
             else:
                 yield scrapy.Request(license_url, callback=self.parse_license, cb_kwargs=dict(source=source_domain))
@@ -229,9 +229,9 @@ class UrlSearchSpider(scrapy.Spider):
                 is_creative_commons = True
                 break
         if is_creative_commons:
-            yield LicenseItem(file_urls=[response.url], name="creativecommons", source=source,
+            yield LicenseItem(file_urls=[response.url], key_name="creativecommons", source=source,
                               language=self.language)
         else:
-            yield LicenseItem(file_urls=[], name="html_page", source=source,
+            yield LicenseItem(file_urls=[], key_name="html_page", source=source,
                               content=content,
                               language=self.language)

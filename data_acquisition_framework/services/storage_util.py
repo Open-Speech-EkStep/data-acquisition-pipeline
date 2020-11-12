@@ -2,14 +2,23 @@ import json
 import logging
 import os
 
-from data_acquisition_framework.configs.paths import archives_path, download_path
-from data_acquisition_framework.configs.pipeline_config import channel_blob_path, bucket, archive_blob_path
-from data_acquisition_framework.services.storage.gcs_operations import set_gcs_credentials, upload_blob, download_blob, check_blob
+from data_acquisition_framework.configs.paths import archives_path, download_path, channels_path, archives_base_path
+from data_acquisition_framework.configs.pipeline_config import source_name
+from data_acquisition_framework.services.storage.gcs_operations import set_gcs_credentials, upload_blob, download_blob, \
+    check_blob
 
 
 class StorageUtil:
 
     def __init__(self):
+        current_path = os.path.dirname(os.path.realpath(__file__))
+        storage_config_file = os.path.join(current_path, '..', "configs", "storage_config.json")
+        with open(storage_config_file, 'r') as f:
+            storage_config = json.load(f)
+        self.channel_blob_path = storage_config['channel_blob_path']
+        self.bucket = storage_config['bucket']
+        self.archive_blob_path = storage_config['archive_blob_path']
+        self.scraped_data_blob_path = storage_config['scraped_data_blob_path']
         self.ARCHIVE_FILE_NAME = "archive.txt"
 
     def set_gcs_creds(self, gcs_credentials_string):
@@ -19,17 +28,17 @@ class StorageUtil:
         logging.info("**********Bucket Credentials Set**********")
 
     def upload(self, file_to_upload, location_to_upload):
-        upload_blob(bucket, file_to_upload, location_to_upload)
+        upload_blob(self.bucket, file_to_upload, location_to_upload)
 
     def download(self, file_to_download, download_location):
-        download_blob(bucket, file_to_download, download_location)
+        download_blob(self.bucket, file_to_download, download_location)
 
     def check(self, file_to_check):
-        return check_blob(bucket, file_to_check)
+        return check_blob(self.bucket, file_to_check)
 
     def get_archive_file_bucket_path(self, source, language=""):
-        return channel_blob_path.replace("<language>",
-                                         language) + '/' + archive_blob_path + '/' + source + '/' + self.ARCHIVE_FILE_NAME
+        return self.channel_blob_path.replace("<language>",
+                                         language) + '/' + self.archive_blob_path + '/' + source + '/' + self.ARCHIVE_FILE_NAME
 
     def retrieve_archive_from_bucket(self, source, language=""):
         archive_path = archives_path.replace('<source>', source)
@@ -41,7 +50,7 @@ class StorageUtil:
             os.system('mkdir {0}/{1}'.format(archive_base_folder, source))
         if self.check(self.get_archive_file_bucket_path(source, language)):
             self.download(self.get_archive_file_bucket_path(source, language), archive_path)
-            logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(bucket)))
+            logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(self.bucket)))
             num_downloaded = sum(1 for line in open(archive_path))
             logging.info(str("Count of Previously downloaded files are : {0}".format(num_downloaded)))
         else:
@@ -67,10 +76,11 @@ class StorageUtil:
         self.upload(archive_path, archive_bucket_path)
 
     def upload_media_and_metadata_to_bucket(self, source, media_filename, language=""):
-        blob_path = channel_blob_path
+        blob_path = self.channel_blob_path
         file_format = media_filename.split('.')[-1]
         meta_file_name = media_filename.replace(file_format, "csv")
-        file_path = blob_path.replace("<language>", language) + '/' + source + '/' + media_filename.replace(download_path, "")
+        file_path = blob_path.replace("<language>", language) + '/' + source + '/' + media_filename.replace(
+            download_path, "")
         self.upload(media_filename, file_path)
         os.remove(media_filename)
         meta_path = blob_path.replace("<language>", language) + '/' + source + '/' + meta_file_name.replace(
@@ -80,7 +90,23 @@ class StorageUtil:
         os.remove(meta_file_name)
 
     def upload_license(self, media_file_path, source, language=""):
-        blob_path = channel_blob_path
-        file_path = blob_path.replace("<language>", language) + '/' + source + '/' + 'license/'+media_file_path.replace(download_path, "")
+        blob_path = self.channel_blob_path
+        file_path = blob_path.replace("<language>",
+                                      language) + '/' + source + '/' + 'license/' + media_file_path.replace(
+            download_path, "")
         self.upload(media_file_path, file_path)
         os.remove(media_file_path)
+
+    def get_videos_file_path_in_bucket(self):
+        return self.channel_blob_path + '/' + self.scraped_data_blob_path + '/' + source_name + '.csv'
+
+    @staticmethod
+    def clear_required_directories():
+        if os.path.exists(download_path):
+            os.system('rm -rf ' + download_path)
+        else:
+            os.system("mkdir " + download_path)
+        if os.path.exists(channels_path):
+            os.system('rm -rf ' + channels_path)
+        if os.path.exists(archives_base_path):
+            os.system('rm -rf ' + archives_base_path)

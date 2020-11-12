@@ -31,7 +31,7 @@ class YoutubeItem(scrapy.Item):
 
 
 class LicenseItem(scrapy.Item):
-    name = scrapy.Field()
+    key_name = scrapy.Field()
     source = scrapy.Field()
     file_urls = scrapy.Field()
     files = scrapy.Field()
