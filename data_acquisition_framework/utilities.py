@@ -1,3 +1,6 @@
+import json
+import os
+
 import moviepy.editor
 from tinytag import TinyTag
 
@@ -37,3 +40,11 @@ def get_media_info(file, source, language, source_url, license_urls, media_url):
                   "language": language,
                   'source_website': source_url}
     return media_info, duration_in_seconds
+
+
+def load_config_json():
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    config_file = os.path.join(current_path, '..', "configs", "config.json")
+    with open(config_file, 'r') as file:
+        config_json = json.load(file)
+    return config_json

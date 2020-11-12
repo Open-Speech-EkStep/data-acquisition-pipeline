@@ -10,7 +10,7 @@ from scrapy.pipelines.files import FilesPipeline
 from data_acquisition_framework.configs.paths import download_path, archives_path
 from data_acquisition_framework.metadata.metadata import MediaMetadata
 from data_acquisition_framework.services.storage_util import StorageUtil
-from data_acquisition_framework.utilities import get_file_format, get_media_info
+from data_acquisition_framework.utilities import get_file_format, get_media_info, load_config_json
 
 
 class AudioPipeline(FilesPipeline):
@@ -20,7 +20,7 @@ class AudioPipeline(FilesPipeline):
         if not os.path.exists(download_path):
             os.system("mkdir " + download_path)
         self.archive_list = {}
-        self.metadata_creator = MediaMetadata()
+        self.metadata_creator = MediaMetadata(load_config_json()['downloader'])
         self.storage_util = StorageUtil()
 
     def file_path(self, request, response=None, info=None, **kwargs):

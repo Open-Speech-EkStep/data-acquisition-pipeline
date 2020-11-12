@@ -6,7 +6,7 @@ from data_acquisition_framework.metadata.metadata import MediaMetadata
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcquisitionPipeline
 from data_acquisition_framework.services.storage_util import StorageUtil
 from data_acquisition_framework.services.youtube_util import YoutubeUtil, get_video_batch, get_channel_videos_count, \
-    get_meta_filename, get_media_paths
+    get_meta_filename, get_media_paths, load_config_json
 
 
 class YoutubeApiPipeline(DataAcquisitionPipeline):
@@ -15,7 +15,7 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
         self.storage_util = StorageUtil()
         logging.info("*************YOUTUBE DOWNLOAD STARTS*************")
         self.youtube_util = YoutubeUtil()
-        self.metadata_creator = MediaMetadata()
+        self.metadata_creator = MediaMetadata(load_config_json()['downloader'])
         self.batch_count = 0
         self.scraped_data = None
         self.t_duration = 0
