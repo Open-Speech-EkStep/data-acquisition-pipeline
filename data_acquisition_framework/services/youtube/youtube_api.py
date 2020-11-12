@@ -3,6 +3,8 @@ import os
 
 from googleapiclient.discovery import build
 
+from data_acquisition_framework.services.storage_util import StorageUtil
+
 
 class YoutubeApiBuilder:
 
@@ -70,6 +72,7 @@ class YoutubeApiUtils:
 class YoutubeChannelCollector:
 
     def __init__(self, youtube):
+        self.storage_util = StorageUtil()
         current_path = os.path.dirname(os.path.realpath(__file__))
         api_config_file = os.path.join(current_path, '..', '..', "configs", "youtube_api_config.json")
         with open(api_config_file, 'r') as f:
@@ -100,26 +103,16 @@ class YoutubeChannelCollector:
         return num_pages, num_results
 
     def __get_page_channels(self):
-        token = self.get_token()
+        token = self.storage_util.get_token_from_local()
         results = self.youtube.search().list(part="id,snippet", type=self.TYPE, q=' '.join(
             self.KEYWORDS), maxResults=self.MAX_RESULTS, relevanceLanguage=self.REL_LANGUAGE, pageToken=token).execute()
         next_token = results['nextPageToken']
-        self.set_next_token(next_token)
+        self.storage_util.set_token_in_local(next_token)
         page_channels = {}
         for item in results['items']:
             page_channels['https://www.youtube.com/channel/' +
                           item['snippet']['channelId']] = item['snippet']['channelTitle']
         return page_channels
-
-    def get_token(self):
-        if os.path.exists(self.TOKEN_FILE_NAME):
-            with open(self.TOKEN_FILE_NAME, 'r') as file:
-                token = file.read()
-                return token
-
-    def set_next_token(self, token):
-        with open(self.TOKEN_FILE_NAME, 'w') as file:
-            file.write(token)
 
     def get_urls(self):
         complete_channels = {}

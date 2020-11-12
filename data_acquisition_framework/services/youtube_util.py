@@ -98,12 +98,9 @@ class YoutubeUtil:
         if len(channel_url_dict) != 0:
             source_channel_dict = channel_url_dict
         else:
-            with open('token.txt', 'w') as f:
-                pass
-            # get_token_from_bucket()
+            self.storage_util.get_token_from_bucket()
             source_channel_dict = self.get_channels()
         self.create_channel_file(source_channel_dict)
-
 
 
 def get_video_batch(source, source_file):

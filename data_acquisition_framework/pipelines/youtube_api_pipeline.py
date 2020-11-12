@@ -41,7 +41,7 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
         logging.info(
             str("Total channel count with valid videos is {0}".format(channel_videos_count)))
         self.batch_download(item)
-        # update_token_in_bucket()
+        self.storage_util.upload_token_to_bucket()
         return item
 
     def batch_download(self, item):

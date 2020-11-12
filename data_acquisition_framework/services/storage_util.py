@@ -20,6 +20,7 @@ class StorageUtil:
         self.archive_blob_path = storage_config['archive_blob_path']
         self.scraped_data_blob_path = storage_config['scraped_data_blob_path']
         self.ARCHIVE_FILE_NAME = "archive.txt"
+        self.token_file_name = 'token.txt'
 
     def set_gcs_creds(self, gcs_credentials_string):
         gcs_credentials = json.loads(gcs_credentials_string)["Credentials"]
@@ -38,7 +39,7 @@ class StorageUtil:
 
     def get_archive_file_bucket_path(self, source, language=""):
         return self.channel_blob_path.replace("<language>",
-                                         language) + '/' + self.archive_blob_path + '/' + source + '/' + self.ARCHIVE_FILE_NAME
+                                              language) + '/' + self.archive_blob_path + '/' + source + '/' + self.ARCHIVE_FILE_NAME
 
     def retrieve_archive_from_bucket(self, source, language=""):
         archive_path = archives_path.replace('<source>', source)
@@ -96,6 +97,29 @@ class StorageUtil:
             download_path, "")
         self.upload(media_file_path, file_path)
         os.remove(media_file_path)
+
+    def get_token_path(self):
+        return self.channel_blob_path + '/' + self.token_file_name
+
+    def upload_token_to_bucket(self):
+        if os.path.exists(self.token_file_name):
+            self.upload(self.token_file_name, self.get_token_path())
+
+    def get_token_from_bucket(self):
+        if self.check(self.get_token_path()):
+            self.download(self.token_file_name, self.get_token_path())
+        else:
+            os.system('touch {0}'.format(self.token_file_name))
+
+    def get_token_from_local(self):
+        if os.path.exists(self.token_file_name):
+            with open(self.token_file_name, 'r') as file:
+                token = file.read()
+                return token
+
+    def set_token_in_local(self, token):
+        with open(self.token_file_name, 'w') as file:
+            file.write(token)
 
     def get_videos_file_path_in_bucket(self):
         return self.channel_blob_path + '/' + self.scraped_data_blob_path + '/' + source_name + '.csv'
