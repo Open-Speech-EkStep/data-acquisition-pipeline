@@ -1,5 +1,4 @@
 import glob
-import json
 import logging
 import os
 import subprocess
@@ -176,11 +175,3 @@ def get_meta_filename(file):
     file_format = file.split('.')[-1]
     meta_file_name = file.replace(file_format, "csv")
     return meta_file_name
-
-
-def load_config_json():
-    current_path = os.path.dirname(os.path.realpath(__file__))
-    config_file = os.path.join(current_path, '..', "configs", "config.json")
-    with open(config_file, 'r') as file:
-        config_json = json.load(file)
-    return config_json
