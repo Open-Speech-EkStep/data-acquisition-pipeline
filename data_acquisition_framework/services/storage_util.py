@@ -3,8 +3,7 @@ import logging
 import os
 
 from data_acquisition_framework.configs.paths import archives_path, download_path, channels_path, archives_base_path
-from data_acquisition_framework.configs.pipeline_config import source_name
-from data_acquisition_framework.services.storage.gcs_operations import set_gcs_credentials, upload_blob, download_blob, \
+from data_acquisition_framework.services.storage.gcs_operations import set_gcs_credentials, upload_blob, download_blob,\
     check_blob
 
 
@@ -121,7 +120,7 @@ class StorageUtil:
         with open(self.token_file_name, 'w') as file:
             file.write(token)
 
-    def get_videos_file_path_in_bucket(self):
+    def get_videos_file_path_in_bucket(self, source_name):
         return self.channel_blob_path + '/' + self.scraped_data_blob_path + '/' + source_name + '.csv'
 
     @staticmethod
@@ -134,3 +133,8 @@ class StorageUtil:
             os.system('rm -rf ' + channels_path)
         if os.path.exists(archives_base_path):
             os.system('rm -rf ' + archives_base_path)
+
+    def write_license_to_local(self, file_name, content):
+        path = download_path + file_name
+        with open(path, 'w') as f:
+            f.write(content)

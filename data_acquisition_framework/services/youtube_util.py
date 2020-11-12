@@ -77,7 +77,7 @@ class YoutubeUtil:
     def validate_mode_and_get_result(self):
         scraped_data = None
         if mode == "file":
-            videos_file_path = self.storage_util.get_videos_file_path_in_bucket()
+            videos_file_path = self.storage_util.get_videos_file_path_in_bucket(source_name)
             if self.storage_util.check(videos_file_path):
                 self.storage_util.download(videos_file_path, source_name + ".csv")
                 logging.info(

@@ -7,7 +7,7 @@ from itemadapter import ItemAdapter
 from scrapy import Request
 from scrapy.pipelines.files import FilesPipeline
 
-from data_acquisition_framework.configs.paths import download_path, archives_path
+from data_acquisition_framework.configs.paths import download_path, archives_base_path
 from data_acquisition_framework.items import LicenseItem
 from data_acquisition_framework.metadata.metadata import MediaMetadata
 from data_acquisition_framework.services.storage_util import StorageUtil
@@ -32,15 +32,14 @@ class AudioPipeline(FilesPipeline):
     def process_item(self, item, spider):
         if type(item) is LicenseItem:
             if item["key_name"] is "html_page":
-                path = download_path + "license_{0}.txt".format(item["source"])
-                with open(path, 'w') as f:
-                    f.write(item['content'])
-                self.storage_util.upload_license(path, item["source"], item["language"])
+                file_name = "license_{0}.txt".format(item["source"])
+                self.storage_util.write_license_to_local(file_name, item['content'])
+                self.storage_util.upload_license(file_name, item["source"], item["language"])
             elif item["key_name"] is "creativecommons":
-                path = download_path + "license_{0}.txt".format(item["source"])
-                with open(path,'w') as f:
-                    f.write("creative commons => "+item["file_urls"][0])
-                self.storage_util.upload_license(path, item["source"], item["language"])
+                file_name = "license_{0}.txt".format(item["source"])
+                content = "creative commons => " + item["file_urls"][0]
+                self.storage_util.write_license_to_local(file_name, content)
+                self.storage_util.upload_license(file_name, item["source"], item["language"])
             elif item["key_name"] is "document":
                 return super().process_item(item, spider)
         else:
@@ -88,7 +87,7 @@ class AudioPipeline(FilesPipeline):
         urls = ItemAdapter(item).get(self.files_urls_field, [])
         if item["source"] not in self.archive_list:
             self.archive_list[item["source"]] = []
-        if not os.path.isdir(archives_path.split('/')[0] + '/' + item["source"]):
+        if not os.path.isdir(archives_base_path + item["source"]):
             self.storage_util.retrieve_archive_from_bucket(item["source"], item["language"])
             self.archive_list[item["source"]] = self.storage_util.retrieve_archive_from_local(item["source"])
         return [Request(u) for u in urls if u not in self.archive_list[item["source"]]]
@@ -99,7 +98,8 @@ class AudioPipeline(FilesPipeline):
     def extract_metadata(self, file, url, item):
         file_format = get_file_format(file)
         meta_file_name = file.replace(file_format, "csv")
-        media_info, duration_in_seconds = get_media_info(file, item['source'], item['language'], item['source_url'], item['license_urls'], url)
+        media_info, duration_in_seconds = get_media_info(file, item['source'], item['language'], item['source_url'],
+                                                         item['license_urls'], url)
         metadata = self.metadata_creator.create_metadata(media_info)
         metadata_df = pd.DataFrame([metadata])
         metadata_df.to_csv(meta_file_name, index=False)
