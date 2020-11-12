@@ -1,13 +1,12 @@
-from metadata_extractor import extract_metadata
-import threading
 import os
+
 import pandas as pd
 import requests
-from gcs_helper import GCSHelper
-from utilities import populate_local_archive
-from youtube_api import YoutubeApiUtils
 
 from data_acquisition_framework.utilities import get_license_info
+from .gcs_helper import GCSHelper
+from .metadata_extractor import extract_metadata
+from .utilities import populate_local_archive
 
 
 class Downloader:

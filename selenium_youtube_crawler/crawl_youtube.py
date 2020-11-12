@@ -1,23 +1,24 @@
-from gcs import set_gcs_credentials
-from utilities import populate_local_archive, read_playlist_from_file, read_playlist_from_youtube_api
-import threading
-from enum import Enum
 import json
-
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
-from gcs_helper import GCSHelper
-from downloader import Downloader
-from browser_utils import BrowserUtils
+from enum import Enum
 
 # downloads driver for firefox if not present
 import geckodriver_autoinstaller
+
+from .browser_utils import BrowserUtils
+from .downloader import Downloader
+from .gcs import set_gcs_credentials
+from .gcs_helper import GCSHelper
+from .utilities import read_playlist_from_file, read_playlist_from_youtube_api
+
 geckodriver_autoinstaller.install()
+
 
 # Crawls youtube videos using youtube api and downloads using en.savefrom.net website
 class YoutubeCrawler:
     def __init__(
-        self, bucket_name, bucket_path, config, playlist_workers=10, download_workers=10
+            self, bucket_name, bucket_path, config, playlist_workers=10, download_workers=10
     ):
         self.bucket_path = bucket_path
         self.bucket_name = bucket_name
@@ -111,7 +112,7 @@ class YoutubeCrawler:
                 future.result()
             except Exception as exc:
                 print("%r generated an exception: %s" % (playlist, exc))
-        
+
         if input_type is CrawlInput.YOUTUBE_API:
             gcs_helper.upload_token_to_bucket()
 
@@ -122,16 +123,16 @@ class CrawlInput(Enum):
 
 
 if __name__ == "__main__":
-    with open('config.json','r') as f:
+    with open('config.json', 'r') as f:
         config = json.load(f)
         bucket_name = config["bucket_name"]
         bucket_path = config["bucket_path"]
         input_type = config["input_type"]
     try:
-        CrawlInput[input_type.upper()]
+        type = CrawlInput[input_type.upper()]
         bucket_path = bucket_path.replace("<language>", config["language"])
         youtube_crawler = YoutubeCrawler(bucket_name, bucket_path, config)
-        youtube_crawler.crawl(CrawlInput.FILE)
+        youtube_crawler.crawl(type)
     except Exception as exc:
         print("generated an exception: %s" % (exc))
-        print("Invalid Input type. Should be FILE or YOUTUBE_API")        
+        print("Invalid Input type. Should be FILE or YOUTUBE_API")

@@ -1,7 +1,8 @@
-from google.cloud import storage
-import os
 import json
-import pandas as pd
+import os
+
+from google.cloud import storage
+
 
 def download_blob(bucket_name, source_blob_name, destination_file_name):
     """Downloads a blob from the bucket."""

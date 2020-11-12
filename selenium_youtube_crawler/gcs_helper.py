@@ -1,4 +1,4 @@
-from gcs import upload_blob, download_blob, check_blob
+from .gcs import upload_blob, download_blob, check_blob
 import os
 
 
@@ -10,12 +10,12 @@ class GCSHelper:
     def upload_archive_to_bucket(self, source):
         upload_blob(
             self.bucket_name,
-            "archive/"+source + "/archive.txt",
+            "archive/" + source + "/archive.txt",
             self.bucket_path + "/archive/" + source + "/archive.txt",
         )
 
     def upload_token_to_bucket(self):
-        upload_blob(self.bucket_name,'token.txt',self.bucket_path+'/token.txt')
+        upload_blob(self.bucket_name, 'token.txt', self.bucket_path + '/token.txt')
 
     def download_token_from_bucket(self):
         token_path = self.bucket_path + "/token.txt"
@@ -38,7 +38,7 @@ class GCSHelper:
             os.system("mkdir archive")
 
         archive_file_path = self.bucket_path + "/archive/" + source + "/archive.txt"
-        local_archive_source ="archive/{0}".format(source)
+        local_archive_source = "archive/{0}".format(source)
         local_archive_file_path = "{0}/archive.txt".format(local_archive_source)
 
         if check_blob(self.bucket_name, archive_file_path):
@@ -69,18 +69,18 @@ class GCSHelper:
                 )
                 return []
             else:
-                with open(local_archive_file_path, "r") as f:
-                    return f.read().splitlines()
                 print(
                     "Local Archive file has been found on bucket...Downloading all files..."
                 )
+                with open(local_archive_file_path, "r") as f:
+                    return f.read().splitlines()
 
     # file-dir is the directory where files get downloads
     def upload_file_to_bucket(self, source, source_file_name, destination_file_name, file_dir):
         try:
             base_path = self.bucket_path + "/" + source + "/"
             upload_blob(
-                self.bucket_name, file_dir+"/"+source_file_name, base_path + destination_file_name
+                self.bucket_name, file_dir + "/" + source_file_name, base_path + destination_file_name
             )
         except Exception as exc:
             print("%r generated an exception: %s" % (source, exc))
