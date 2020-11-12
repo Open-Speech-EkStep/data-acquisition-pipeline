@@ -77,7 +77,8 @@ class YoutubeChannelCollector:
 
         self.TYPE = "channel"
         self.youtube = youtube
-
+        self.MAX_PAGE_RESULT = 50
+        self.TOKEN_FILE_NAME = 'token.txt'
         num_pages, num_results = self.calculate_pages(config["max_results"])
 
         self.MAX_RESULTS = num_results
@@ -88,17 +89,17 @@ class YoutubeChannelCollector:
         self.KEYWORDS = ['in', config["language"], words_to_include, '-song']
 
     def calculate_pages(self, max_results):
-        if max_results <= 50:
+        if max_results <= self.MAX_PAGE_RESULT:
             num_results = max_results
             num_pages = 1
         else:
-            num_pages = int(max_results // 50)
-            num_results = 50
-            if not max_results % 50 == 0:
+            num_pages = int(max_results // self.MAX_PAGE_RESULT)
+            num_results = self.MAX_PAGE_RESULT
+            if not max_results % self.MAX_PAGE_RESULT == 0:
                 num_pages += 1
         return num_pages, num_results
 
-    def youtube_extract(self):
+    def __get_page_channels(self):
         token = self.get_token()
         results = self.youtube.search().list(part="id,snippet", type=self.TYPE, q=' '.join(
             self.KEYWORDS), maxResults=self.MAX_RESULTS, relevanceLanguage=self.REL_LANGUAGE, pageToken=token).execute()
@@ -111,18 +112,18 @@ class YoutubeChannelCollector:
         return page_channels
 
     def get_token(self):
-        if os.path.exists("token.txt"):
-            with open('token.txt', 'r') as file:
+        if os.path.exists(self.TOKEN_FILE_NAME):
+            with open(self.TOKEN_FILE_NAME, 'r') as file:
                 token = file.read()
                 return token
 
     def set_next_token(self, token):
-        with open('token.txt', 'w') as file:
+        with open(self.TOKEN_FILE_NAME, 'w') as file:
             file.write(token)
 
     def get_urls(self):
         complete_channels = {}
         for _ in range(self.PAGES):
-            page_channels = self.youtube_extract()
+            page_channels = self.__get_page_channels()
             complete_channels.update(page_channels)
         return complete_channels
