@@ -78,3 +78,9 @@ class StorageUtil:
             "")
         self.upload(meta_file_name, meta_path)
         os.remove(meta_file_name)
+
+    def upload_license(self, media_file_path, source, language=""):
+        blob_path = channel_blob_path
+        file_path = blob_path.replace("<language>", language) + '/' + source + '/' + 'license/'+media_file_path.replace(download_path, "")
+        self.upload(media_file_path, file_path)
+        os.remove(media_file_path)

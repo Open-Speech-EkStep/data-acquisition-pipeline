@@ -1,13 +1,15 @@
 import concurrent.futures
+import html
 import json
 import os
+import re
 from urllib.parse import urlparse
 
 import scrapy
 import scrapy.settings
 from scrapy import signals
 
-from ..items import Media
+from ..items import Media, LicenseItem
 from ..services.storage_util import StorageUtil
 
 
@@ -65,7 +67,8 @@ class BingSearchSpider(scrapy.Spider):
         return spider
 
     def item_scraped(self, item, response, spider):
-        self.total_duration_in_seconds += item["duration"]
+        if item is not None and "duration" in item:
+            self.total_duration_in_seconds += item["duration"]
         hours = self.total_duration_in_seconds / 3600
         print(spider.name + " has downloaded %s hours" % str(hours))
 
@@ -79,7 +82,8 @@ class BingSearchSpider(scrapy.Spider):
                 url = "https://www.bing.com/search?q={0}".format(keyword)
             else:
                 url = "https://www.bing.com/search?q={0}&first={1}".format(keyword, start_page)
-            yield scrapy.Request(url=url, callback=self.parse_search_page, cb_kwargs=dict(page_number=1, keyword=keyword))
+            yield scrapy.Request(url=url, callback=self.parse_search_page,
+                                 cb_kwargs=dict(page_number=1, keyword=keyword))
         self.config["last_visited"] = (self.pages * 10) + start_page
         with open(self.web_crawl_config, 'w') as web_crawl_config_file:
             json.dump(self.config, web_crawl_config_file, indent=4)
@@ -88,7 +92,8 @@ class BingSearchSpider(scrapy.Spider):
         urls = response.css('a::attr(href)').getall()
         search_result_urls = self.filter_unwanted_urls(response, urls)
         with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            future_to_url = {executor.submit(self.get_request_for_search_result, url): url for url in search_result_urls}
+            future_to_url = {executor.submit(self.get_request_for_search_result, url): url for url in
+                             search_result_urls}
             for future in concurrent.futures.as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
@@ -119,9 +124,6 @@ class BingSearchSpider(scrapy.Spider):
         self.write("results.txt", "\n]\n")
         return search_result_urls
 
-    def parse_license_page(self, response, source):
-        pass
-
     def parse(self, response, depth):
         if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
             return
@@ -132,12 +134,11 @@ class BingSearchSpider(scrapy.Spider):
 
         urls = a_urls + source_urls + audio_tag_urls
         source_domain = base_url[base_url.index("//") + 2:].split('/')[0]
+        if source_domain.startswith("www."):
+            source_domain = source_domain.replace("www.", "")
         all_a_tags = response.xpath('//a')
         license_urls = self.extract_license_urls(a_urls, all_a_tags, response)
-
-        # for license in license_urls:
-        #     if "creativecommons" not in license:
-        #         yield scrapy.Request(license, callback=self.parse_license_page, cb_kwargs=dict(source=source_domain))
+        license_extracted = False
 
         for url in urls:
             if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
@@ -155,6 +156,11 @@ class BingSearchSpider(scrapy.Spider):
 
             # iterate for search of wanted files
             if self.is_extension_present(url):
+                if not license_extracted:
+                    for license_item in self.extract_license(license_urls, source_domain):
+                        print("requesting license " + str(type(license_item)))
+                        yield license_item
+                    license_extracted = True
                 url_parts = url.split("/")
                 yield Media(title=url_parts[-1], file_urls=[url], source_url=base_url,
                             source=source_domain, license_urls=license_urls, language=self.language)
@@ -179,7 +185,7 @@ class BingSearchSpider(scrapy.Spider):
                 texts = a_tag.xpath('text()').extract()
                 for text in texts:
                     text = text.lower()
-                    if "terms" in text or "license" in text or "copyright" in text or "usage policy" in text or "conditions" in text or "website policies" in text:
+                    if "terms" in text or "license" in text or "copyright" in text or "usage policy" in text or "conditions" in text or "website policies" in text or "website policy" in text:
                         for link in a_tag.xpath('@href').extract():
                             license_urls.add(response.urljoin(link))
         return list(license_urls)
@@ -216,3 +222,38 @@ class BingSearchSpider(scrapy.Spider):
     def write(self, filename, content):
         with open(filename, 'a') as f:
             f.write(content + "\n")
+
+    def extract_license(self, license_urls, source_domain):
+        for license_url in license_urls:
+            if "creativecommons" in license_url:
+                yield LicenseItem(file_urls=[license_url], name="creativecommons", source=source_domain,
+                                  language=self.language)
+            elif license_url.endswith(".pdf") or license_url.endswith(".epub") or license_url.endswith(
+                    ".docx") or license_url.endswith(".doc"):
+                name = "document"
+                yield LicenseItem(file_urls=[license_url], name=name, source=source_domain,
+                                  language=self.language)
+            else:
+                yield scrapy.Request(license_url, callback=self.parse_license, cb_kwargs=dict(source=source_domain))
+
+    def parse_license(self, response, source):
+        texts = response.xpath(
+            "//body//text()[not (ancestor-or-self::script or ancestor-or-self::noscript or ancestor-or-self::style)]").extract()
+        content = ""
+        is_creative_commons = False
+        for text in texts:
+            text = html.unescape(text)
+            text = text.rstrip().lstrip()
+            text = text.replace("\r\n", "")
+            text = re.sub(' +', ' ', text)
+            content = content + "\n" + text
+            if "creativecommons" in text:
+                is_creative_commons = True
+                break
+        if is_creative_commons:
+            yield LicenseItem(file_urls=[response.url], name="creativecommons", source=source,
+                              language=self.language)
+        else:
+            yield LicenseItem(file_urls=[], name="html_page", source=source,
+                              content=content,
+                              language=self.language)

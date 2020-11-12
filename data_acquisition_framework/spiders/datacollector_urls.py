@@ -1,14 +1,15 @@
+import concurrent.futures
+import html
+import json
 import os
+import re
+from urllib.parse import urlparse
 
 import scrapy
-import json
 import scrapy.settings
-import concurrent.futures
 
+from ..items import Media, LicenseItem
 from ..services.storage_util import StorageUtil
-from ..items import Media
-from scrapy.exceptions import CloseSpider
-from urllib.parse import urlparse
 
 
 class UrlSearchSpider(scrapy.Spider):
@@ -48,16 +49,14 @@ class UrlSearchSpider(scrapy.Spider):
         return spider
 
     def item_scraped(self, item, response, spider):
-        self.total_duration_in_seconds += item["duration"]
+        if item is not None and "duration" in item:
+            self.total_duration_in_seconds += item["duration"]
         hours = self.total_duration_in_seconds / 3600
-        print(spider.name+" has downloaded %s hours"%str(hours))
-        # if self.total_duration_in_seconds >= self.max_seconds:
-        #     # raise CloseSpider("Stopped since %s hours of data scraped"% hours)
-        #     self.crawler.engine.close_spider(spider,"Scraped estimated hours")
+        print(spider.name + " has downloaded %s hours" % str(hours))
 
     def start_requests(self):
         config_path = (
-            os.path.dirname(os.path.realpath(__file__)) + "/../configs/web_crawl_config.json"
+                os.path.dirname(os.path.realpath(__file__)) + "/../configs/web_crawl_config.json"
         )
         with open(config_path, "r") as f:
             config = json.load(f)
@@ -92,24 +91,26 @@ class UrlSearchSpider(scrapy.Spider):
         license_urls = set()
         for url in urls:
             url = url.rstrip().lstrip()
-            if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith("https://creativecommons.org/publicdomain/zero") or url.startswith("https://creativecommons.org/licenses/by"):
+            if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith(
+                    "https://creativecommons.org/publicdomain/zero") or url.startswith(
+                "https://creativecommons.org/licenses/by"):
                 license_urls.add(url)
         if len(license_urls) == 0:
             for a_tag in all_a_tags:
                 texts = a_tag.xpath('text()').extract()
                 for text in texts:
                     text = text.lower()
-                    if "terms" in text or "license" in text or "copyright" in text or "usage policy" in text or "conditions" in text or "website policies" in text:
+                    if "terms" in text or "license" in text or "copyright" in text or "usage policy" in text or "conditions" in text or "website policies" in text or "website policy" in text:
                         for link in a_tag.xpath('@href').extract():
                             license_urls.add(response.urljoin(link))
         return list(license_urls)
-    
+
     def is_unwanted_words_present(self, url):
         for word in self.word_to_ignore:
             if word in url.lower():
                 return True
         return False
-    
+
     def is_unwanted_extension_present(self, url):
         for extension in self.extensions_to_ignore:
             if url.lower().endswith(extension):
@@ -120,23 +121,22 @@ class UrlSearchSpider(scrapy.Spider):
         for extension in self.extensions_to_include:
             if url.lower().endswith(extension.lower()):
                 return True
-        return False        
-    
+        return False
+
     def sanitize(self, word):
         return word.rstrip().lstrip().lower()
 
     def is_unwanted_wiki(self, url):
         url = self.sanitize(url)
         if "wikipedia.org" in url or "wikimedia.org" in url:
-            url = url.replace("https://","").replace("http://","")
+            url = url.replace("https://", "").replace("http://", "")
             if not url.startswith("en") or not url.startswith(self.language_code) or not url.startswith("wiki"):
                 return True
         return False
 
     def write(self, content):
         with open("log.txt", 'a') as f:
-            f.write(content+"\n")    
-
+            f.write(content + "\n")
 
     def parse(self, response, depth):
 
@@ -148,18 +148,19 @@ class UrlSearchSpider(scrapy.Spider):
         a_urls = response.css("a::attr(href)").getall()
         source_urls = response.css("source::attr(src)").getall()
         audio_tag_urls = response.css("audio::attr(src)").getall()
-        
+
         urls = a_urls + source_urls + audio_tag_urls
 
-        source_domain = base_url[base_url.index("//") + 2 :].split("/")[0]
+        source_domain = base_url[base_url.index("//") + 2:].split("/")[0]
 
         if source_domain.startswith("www."):
-            source_domain = source_domain.replace("www.","")
+            source_domain = source_domain.replace("www.", "")
 
         license_urls = self.extract_license_urls(a_urls, all_a_tags, response)
-        
+        license_extracted = False
+
         for url in urls:
-            
+
             if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
                 return
 
@@ -174,6 +175,11 @@ class UrlSearchSpider(scrapy.Spider):
                 continue
 
             if self.is_extension_present(url):
+                if not license_extracted:
+                    for license_item in self.extract_license(license_urls, source_domain):
+                        print("requesting license " + str(type(license_item)))
+                        yield license_item
+                    license_extracted = True
                 url_parts = url.split("/")
                 yield Media(
                     title=url_parts[len(url_parts) - 1],
@@ -194,3 +200,38 @@ class UrlSearchSpider(scrapy.Spider):
             yield scrapy.Request(
                 url, callback=self.parse, cb_kwargs=dict(depth=(depth + 1))
             )
+
+    def extract_license(self, license_urls, source_domain):
+        for license_url in license_urls:
+            if "creativecommons" in license_url:
+                yield LicenseItem(file_urls=[license_url], name="creativecommons", source=source_domain,
+                                  language=self.language)
+            elif license_url.endswith(".pdf") or license_url.endswith(".epub") or license_url.endswith(
+                    ".docx") or license_url.endswith(".doc"):
+                name = "document"
+                yield LicenseItem(file_urls=[license_url], name=name, source=source_domain,
+                                  language=self.language)
+            else:
+                yield scrapy.Request(license_url, callback=self.parse_license, cb_kwargs=dict(source=source_domain))
+
+    def parse_license(self, response, source):
+        texts = response.xpath(
+            "//body//text()[not (ancestor-or-self::script or ancestor-or-self::noscript or ancestor-or-self::style)]").extract()
+        content = ""
+        is_creative_commons = False
+        for text in texts:
+            text = html.unescape(text)
+            text = text.rstrip().lstrip()
+            text = text.replace("\r\n", "")
+            text = re.sub(' +', ' ', text)
+            content = content + "\n" + text
+            if "creativecommons" in text:
+                is_creative_commons = True
+                break
+        if is_creative_commons:
+            yield LicenseItem(file_urls=[response.url], name="creativecommons", source=source,
+                              language=self.language)
+        else:
+            yield LicenseItem(file_urls=[], name="html_page", source=source,
+                              content=content,
+                              language=self.language)
