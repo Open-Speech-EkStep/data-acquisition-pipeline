@@ -37,3 +37,61 @@ def get_media_info(file, source, language, source_url, license_urls, media_url):
                   "language": language,
                   'source_website': source_url}
     return media_info, duration_in_seconds
+
+
+def extract_license_urls(urls, all_a_tags, response):
+    license_urls = set()
+    for url in urls:
+        url = url.rstrip().lstrip()
+        if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith(
+                "https://creativecommons.org/publicdomain/zero") or url.startswith(
+            "https://creativecommons.org/licenses/by"):
+            license_urls.add(url)
+    if len(license_urls) == 0:
+        for a_tag in all_a_tags:
+            texts = a_tag.xpath('text()').extract()
+            for text in texts:
+                text = text.lower()
+                if "terms" in text or "license" in text or "copyright" in text or "usage policy" in text or "conditions" in text or "website policies" in text or "website policy" in text:
+                    for link in a_tag.xpath('@href').extract():
+                        license_urls.add(response.urljoin(link))
+    return list(license_urls)
+
+
+def is_unwanted_words_present(word_to_ignore, url):
+    for word in word_to_ignore:
+        if word in url.lower():
+            return True
+    return False
+
+
+def is_unwanted_extension_present(extensions_to_ignore, url):
+    for extension in extensions_to_ignore:
+        if url.lower().endswith(extension):
+            return True
+    return False
+
+
+def is_extension_present(extensions_to_include, url):
+    for extension in extensions_to_include:
+        if url.lower().endswith(extension.lower()):
+            return True
+    return False
+
+
+def sanitize(word):
+    return word.rstrip().lstrip().lower()
+
+
+def is_unwanted_wiki(language_code, url):
+    url = sanitize(url)
+    if "wikipedia.org" in url or "wikimedia.org" in url:
+        url = url.replace("https://", "").replace("http://", "")
+        if not url.startswith("en") or not url.startswith(language_code) or not url.startswith("wiki"):
+            return True
+    return False
+
+
+def write(filename, content):
+    with open(filename, 'a') as f:
+        f.write(content + "\n")

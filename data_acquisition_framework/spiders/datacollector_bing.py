@@ -3,8 +3,8 @@ import html
 import json
 import os
 import re
-import logging
 from urllib.parse import urlparse
+import logging
 
 import scrapy
 import scrapy.settings
@@ -12,6 +12,8 @@ from scrapy import signals
 
 from ..items import Media, LicenseItem
 from ..services.storage_util import StorageUtil
+from ..utilities import extract_license_urls, is_unwanted_words_present, is_unwanted_extension_present, \
+    is_extension_present, is_unwanted_wiki, write
 
 
 class BingSearchSpider(scrapy.Spider):
@@ -114,15 +116,15 @@ class BingSearchSpider(scrapy.Spider):
         return scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=1))
 
     def filter_unwanted_urls(self, response, urls):
-        self.write("base_url.txt", response.url)
+        write("base_url.txt", response.url)
         search_result_urls = []
-        self.write("results.txt", "%s results = [\n" % response.url)
+        write("results.txt", "%s results = [\n" % response.url)
         for url in urls:
             if url.startswith("http:") or url.startswith("https:"):
                 if "go.microsoft.com" not in url and "microsofttranslator.com" not in url:
                     search_result_urls.append(url)
-                    self.write("results.txt", url + "\n")
-        self.write("results.txt", "\n]\n")
+                    write("results.txt", url + "\n")
+        write("results.txt", "\n]\n")
         return search_result_urls
 
     def parse(self, response, depth):
@@ -138,7 +140,7 @@ class BingSearchSpider(scrapy.Spider):
         if source_domain.startswith("www."):
             source_domain = source_domain.replace("www.", "")
         all_a_tags = response.xpath('//a')
-        license_urls = self.extract_license_urls(a_urls, all_a_tags, response)
+        license_urls = extract_license_urls(a_urls, all_a_tags, response)
         license_extracted = False
 
         for url in urls:
@@ -152,77 +154,30 @@ class BingSearchSpider(scrapy.Spider):
             except:
                 continue
 
-            if self.is_unwanted_words_present(url) or self.is_unwanted_wiki(url):
+            if is_unwanted_words_present(self.word_to_ignore, url) or is_unwanted_wiki(self.language_code, url):
                 continue
 
-            # iterate for search of wanted files
-            if self.is_extension_present(url):
+            if is_extension_present(self.extensions_to_include, url):
                 if not license_extracted:
                     for license_item in self.extract_license(license_urls, source_domain):
                         logging.info("requesting license " + str(type(license_item)))
                         yield license_item
                     license_extracted = True
                 url_parts = url.split("/")
-                yield Media(title=url_parts[-1], file_urls=[url], source_url=base_url,
-                            source=source_domain, license_urls=license_urls, language=self.language)
+                yield Media(
+                    title=url_parts[-1],
+                    file_urls=[url],
+                    source_url=base_url,
+                    source=source_domain,
+                    license_urls=license_urls,
+                    language=self.language)
                 continue
 
-            if self.is_unwanted_extension_present(url) or depth >= self.depth:
+            if is_unwanted_extension_present(self.extensions_to_ignore, url) or depth >= self.depth:
                 continue
 
             # if not matched any of above, traverse to next
             yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=(depth + 1)))
-
-    def extract_license_urls(self, urls, all_a_tags, response):
-        license_urls = set()
-        for url in urls:
-            url = url.rstrip().lstrip()
-            if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith(
-                    "https://creativecommons.org/publicdomain/zero") or url.startswith(
-                "https://creativecommons.org/licenses/by"):
-                license_urls.add(url)
-        if len(license_urls) == 0:
-            for a_tag in all_a_tags:
-                texts = a_tag.xpath('text()').extract()
-                for text in texts:
-                    text = text.lower()
-                    if "terms" in text or "license" in text or "copyright" in text or "usage policy" in text or "conditions" in text or "website policies" in text or "website policy" in text:
-                        for link in a_tag.xpath('@href').extract():
-                            license_urls.add(response.urljoin(link))
-        return list(license_urls)
-
-    def is_unwanted_words_present(self, url):
-        for word in self.word_to_ignore:
-            if word in url.lower():
-                return True
-        return False
-
-    def is_unwanted_extension_present(self, url):
-        for extension in self.extensions_to_ignore:
-            if url.lower().endswith(extension):
-                return True
-        return False
-
-    def is_extension_present(self, url):
-        for extension in self.extensions_to_include:
-            if url.lower().endswith(extension.lower()):
-                return True
-        return False
-
-    def sanitize(self, word):
-        return word.rstrip().lstrip().lower()
-
-    def is_unwanted_wiki(self, url):
-        url = self.sanitize(url)
-        if "wikipedia.org" in url or "wikimedia.org" in url:
-            url = url.replace("https://", "").replace("http://", "")
-            if not url.startswith("en") or not url.startswith(self.language_code) or not url.startswith("wiki"):
-                return True
-        return False
-
-    def write(self, filename, content):
-        with open(filename, 'a') as f:
-            f.write(content + "\n")
 
     def extract_license(self, license_urls, source_domain):
         for license_url in license_urls:

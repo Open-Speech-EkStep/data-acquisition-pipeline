@@ -9,7 +9,7 @@ import pandas as pd
 from pandas.io.common import EmptyDataError
 
 from data_acquisition_framework.configs.paths import archives_path, channels_path, download_path
-from data_acquisition_framework.configs.pipeline_config import batch_num, file_url_name_column, \
+from data_acquisition_framework.configs.youtube_pipeline_config import batch_num, file_url_name_column, \
     file_speaker_name_column, file_speaker_gender_column, mode, source_name, channel_url_dict
 from data_acquisition_framework.services.storage_util import StorageUtil
 from data_acquisition_framework.services.youtube.youtube_api import YoutubeApiUtils

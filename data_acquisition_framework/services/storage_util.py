@@ -3,7 +3,7 @@ import logging
 import os
 
 from data_acquisition_framework.configs.paths import archives_path, download_path, channels_path, archives_base_path
-from data_acquisition_framework.services.storage.gcs_operations import set_gcs_credentials, upload_blob, download_blob,\
+from data_acquisition_framework.services.storage.gcs_operations import set_gcs_credentials, upload_blob, download_blob, \
     check_blob
 
 
@@ -18,7 +18,7 @@ class StorageUtil:
         self.bucket = storage_config['bucket']
         self.archive_blob_path = storage_config['archive_blob_path']
         self.scraped_data_blob_path = storage_config['scraped_data_blob_path']
-        self.ARCHIVE_FILE_NAME = "archive.txt"
+        self.archive_file_name = "archive.txt"
         self.token_file_name = 'token.txt'
 
     def set_gcs_creds(self, gcs_credentials_string):
@@ -38,7 +38,7 @@ class StorageUtil:
 
     def get_archive_file_bucket_path(self, source, language=""):
         return self.channel_blob_path.replace("<language>",
-                                              language) + '/' + self.archive_blob_path + '/' + source + '/' + self.ARCHIVE_FILE_NAME
+                                              language) + '/' + self.archive_blob_path + '/' + source + '/' + self.archive_file_name
 
     def retrieve_archive_from_bucket(self, source, language=""):
         archive_path = archives_path.replace('<source>', source)
