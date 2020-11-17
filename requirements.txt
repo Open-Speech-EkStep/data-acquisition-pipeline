@@ -2,13 +2,9 @@ youtube-dl==2020.9.20
 google-cloud-core==1.4.3
 google-cloud-storage==1.31.2
 gswrap==0.0.2
-pyyaml==5.3.1
 moviepy==1.0.3
 pandas==0.25.3
 pandas_datareader==0.9.0
 itemadapter==0.1.1
 tinytag==1.4.0
 scrapy==2.4.0
-google-api-python-client==1.12.5
-google-auth-oauthlib==0.4.2
-google-auth-httplib2==0.0.4
