@@ -16,7 +16,7 @@ class YoutubeApiBuilder:
             return f.read()
 
     def get_youtube_object(self):
-        return build('youtube', 'v3', developerKey=self.youtube_api_key)
+        return build('youtube', 'v3', developerKey=self.youtube_api_key, cache_discovery=False)
 
 
 class YoutubeApiUtils:
@@ -96,12 +96,8 @@ class YoutubePlaylistCollector:
         playlist_collection = {}
         urls = self.getUrls()
         for channel, name in urls.items():
-            try:
-                video_ids = subprocess.check_output('youtube-dl {0} --flat-playlist --get-id'.format(channel),
-                                                    shell=True)
-            except:
-                continue
-            video_ids = video_ids.decode("utf-8").rstrip().lstrip().split("\n")
+            channel_id = channel.split('/')[-1]
+            video_ids = self.get_videos(channel_id)
             name = name.replace(" ", "_")
             print(name, len(video_ids))
             playlist_collection[name] = video_ids
@@ -122,6 +118,26 @@ class YoutubePlaylistCollector:
             pairs.append((name, url))
         df = pd.DataFrame(pairs, columns=['Channel Name', 'Url'])
         df.to_csv('channels1.csv')
+
+    def __next_page(self, token, channel_id):
+        res = self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='any', maxResults=50,
+                                         pageToken=token).execute()
+        if 'nextPageToken' in res.keys():
+            next_page_token = res['nextPageToken']
+        else:
+            next_page_token = ''
+        return next_page_token, res
+
+    def get_videos(self, channel_id):
+        token = ''
+        complete_video_ids = []
+        while True:
+            token, result = self.__next_page(token, channel_id)
+            for item in result['items']:
+                complete_video_ids.append(item['id']['videoId'])
+            if token == '':
+                break
+        return complete_video_ids
 
 
 if __name__ == "__main__":

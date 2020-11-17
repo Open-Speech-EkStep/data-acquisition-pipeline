@@ -6,11 +6,11 @@ from enum import Enum
 # downloads driver for firefox if not present
 import geckodriver_autoinstaller
 
-from .browser_utils import BrowserUtils
-from .downloader import Downloader
-from .gcs import set_gcs_credentials
-from .gcs_helper import GCSHelper
-from .utilities import read_playlist_from_file, read_playlist_from_youtube_api
+from browser_utils import BrowserUtils
+from downloader import Downloader
+from gcs import set_gcs_credentials
+from gcs_helper import GCSHelper
+from utilities import read_playlist_from_file, read_playlist_from_youtube_api
 
 geckodriver_autoinstaller.install()
 

@@ -1,6 +1,6 @@
 import os
 
-from .youtube_api import YoutubePlaylistCollector
+from youtube_api import YoutubePlaylistCollector
 
 
 def read_playlist_from_file(folder_name):
@@ -17,7 +17,7 @@ def read_playlist_from_file(folder_name):
 
 def read_playlist_from_youtube_api(config):
     youtube_playlist_collector = YoutubePlaylistCollector(config)
-    return youtube_playlist_collector.__get_channels_with_videos()
+    return youtube_playlist_collector.get_playlist_collection()
 
 
 def populate_local_archive(source, video_id):

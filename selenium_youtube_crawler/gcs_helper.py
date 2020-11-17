@@ -1,4 +1,4 @@
-from .gcs import upload_blob, download_blob, check_blob
+from gcs import upload_blob, download_blob, check_blob
 import os
 
 
