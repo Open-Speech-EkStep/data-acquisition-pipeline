@@ -79,5 +79,6 @@
         ".dmg",
         ".xml"
     ],
-    "max_pages": 50
+    "max_pages": 50,
+    "headless": false
 }

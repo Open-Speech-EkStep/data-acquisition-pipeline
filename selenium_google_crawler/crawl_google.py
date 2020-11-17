@@ -28,6 +28,7 @@ class GoogleCrawler:
             self.word_to_ignore = config["words_to_ignore"]
             self.extensions_to_ignore = config["extensions_to_ignore"]
             self.keywords = config["keywords"]
+            self.headless = config['headless']
 
     def is_present_in_archive(self, url):
         url = self.sanitize(url)
@@ -84,7 +85,7 @@ class GoogleCrawler:
 
     def crawl(self):
         options = Options()
-        options.headless = True
+        options.headless = self.headless
         browser = webdriver.Firefox(options=options)
         browser.maximize_window()
 

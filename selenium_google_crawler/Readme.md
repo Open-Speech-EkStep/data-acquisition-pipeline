@@ -20,4 +20,4 @@ This crawler can be configured by modified the parameter values of config.json.
     3. words_to_ignore - can be used to ignore urls that has the given words.
     4. extensions_to_ignore - used to ignore having given extensions.
     5. max_pages - maximum number of pages that can fetched for a single keyword(maximum but not exact number of pages; can be lesser as well).
-
+    6. headless - run browser in headless mode (true/false)
