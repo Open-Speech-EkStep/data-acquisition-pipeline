@@ -2,6 +2,5 @@
   "bucket": "ekstepspeechrecognition-dev",
   "channel_blob_path": "scrapydump/refactor_test",
   "archive_blob_path": "archive",
-  "source_name": "DEMO",
   "scraped_data_blob_path": "scraped"
 }

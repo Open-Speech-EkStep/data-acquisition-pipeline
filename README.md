@@ -71,23 +71,21 @@ You can set credentials for Google cloud bucket in the [credentials.json](https:
 {"Credentials":{ YOUR ACCOUNT CREDENTIAL KEYS }}
 ```
 #### Bucket configuration
-Bucket configurations for data transfer in [pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/pipeline_config.py) 
+Bucket configurations for data transfer in [storage_config.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/configs/storage_config.json) 
 ```shell script
-bucket = ''                     Your bucket name
-channel_blob_path = ''          Path to directory where downloaded files is to be stored
-archive_blob_path = ''          Folder name in which history of download is to be maintained
-source_name = ''                This is the name of source you are downloading
-batch_num =                     Number of files to download in a batch
-scraped_data_blob_path = ""     Folder name in which CSV for youtube file mode is stored
+"bucket": "ekstepspeechrecognition-dev",          Your bucket name
+"channel_blob_path": "scrapydump/refactor_test",  Path to directory where downloaded files is to be stored
+"archive_blob_path": "archive",                   Folder name in which history of download is to be maintained
+"scraped_data_blob_path": "scraped"               Folder name in which CSV for youtube file mode is stored
 
 Note:
 1. Both archive_blob_path and scraped_data_blob_path should be present in channel_blob_path.
 2. The CSV file used in file mode of youtube, It\'s name must be same as source_name given above. 
 3. (only for datacollector_urls and datacollector_bing spiders) To autoconfigure language parameter to channel_blob_path from web_crawler_config.json, use <language> in channel_blob_path.  
-    "eg: for tamil : data/dowload/<language>/audio - this will replace <language> with tamil."
+    "eg: for tamil : data/download/<language>/audio - this will replace <language> with tamil."
 ```
 #### Metadata file configurations
-Metadata file configurations in [config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/config.py)
+Metadata file configurations in [config.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/configs/config.json)
 ```shell script
 mode: 'complete'                        This should not be changed       
 audio_id: null                          If you want to give a custom audio id add here 
@@ -113,28 +111,34 @@ speaker_name: null                      Name of speaker
 
 Note:
 1. If any of the field info is not available keep its value to null
-2. If speaker_name or speaker_gender is given then that same will ve used for all the files in given source 
+2. If speaker_name or speaker_gender is given then that same will be used for all the files in given source 
 ```
 #### Youtube download configurations
-* You can set download mode [file/channel] in [pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/pipeline_config.py) 
+* You can set download mode [file/channel] in [youtube_pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/configs/youtube_pipeline_config.py) 
 ```shell script
 mode = 'file'  # [channel,file]
 ```
 In file mode you will store a csv file whose name must be same as source name in scraped_data_blob_path. csv must  contain urls of youtube videos, speaker name and gender as three different columns. Urls is a must field. You can leave speaker name and gender blank if data is not available. <br>Given below is the structure of csv.</br>
-```sh
+```shell script
  video_url,speaker_name,speaker_gender
 https://www.youtube.com/watch?v=K1vW_ZikA5o,Ram_Singh,male
 https://www.youtube.com/watch?v=o82HIOgozi8,John_Doe,male
 ...
 ```
-* file mode configurations in [pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/pipeline_config.py) 
+* common configurations in [youtube_pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/configs/youtube_pipeline_config.py)
+```shell script
+# Common configurations
+"source_name": "DEMO",                            This is the name of source you are downloading
+batch_num = 1                                     Number of videos to be downloaded as batches
+```
+* file mode configurations in [youtube_pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/configs/youtube_pipeline_config.py) 
 ```shell script
 # File Mode configurations
 file_speaker_gender_column = 'speaker_gender'     Gender column name in csv file
 file_speaker_name_column = "speaker_name"         Speaker name column name in csv file
 file_url_name_column = "video_url"                Video url column name in csv file
 ```
-* channel mode configuration in  [pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/youtube/crawler/data_acquisition_framework/pipeline_config.py)
+* channel mode configuration in  [youtube_pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/youtube/crawler/data_acquisition_framework/configs/youtube_pipeline_config.py)
 ```shell script
 # Channel mode configurations
 channel_url_dict = {}             Channel url dictionary (This will download all the videos from the given channels with corresponding source names)
@@ -145,51 +149,50 @@ Note:
 1. In channel_url_dict, the keys must be the urls and values must be their channel names
 2. To get list of channels from youtube API, channel_url_dict must be empty
 ``` 
-#### Youtube Crawl configuration
-* Automated Youtube fetching configuration in [youtube_api_config.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/youtube_api_config.json)
+#### Youtube API configuration
+* Automated Youtube fetching configuration in [youtube_api_config.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/configs/youtube_api_config.json)
 ```shell script
 # Youtube API configurations
-"language" : "hindi",                                     Type of language for which search results are required.
-    "language_code": "hi",                                Language code for the specified language.
-    "keywords":[                                          The search keywords to be given in youtube API query
-        "audio",
-        "speech",
-        "talk"
-    ],
-    "max_results": 20                                     Maximum number of channels or results that is required.
+"language" : "hindi",                             Type of language for which search results are required.
+"language_code": "hi",                            Language code for the specified language.
+"keywords":[                                      The search keywords to be given in youtube API query
+    "audio",
+    "speech",
+    "talk"
+],
+"max_results": 20                                 Maximum number of channels or results that is required.
 ```
 #### Web Crawl Configuration
-* web crawl configuration in [web_crawl_config.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/web_crawl_config.py) (Use this only for datacollector_bing and datacollector_urls spider)
+* web crawl configuration in [web_crawl_config.json](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/configs/web_crawl_config.py) (Use this only for datacollector_bing and datacollector_urls spider)
 ```shell script
-{
-    "language": "bengali",              # Language to be crawled
-    "keywords": [                       # Keywords to query
-        "talks audio",
-        "audiobooks",
-        "speeches",
-    ],
-    "word_to_ignore": [                 # Words to ignore while crawling
-        "ieeexplore.ieee.org",
-        "dl.acm.org",
-        "www.microsoft.com"
-    ],
-    "extensions_to_ignore": [           # Formats/extensions to ignore while crawling
-        ".jpeg",
-        "xlsx",
-        ".xml"
-    ],
-    "extensions_to_include": [          # Formats/extensions to include while crawling
-        ".mp3",
-        ".wav",
-        ".mp4",
-    ],
-    "pages": 1,                         # Number of pages to crawl
-    "depth": 1,                         # Nesting depth for each website
-    "continue_page": "NO",              # Field to continue/resume crawling
-    "last_visited": 200,                # Last visited results count
-    "enable_hours_restriction": "YES",  # Restrict crawling based on hours of data collected
-    "max_hours": 1                      # Maximum hours to crawl
-}
+"language": "gujarati",                           Language to be crawled
+"language_code": "gu",                            Language code for the specified language.
+"keywords": [                                     Keywords to query
+    "talks audio",
+    "audiobooks",
+    "speeches",
+],
+"word_to_ignore": [                               Words to ignore while crawling
+    "ieeexplore.ieee.org",
+    "dl.acm.org",
+    "www.microsoft.com"
+],
+"extensions_to_ignore": [                         Formats/extensions to ignore while crawling
+    ".jpeg",
+    "xlsx",
+    ".xml"
+],
+"extensions_to_include": [                        Formats/extensions to include while crawling
+    ".mp3",
+    ".wav",
+    ".mp4",
+],
+"pages": 1,                                       Number of pages to crawl
+"depth": 1,                                       Nesting depth for each website
+"continue_page": "NO",                            Field to continue/resume crawling
+"last_visited": 200,                              Last visited results count
+"enable_hours_restriction": "YES",                Restrict crawling based on hours of data collected
+"max_hours": 1                                    Maximum hours to crawl
 ```
 #### Adding new spider
 As we already mentioned our framework is extensible for any new source. To add a new source user just need to write a spider for that source.<br>To add a spider you can follow the scrapy [documentation](https://docs.scrapy.org/en/latest/intro/tutorial.html) or you can check our [sample](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/spiders/datacollector_music.py) spider.</br> 
@@ -200,12 +203,6 @@ As we already mentioned our framework is extensible for any new source. To add a
 ```shell script
 scrapy crawl datacollector_youtube --set=ITEM_PIPELINES='{"data_acquisition_framework.pipelines.youtube_api_pipeline.YoutubeApiPipeline": 1}'
 ```
-Note: file mode in pipeline_config is not supported for this spider.
-* Starting datacollector_music spider with media pipeline.
-```shell script
-scrapy crawl datacollector_music --set=ITEM_PIPELINES='{"data_acquisition_framework.pipelines.media_pipeline.MediaPipeline": 1}'
-```
-Note: You can use media pipeline for any other website source or you can write your own pipeline.
 * Starting datacollector_bing spider with audio pipeline.
 ```shell script
 scrapy crawl datacollector_bing
