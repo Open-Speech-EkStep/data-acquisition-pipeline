@@ -47,6 +47,8 @@ sudo apt-get install ffmpeg
 ```sh
 brew install ffmpeg
 ```
+2. Supported Python Version = 3.6
+
 * Windows user can follow installation steps on [https://www.ffmpeg.org](https://www.ffmpeg.org)
 ### Installation
 
