@@ -97,7 +97,6 @@ class YoutubeUtil:
         if len(channel_url_dict) != 0:
             source_channel_dict = channel_url_dict
         else:
-            self.storage_util.get_token_from_bucket()
             source_channel_dict = self.get_channels()
         self.create_channel_file(source_channel_dict)
 

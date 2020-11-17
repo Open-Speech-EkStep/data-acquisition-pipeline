@@ -40,6 +40,7 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
 
     def parse(self, response, **kwargs):
         StorageUtil.clear_required_directories()
+        self.storage_util.get_token_from_bucket()
         for mode, channel_file_name, file_mode_data in self.youtube_util.validate_mode_and_get_result():
             channel_id = channel_file_name.split("__")[0]
             channel_name = channel_file_name.replace(channel_id + "__", "").replace('.txt', '')
@@ -52,3 +53,4 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
                 channel_id=channel_id,
                 filename=channel_file_name,
                 filemode_data=file_mode_data)
+        self.storage_util.upload_token_to_bucket()

@@ -108,7 +108,7 @@ class StorageUtil:
         if self.check(self.get_token_path()):
             self.download(self.token_file_name, self.get_token_path())
         else:
-            os.system('touch {0}'.format(self.token_file_name))
+            os.system('echo '' > {0}'.format(self.token_file_name))
 
     def get_token_from_local(self):
         if os.path.exists(self.token_file_name):
