@@ -1,8 +1,9 @@
 import json
+import os
 from unittest import TestCase
 from unittest.mock import patch
 
-from data_acquisition_framework.services.storage_util import StorageUtil
+from data_acquisition_framework.services.storage_util import StorageUtil, archives_base_path, archives_path
 
 
 class TestStorageUtil(TestCase):
@@ -94,11 +95,70 @@ class TestStorageUtil(TestCase):
 
         self.assertEqual(expected, path)
 
-    def test_retrieve_archive_from_bucket(self):
-        self.fail()
+    @patch('data_acquisition_framework.services.storage_util.check_blob')
+    @patch('data_acquisition_framework.services.storage_util.download_blob')
+    def test_retrieve_archive_from_bucket_if_exists(self, mock_download_blob, mock_check_blob):
+        mock_check_blob.return_value = True
+        if os.path.exists(archives_base_path):
+            os.system('rm -rf ' + archives_base_path)
+        source = "test"
+        language = "tamil"
+        archive_bucket_path = self.storage_util.get_archive_file_bucket_path(source, language)
+
+        def side_effect(bucket, source, destination):
+            os.system("touch {0}".format(destination))
+
+        mock_download_blob.side_effect = side_effect
+
+        self.storage_util.retrieve_archive_from_bucket(source, language)
+
+        self.assertTrue(os.path.exists(archives_base_path))
+        self.assertTrue(os.path.exists(archives_base_path + source))
+        self.assertTrue(os.path.exists(archives_path.replace("<source>", source)))
+        mock_check_blob.assert_called_once_with(self.storage_config['bucket'],
+                                                archive_bucket_path)
+        mock_download_blob.assert_called_once_with(self.storage_config['bucket'], archive_bucket_path,
+                                                   archives_path.replace("<source>", source))
+        if os.path.exists(archives_base_path):
+            os.system('rm -rf ' + archives_base_path)
+
+    @patch('data_acquisition_framework.services.storage_util.check_blob')
+    @patch('data_acquisition_framework.services.storage_util.download_blob')
+    def test_retrieve_archive_from_bucket_if_not_exists(self, mock_download_blob, mock_check_blob):
+        mock_check_blob.return_value = False
+        if os.path.exists(archives_base_path):
+            os.system('rm -rf ' + archives_base_path)
+        source = "test"
+        language = "tamil"
+        archive_bucket_path = self.storage_util.get_archive_file_bucket_path(source, language)
+
+        self.storage_util.retrieve_archive_from_bucket(source, language)
+
+        self.assertTrue(os.path.exists(archives_base_path))
+        self.assertTrue(os.path.exists(archives_base_path + source))
+        self.assertTrue(os.path.exists(archives_path.replace("<source>", source)))
+        mock_check_blob.assert_called_once_with(self.storage_config['bucket'],
+                                                archive_bucket_path)
+        mock_download_blob.assert_not_called()
+
+        if os.path.exists(archives_base_path):
+            os.system('rm -rf ' + archives_base_path)
 
     def test_populate_local_archive(self):
-        self.fail()
+        url = "http://gc/a.mp4"
+        source = "test"
+
+        if not os.path.exists(archives_base_path):
+            os.system('mkdir ' + archives_base_path)
+        if not os.path.exists(archives_base_path + source + "/"):
+            os.system('mkdir {0}/{1}'.format(archives_base_path, source))
+
+        self.storage_util.populate_local_archive(source, url)
+
+        self.assertEqual(url, open(archives_path.replace("<source>", source)).read().rstrip())
+
+        if os.path.exists(archives_base_path):
+            os.system('rm -rf ' + archives_base_path)
 
     def test_retrieve_archive_from_local(self):
         self.fail()

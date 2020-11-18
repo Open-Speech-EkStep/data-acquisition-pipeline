@@ -40,12 +40,10 @@ class StorageUtil:
 
     def retrieve_archive_from_bucket(self, source, language=""):
         archive_path = archives_path.replace('<source>', source)
-        archive_path_parts = archive_path.split('/')
-        archive_base_folder = archive_path_parts[0]
-        if not os.path.exists(archive_base_folder):
-            os.system('mkdir ' + archive_base_folder)
-        if not os.path.exists(archive_base_folder + '/' + source + "/"):
-            os.system('mkdir {0}/{1}'.format(archive_base_folder, source))
+        if not os.path.exists(archives_base_path):
+            os.system('mkdir ' + archives_base_path)
+        if not os.path.exists(archives_base_path + source + "/"):
+            os.system('mkdir {0}/{1}'.format(archives_base_path, source))
         if self.check(self.get_archive_file_bucket_path(source, language)):
             self.download(self.get_archive_file_bucket_path(source, language), archive_path)
             logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(self.bucket)))
