@@ -3,7 +3,9 @@ import os
 from unittest import TestCase
 from unittest.mock import patch
 
-from data_acquisition_framework.services.storage_util import StorageUtil, archives_base_path, archives_path
+from data_acquisition_framework.configs.paths import channels_path
+from data_acquisition_framework.services.storage_util import StorageUtil, archives_base_path, archives_path, \
+    download_path
 
 
 class TestStorageUtil(TestCase):
@@ -214,10 +216,51 @@ class TestStorageUtil(TestCase):
         self.fail()
 
     def test_get_videos_file_path_in_bucket(self):
-        self.fail()
+        source = "test"
+        expected = self.storage_config["channel_blob_path"] + '/' + self.storage_config[
+            "scraped_data_blob_path"] + '/' + source + '.csv'
 
-    def test_clear_required_directories(self):
-        self.fail()
+        result = self.storage_util.get_videos_file_path_in_bucket(source)
+
+        self.assertEqual(expected, result)
+
+    def test_clear_required_directories_with_remove_downloads(self):
+        os.system("mkdir " + download_path)
+        os.system("mkdir " + channels_path)
+        os.system("mkdir " + archives_base_path)
+
+        self.storage_util.clear_required_directories()
+
+        self.assertFalse(os.path.exists(download_path))
+        self.assertFalse(os.path.exists(channels_path))
+        self.assertFalse(os.path.exists(archives_base_path))
+
+        os.system("rm -rf " + download_path)
+        os.system("rm -rf " + channels_path)
+        os.system("rm -rf " + archives_base_path)
+
+    def test_clear_required_directories_with_create_downloads(self):
+        os.system("rm -rf " + download_path)
+        os.system("mkdir " + channels_path)
+        os.system("mkdir " + archives_base_path)
+
+        self.storage_util.clear_required_directories()
+
+        self.assertTrue(os.path.exists(download_path))
+        self.assertFalse(os.path.exists(channels_path))
+        self.assertFalse(os.path.exists(archives_base_path))
+
+        os.system("rm -rf " + download_path)
+        os.system("rm -rf " + channels_path)
+        os.system("rm -rf " + archives_base_path)
 
     def test_write_license_to_local(self):
-        self.fail()
+        os.system("mkdir "+download_path)
+        file_name = "a.txt"
+        file_content = "hello"
+        self.storage_util.write_license_to_local(file_name, file_content)
+
+        file_path = download_path + file_name
+        self.assertTrue(os.path.exists(file_path))
+        self.assertEqual(file_content, open(file_path).read().rstrip())
+        os.system("rm -rf " + download_path)
