@@ -3,6 +3,7 @@ import logging
 import os
 
 from data_acquisition_framework.configs.paths import archives_path, download_path, channels_path, archives_base_path
+from data_acquisition_framework.services.loader_util import load_storage_config
 from data_acquisition_framework.services.storage.gcs_operations import set_gcs_credentials, upload_blob, download_blob, \
     check_blob
 
@@ -10,10 +11,7 @@ from data_acquisition_framework.services.storage.gcs_operations import set_gcs_c
 class StorageUtil:
 
     def __init__(self):
-        current_path = os.path.dirname(os.path.realpath(__file__))
-        storage_config_file = os.path.join(current_path, '..', "configs", "storage_config.json")
-        with open(storage_config_file, 'r') as f:
-            storage_config = json.load(f)
+        storage_config = load_storage_config()
         self.channel_blob_path = storage_config['channel_blob_path']
         self.bucket = storage_config['bucket']
         self.archive_blob_path = storage_config['archive_blob_path']
@@ -37,7 +35,7 @@ class StorageUtil:
         return check_blob(self.bucket, file_to_check)
 
     def get_archive_file_bucket_path(self, source, language=""):
-        return self.channel_blob_path.replace("<language>",
+        return self.channel_blob_path.replace('<language>',
                                               language) + '/' + self.archive_blob_path + '/' + source + '/' + self.archive_file_name
 
     def retrieve_archive_from_bucket(self, source, language=""):
