@@ -160,11 +160,37 @@ class TestStorageUtil(TestCase):
         if os.path.exists(archives_base_path):
             os.system('rm -rf ' + archives_base_path)
 
-    def test_retrieve_archive_from_local(self):
-        self.fail()
+    def test_retrieve_archive_from_local_if_exists(self):
+        source = "test"
+        url = "http://gc/a.mp4"
+        archive_path = archives_path.replace('<source>', source)
 
-    def test_upload_archive_to_bucket(self):
-        self.fail()
+        if not os.path.exists(archives_base_path):
+            os.system('mkdir ' + archives_base_path)
+        if not os.path.exists(archives_base_path + source + "/"):
+            os.system('mkdir {0}/{1}'.format(archives_base_path, source))
+        if not os.path.exists(archive_path):
+            os.system('echo ' + url + '>' + archive_path)
+
+        self.assertEqual([url], self.storage_util.retrieve_archive_from_local(source))
+
+    def test_retrieve_archive_from_local_if_not_exists(self):
+        source = "test"
+        archive_path = archives_path.replace('<source>', source)
+
+        if os.path.exists(archive_path):
+            os.system('rm -rf ' + archive_path)
+
+        self.assertEqual([], self.storage_util.retrieve_archive_from_local(source))
+
+    @patch('data_acquisition_framework.services.storage_util.upload_blob')
+    def test_upload_archive_to_bucket(self, mock_upload):
+        source = "test"
+
+        test_archive_bucket_path = self.storage_util.get_archive_file_bucket_path(source)
+        self.storage_util.upload_archive_to_bucket(source)
+
+        mock_upload.assert_called_with(self.storage_config['bucket'], archives_path.replace("<source>", source), test_archive_bucket_path)
 
     def test_upload_media_and_metadata_to_bucket(self):
         self.fail()
