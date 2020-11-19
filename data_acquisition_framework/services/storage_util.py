@@ -47,7 +47,8 @@ class StorageUtil:
         if self.check(self.get_archive_file_bucket_path(source, language)):
             self.download(self.get_archive_file_bucket_path(source, language), archive_path)
             logging.info(str("Archive file has been downloaded from bucket {0} to local path...".format(self.bucket)))
-            num_downloaded = sum(1 for line in open(archive_path))
+            with open(archive_path, 'r') as f:
+                num_downloaded = len(f.read().splitlines())
             logging.info(str("Count of Previously downloaded files are : {0}".format(num_downloaded)))
         else:
             os.system('touch {0}'.format(archive_path))
@@ -102,7 +103,7 @@ class StorageUtil:
 
     def get_token_from_bucket(self):
         if self.check(self.get_token_path()):
-            self.download(self.token_file_name, self.get_token_path())
+            self.download(self.get_token_path(), self.token_file_name)
         else:
             os.system('echo '' > {0}'.format(self.token_file_name))
 
@@ -110,7 +111,8 @@ class StorageUtil:
         if os.path.exists(self.token_file_name):
             with open(self.token_file_name, 'r') as file:
                 token = file.read()
-                return token
+                return token.rstrip().lstrip()
+        return ""
 
     def set_token_in_local(self, token):
         with open(self.token_file_name, 'w') as file:
