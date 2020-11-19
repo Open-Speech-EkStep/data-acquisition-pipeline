@@ -31,6 +31,8 @@ class TestStorageUtil(TestCase):
 
         mock_set_gcs_credentials.assert_called_once_with(cred)
 
+        os.system("rm temp.json")
+
     @patch('data_acquisition_framework.services.storage_util.set_gcs_credentials')
     def test_set_gcs_creds_throw_input_type_error(self, mock_gcs_creds):
         input_value = {"Credentials": {"name": "hello"}}
