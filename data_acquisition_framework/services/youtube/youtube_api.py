@@ -21,17 +21,24 @@ class YoutubeApiUtils:
         self.youtube = YoutubeApiBuilder().get_youtube_object()
         self.channel_collector = YoutubeChannelCollector(self.youtube)
 
+    def __youtube_call_for_video_info(self, video_id):
+        return self.youtube.videos().list(part='status', id=video_id).execute()
+
     def get_license_info(self, video_id):
-        result = self.youtube.videos().list(part='status', id=video_id).execute()
+        result = self.__youtube_call_for_video_info(video_id)
         license_value = result['items'][0]['status']['license']
         if license_value == 'creativeCommon':
             return 'Creative Commons'
         else:
             return 'Standard Youtube'
 
+    def __youtube_call_for_video_ids(self, channel_id, token):
+        return self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='any',
+                                          maxResults=50,
+                                          pageToken=token).execute()
+
     def __next_page(self, token, channel_id):
-        res = self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='any', maxResults=50,
-                                         pageToken=token).execute()
+        res = self.__youtube_call_for_video_ids(channel_id, token)
         if 'nextPageToken' in res.keys():
             next_page_token = res['nextPageToken']
         else:
@@ -49,6 +56,9 @@ class YoutubeApiUtils:
                 break
         return complete_video_ids
 
+    def get_channels(self):
+        return self.channel_collector.get_urls()
+
     def __get_channels_with_videos(self):
         channel_collection = {}
         channels = self.get_channels()
@@ -64,9 +74,6 @@ class YoutubeApiUtils:
             with open(folder + "/" + channel_name + ".txt", 'w') as f:
                 for video_id in video_ids:
                     f.write(video_id + "\n")
-
-    def get_channels(self):
-        return self.channel_collector.get_urls()
 
 
 class YoutubeChannelCollector:
