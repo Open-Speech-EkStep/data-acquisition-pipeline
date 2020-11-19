@@ -15,6 +15,61 @@ from data_acquisition_framework.services.youtube.youtube_api import YoutubeApiUt
 from data_acquisition_framework.services.youtube.youtube_dl import YoutubeDL
 
 
+def remove_rejected_video(file_name, video_id):
+    os.system("sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, channels_path + file_name))
+
+
+def get_video_batch(source, source_file):
+    source = source.replace('.txt', '')
+    channel_file_name = channels_path + source_file
+    archive_file_name = archives_path.replace('<source>', source)
+    try:
+        channel_videos = pd.read_csv(channel_file_name, header=None)
+    except EmptyDataError:
+        return []
+    try:
+        channel_archive = pd.read_csv(archive_file_name, delimiter=' ', header=None, encoding='utf-8')[1]
+    except EmptyDataError:
+        channel_archive = pd.DataFrame(columns=[1])
+    video_batch = channel_videos[
+        channel_videos.merge(channel_archive, left_on=0, right_on=1, how='left')[1].isnull()].head(
+        batch_num)
+    return video_batch[0].tolist()
+
+
+def check_dataframe_validity(df):
+    if file_url_name_column not in df.columns:
+        logging.error("Url column entered wrong.")
+        raise KeyError(file_url_name_column + ' is not present in given csv file')
+    if file_speaker_name_column not in df.columns:
+        logging.error("Speaker name column entered wrong.")
+        raise KeyError(file_speaker_name_column + ' is not present in given csv file')
+    if file_speaker_gender_column not in df.columns:
+        logging.error("Speaker gender column entered wrong.")
+        raise KeyError(file_speaker_gender_column + ' is not present in given csv file')
+
+
+def create_channel_file_for_file_mode(source_file, file_url_column):
+    df = pd.read_csv(source_file)
+    check_dataframe_validity(df)
+    df = df[df[file_url_column].notna()]
+    df[file_url_column] = df[file_url_column].apply(
+        lambda x: str(x).replace("https://www.youtube.com/watch?v=", ""))
+    df[file_url_column] = df[file_url_column].apply(lambda x: str(x).replace("https://youtu.be/", ""))
+    if not os.path.exists(channels_path):
+        os.system("mkdir " + channels_path)
+    df[file_url_column].to_csv(channels_path + source_file.replace(".csv", ".txt"), index=False, header=None)
+    return df
+
+
+def get_speaker(scraped_data, video_id):
+    return scraped_data[scraped_data[file_url_name_column] == video_id].iloc[0][file_speaker_name_column]
+
+
+def get_gender(scraped_data, video_id):
+    return str(scraped_data[scraped_data[file_url_name_column] == video_id].iloc[0][file_speaker_gender_column]).lower()
+
+
 class YoutubeUtil:
     def __init__(self):
         self.t_duration = 0
@@ -36,8 +91,8 @@ class YoutubeUtil:
                 for video_id in videos_list:
                     channel_file.write(video_id + "\n")
 
-    def download_files(self, item, batch_list):
-        archive_path = archives_path.replace('<source>', item['channel_name'])
+    def download_files(self, channel_name, file_name, batch_list):
+        archive_path = archives_path.replace('<source>', channel_name)
         with ThreadPoolExecutor(max_workers=1) as executor:
             futures = []
             for video_id in batch_list:
@@ -47,7 +102,7 @@ class YoutubeUtil:
             for future in as_completed(futures):
                 remove_video_flag, video_id = future.result()
                 if remove_video_flag:
-                    remove_rejected_video(item['filename'], video_id)
+                    remove_rejected_video(file_name, video_id)
 
     def get_license_info(self, video_id):
         return self.youtube_api_service.get_license_info(video_id)
@@ -98,64 +153,3 @@ class YoutubeUtil:
         else:
             source_channel_dict = self.get_channels()
         self.create_channel_file(source_channel_dict)
-
-
-def get_video_batch(source, source_file):
-    source = source.replace('.txt', '')
-    channel_file_name = channels_path + source_file
-    archive_file_name = archives_path.replace('<source>', source)
-    try:
-        channel_videos = pd.read_csv(channel_file_name, header=None)
-    except EmptyDataError:
-        return []
-    try:
-        channel_archive = pd.read_csv(archive_file_name, delimiter=' ', header=None, encoding='utf-8')[1]
-    except EmptyDataError:
-        channel_archive = pd.DataFrame(columns=[1])
-    video_batch = channel_videos[
-        channel_videos.merge(channel_archive, left_on=0, right_on=1, how='left')[1].isnull()].head(
-        batch_num)
-    return video_batch[0].tolist()
-
-
-def check_dataframe_validity(df):
-    if file_url_name_column not in df.columns:
-        logging.error("Url column entered wrong.")
-        exit()
-    if file_speaker_name_column not in df.columns:
-        logging.error("Speaker name column entered wrong.")
-        exit()
-    if file_speaker_gender_column not in df.columns:
-        logging.error("Speaker gender column entered wrong.")
-        exit()
-
-
-def create_channel_file_for_file_mode(source_file, file_url_column):
-    df = pd.read_csv(source_file)
-    check_dataframe_validity(df)
-    df = df[df[file_url_column].notna()]
-    df[file_url_column] = df[file_url_column].apply(
-        lambda x: str(x).replace("https://www.youtube.com/watch?v=", ""))
-    df[file_url_column] = df[file_url_column].apply(lambda x: str(x).replace("https://youtu.be/", ""))
-    if not os.path.exists(channels_path):
-        os.system("mkdir " + channels_path)
-    df[file_url_column].to_csv(channels_path + source_file.replace(".csv", ".txt"), index=False, header=None)
-    return df
-
-
-def get_speaker(scraped_data, video_id):
-    return scraped_data[scraped_data[file_url_name_column] == video_id].iloc[0][file_speaker_name_column]
-
-
-def get_gender(scraped_data, video_id):
-    return str(scraped_data[scraped_data[file_url_name_column] == video_id].iloc[0][file_speaker_gender_column]).lower()
-
-
-def remove_rejected_video(source, video_id):
-    os.system("sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, channels_path + source))
-
-
-def get_meta_filename(file):
-    file_format = file.split('.')[-1]
-    meta_file_name = file.replace(file_format, "csv")
-    return meta_file_name

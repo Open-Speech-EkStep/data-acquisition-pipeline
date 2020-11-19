@@ -20,7 +20,8 @@ class YoutubeDL:
                                       '--abort-on-error'.format(video_id, archive_path,
                                                                 download_path)
         downloader_output = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return YoutubeDL.check_and_log_download_output(downloader_output), video_id
+        remove_video_flag = YoutubeDL.check_and_log_download_output(downloader_output)
+        return remove_video_flag, video_id
 
     @staticmethod
     def check_and_log_download_output(downloader_output):

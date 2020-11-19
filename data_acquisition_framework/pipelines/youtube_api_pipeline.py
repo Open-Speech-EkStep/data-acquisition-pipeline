@@ -5,7 +5,8 @@ import pandas as pd
 from data_acquisition_framework.metadata.metadata import MediaMetadata
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcquisitionPipeline
 from data_acquisition_framework.services.storage_util import StorageUtil
-from data_acquisition_framework.services.youtube_util import YoutubeUtil, get_video_batch, get_meta_filename
+from data_acquisition_framework.services.youtube_util import YoutubeUtil, get_video_batch
+from data_acquisition_framework.utilities import get_meta_filename
 
 
 class YoutubeApiPipeline(DataAcquisitionPipeline):
@@ -20,7 +21,7 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
         return get_video_batch(item['channel_name'], item['filename'])
 
     def download_files(self, item, batch_list):
-        self.youtube_util.download_files(item, batch_list)
+        self.youtube_util.download_files(item['channel_name'], item['filename'], batch_list)
 
     def extract_metadata(self, item, media_file_name, url=None):
         meta_file_name = get_meta_filename(media_file_name)

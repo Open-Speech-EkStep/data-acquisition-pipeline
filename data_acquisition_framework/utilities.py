@@ -95,3 +95,9 @@ def is_unwanted_wiki(language_code, url):
 def write(filename, content):
     with open(filename, 'a') as f:
         f.write(content + "\n")
+
+
+def get_meta_filename(file):
+    file_format = file.split('.')[-1]
+    meta_file_name = file.replace(file_format, "csv")
+    return meta_file_name
