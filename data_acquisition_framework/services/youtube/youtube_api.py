@@ -59,22 +59,6 @@ class YoutubeApiUtils:
     def get_channels(self):
         return self.channel_collector.get_urls()
 
-    def __get_channels_with_videos(self):
-        channel_collection = {}
-        channels = self.get_channels()
-        for channel_url, channel_name in channels.items():
-            video_ids = self.get_videos(channel_url.split('/')[-1])
-            channel_name = channel_name.replace(" ", "_")
-            channel_collection[channel_name] = video_ids
-        return channel_collection
-
-    def generate_channel_files(self, folder):
-        channel_collection = self.__get_channels_with_videos()
-        for channel_name, video_ids in channel_collection.items():
-            with open(folder + "/" + channel_name + ".txt", 'w') as f:
-                for video_id in video_ids:
-                    f.write(video_id + "\n")
-
 
 class YoutubeChannelCollector:
 
