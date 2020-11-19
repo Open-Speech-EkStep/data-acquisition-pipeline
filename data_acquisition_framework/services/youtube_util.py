@@ -1,7 +1,6 @@
 import glob
 import logging
 import os
-import subprocess
 from concurrent.futures import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor
 
@@ -142,16 +141,6 @@ def create_channel_file_for_file_mode(source_file, file_url_column):
         os.system("mkdir " + channels_path)
     df[file_url_column].to_csv(channels_path + source_file.replace(".csv", ".txt"), index=False, header=None)
     return df
-
-
-def get_channel_videos_count(file_name):
-    file_path = channels_path + file_name
-    return int(subprocess.check_output(
-        "cat {0} | wc -l".format(file_path), shell=True).decode("utf-8").split('\n')[0])
-
-
-def get_media_paths():
-    return glob.glob(download_path + '*.mp4')
 
 
 def get_speaker(scraped_data, video_id):

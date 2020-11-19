@@ -1,6 +1,8 @@
+import glob
 import json
 import logging
 import os
+import subprocess
 
 from data_acquisition_framework.configs.paths import archives_path, download_path, channels_path, archives_base_path
 from data_acquisition_framework.services.loader_util import load_storage_config
@@ -136,3 +138,13 @@ class StorageUtil:
         path = download_path + file_name
         with open(path, 'w') as f:
             f.write(content)
+
+    def get_channel_videos_count(self, file_name):
+        file_path = channels_path + file_name
+        with open(file_path, 'r') as f:
+            count = len(f.read().splitlines())
+        return count
+
+
+    def get_media_paths(self):
+        return glob.glob(download_path + '*.mp4')

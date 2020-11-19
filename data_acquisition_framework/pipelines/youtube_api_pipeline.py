@@ -5,8 +5,7 @@ import pandas as pd
 from data_acquisition_framework.metadata.metadata import MediaMetadata
 from data_acquisition_framework.pipelines.data_acquisition_pipeline import DataAcquisitionPipeline
 from data_acquisition_framework.services.storage_util import StorageUtil
-from data_acquisition_framework.services.youtube_util import YoutubeUtil, get_video_batch, get_channel_videos_count, \
-    get_meta_filename, get_media_paths
+from data_acquisition_framework.services.youtube_util import YoutubeUtil, get_video_batch, get_meta_filename
 
 
 class YoutubeApiPipeline(DataAcquisitionPipeline):
@@ -34,7 +33,7 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
     def process_item(self, item, spider):
         self.batch_count = 0
         self.storage_util.retrieve_archive_from_bucket(item["channel_name"])
-        channel_videos_count = get_channel_videos_count(item['filename'])
+        channel_videos_count = self.storage_util.get_channel_videos_count(item['filename'])
         logging.info(
             str("Total channel count with valid videos is {0}".format(channel_videos_count)))
         self.batch_download(item)
@@ -60,7 +59,7 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
 
     def upload_files_to_storage(self, item):
         channel_name = item['channel_name']
-        media_paths = get_media_paths()
+        media_paths = self.storage_util.get_media_paths()
         media_files_count = len(media_paths)
         if media_files_count > 0:
             self.batch_count += media_files_count

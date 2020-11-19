@@ -31,8 +31,6 @@ class TestStorageUtil(TestCase):
 
         mock_set_gcs_credentials.assert_called_once_with(cred)
 
-        os.system("rm temp.json")
-
     @patch('data_acquisition_framework.services.storage_util.set_gcs_credentials')
     def test_set_gcs_creds_throw_input_type_error(self, mock_gcs_creds):
         input_value = {"Credentials": {"name": "hello"}}
@@ -367,4 +365,35 @@ class TestStorageUtil(TestCase):
         f = open(file_path)
         self.assertEqual(file_content, f.read().rstrip())
         f.close()
+        os.system("rm -rf " + download_path)
+
+    def test_get_channel_videos_count(self):
+        file_name = "test.txt"
+        expected = 2
+        channel_file_path = channels_path + file_name
+        if not os.path.exists(channels_path):
+            os.system("mkdir "+channels_path)
+        with open(channel_file_path, 'w') as f:
+            f.write("ab33cd"+"\n")
+            f.write("ccdded")
+
+        result = self.storage_util.get_channel_videos_count(file_name)
+
+        self.assertEqual(expected, result)
+
+        os.system('rm -rf '+channels_path)
+
+    def test_get_media_paths(self):
+        file1 = download_path+"file1.mp4"
+        file2 = download_path+"file2.mp4"
+        if not os.path.exists(download_path):
+            os.system("mkdir "+download_path)
+        os.system("touch "+file1)
+        os.system("touch "+file2)
+        expected = [file1, file2]
+
+        media_paths = self.storage_util.get_media_paths()
+
+        self.assertEqual(expected, media_paths)
+
         os.system("rm -rf " + download_path)
