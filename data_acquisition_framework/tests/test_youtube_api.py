@@ -2,7 +2,7 @@ import os
 from unittest import TestCase
 from unittest.mock import patch
 
-from data_acquisition_framework.services.youtube.youtube_api import YoutubeApiUtils
+from data_acquisition_framework.services.youtube.youtube_api import YoutubeApiUtils, YoutubeChannelCollector
 
 
 class TestYoutubeApiUtils(TestCase):
@@ -61,8 +61,75 @@ class TestYoutubeApiUtils(TestCase):
 
 
 class TestYoutubeChannelCollector(TestCase):
-    def test_calculate_pages(self):
-        self.fail()
+    @patch('data_acquisition_framework.services.youtube.youtube_api.build')
+    @patch('data_acquisition_framework.services.youtube.youtube_api.StorageUtil')
+    @patch('data_acquisition_framework.services.youtube.youtube_api.load_youtube_api_config')
+    def setUp(self, mock_load_config, mock_storage_util, mock_build):
+        self.mock_storage_util = mock_storage_util
+        self.test_config = {
+            "language": "test_language",
+            "language_code": "test_code",
+            "keywords": [
+                "key_one",
+                "key_two",
+            ],
+            "max_results": 40
+        }
+        mock_load_config.return_value = self.test_config
+        self.mock_build = mock_build
+        self.youtube_channel_collector = YoutubeChannelCollector(self.mock_build.return_value)
 
-    def test_get_urls(self):
-        self.fail()
+    def test_init(self):
+        self.assertEqual(self.mock_build.return_value, self.youtube_channel_collector.youtube)
+        self.assertEqual(self.mock_storage_util.return_value, self.youtube_channel_collector.storage_util)
+        self.assertEqual("channel", self.youtube_channel_collector.TYPE)
+        self.assertEqual(50, self.youtube_channel_collector.MAX_PAGE_RESULT)
+        self.assertEqual(40, self.youtube_channel_collector.max_results)
+        self.assertEqual(1, self.youtube_channel_collector.pages)
+        self.assertEqual(self.test_config["language_code"], self.youtube_channel_collector.rel_language)
+        self.assertEqual(['in', self.test_config["language"], "|".join(self.test_config["keywords"]), '-song'],
+                         self.youtube_channel_collector.keywords)
+
+    def test_get_urls_having_next_page_token(self):
+        test_id_one = 'abcd'
+        test_id_two = 'efgh'
+        test_id_three = 'ijkl'
+        test_channel_one = 'Test Channel One'
+        test_channel_two = 'Test Channel Two'
+        test_channel_three = 'Test Channel Three'
+        expected_channels_collection = {'https://www.youtube.com/channel/' + test_id_one: test_channel_one,
+                                        'https://www.youtube.com/channel/' + test_id_two: test_channel_two,
+                                        'https://www.youtube.com/channel/' + test_id_three: test_channel_three}
+        self.mock_build.return_value.search.return_value.list.return_value.execute.return_value = {
+            "items": [{"snippet": {"channelId": test_id_one, "channelTitle": test_channel_one}},
+                      {"snippet": {"channelId": test_id_two, "channelTitle": test_channel_two}},
+                      {"snippet": {"channelId": test_id_three, "channelTitle": test_channel_three}},
+                      ], "nextPageToken": "RQSTZ"}
+
+        actual_collections = self.youtube_channel_collector.get_urls()
+
+        self.mock_storage_util.return_value.get_token_from_local.assert_called_once()
+        self.mock_storage_util.return_value.set_token_in_local.assert_called_once()
+        self.assertEqual(expected_channels_collection, actual_collections)
+
+    def test_get_urls_not_having_next_page_token(self):
+        test_id_one = 'abcd'
+        test_id_two = 'efgh'
+        test_id_three = 'ijkl'
+        test_channel_one = 'Test Channel One'
+        test_channel_two = 'Test Channel Two'
+        test_channel_three = 'Test Channel Three'
+        expected_channels_collection = {'https://www.youtube.com/channel/' + test_id_one: test_channel_one,
+                                        'https://www.youtube.com/channel/' + test_id_two: test_channel_two,
+                                        'https://www.youtube.com/channel/' + test_id_three: test_channel_three}
+        self.mock_build.return_value.search.return_value.list.return_value.execute.return_value = {
+            "items": [{"snippet": {"channelId": test_id_one, "channelTitle": test_channel_one}},
+                      {"snippet": {"channelId": test_id_two, "channelTitle": test_channel_two}},
+                      {"snippet": {"channelId": test_id_three, "channelTitle": test_channel_three}},
+                      ]}
+
+        actual_collections = self.youtube_channel_collector.get_urls()
+
+        self.mock_storage_util.return_value.get_token_from_local.assert_called_once()
+        self.mock_storage_util.return_value.set_token_in_local.assert_not_called()
+        self.assertEqual(expected_channels_collection, actual_collections)

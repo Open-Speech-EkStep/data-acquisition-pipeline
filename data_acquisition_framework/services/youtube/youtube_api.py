@@ -1,8 +1,8 @@
-import json
 import os
 
 from googleapiclient.discovery import build
 
+from data_acquisition_framework.services.loader_util import load_youtube_api_config
 from data_acquisition_framework.services.storage_util import StorageUtil
 
 
@@ -79,26 +79,22 @@ class YoutubeApiUtils:
 class YoutubeChannelCollector:
 
     def __init__(self, youtube):
+        self.youtube = youtube
         self.storage_util = StorageUtil()
-        current_path = os.path.dirname(os.path.realpath(__file__))
-        api_config_file = os.path.join(current_path, '..', '..', "configs", "youtube_api_config.json")
-        with open(api_config_file, 'r') as f:
-            config = json.load(f)
 
         self.TYPE = "channel"
-        self.youtube = youtube
         self.MAX_PAGE_RESULT = 50
-        self.TOKEN_FILE_NAME = 'token.txt'
-        num_pages, num_results = self.calculate_pages(config["max_results"])
 
-        self.MAX_RESULTS = num_results
-        self.PAGES = num_pages
-
-        self.REL_LANGUAGE = config["language_code"]
+        config = load_youtube_api_config()
+        num_pages, num_results = self.__calculate_pages(config["max_results"])
+        self.max_results = num_results
+        self.pages = num_pages
+        self.rel_language = config["language_code"]
         words_to_include = "|".join(config["keywords"""])
-        self.KEYWORDS = ['in', config["language"], words_to_include, '-song']
+        self.keywords = ['in', config["language"], words_to_include, '-song']
+        self.pages_exhausted = False
 
-    def calculate_pages(self, max_results):
+    def __calculate_pages(self, max_results):
         if max_results <= self.MAX_PAGE_RESULT:
             num_results = max_results
             num_pages = 1
@@ -109,21 +105,29 @@ class YoutubeChannelCollector:
                 num_pages += 1
         return num_pages, num_results
 
+    def __youtube_api_call_for_channel_search(self, token):
+        return self.youtube.search().list(part="id,snippet", type=self.TYPE, q=' '.join(
+            self.keywords), maxResults=self.max_results, relevanceLanguage=self.rel_language, pageToken=token).execute()
+
     def __get_page_channels(self):
         token = self.storage_util.get_token_from_local()
-        results = self.youtube.search().list(part="id,snippet", type=self.TYPE, q=' '.join(
-            self.KEYWORDS), maxResults=self.MAX_RESULTS, relevanceLanguage=self.REL_LANGUAGE, pageToken=token).execute()
-        next_token = results['nextPageToken']
-        self.storage_util.set_token_in_local(next_token)
+        results = self.__youtube_api_call_for_channel_search(token)
         page_channels = {}
         for item in results['items']:
             page_channels['https://www.youtube.com/channel/' +
                           item['snippet']['channelId']] = item['snippet']['channelTitle']
+        if 'nextPageToken' in results:
+            next_token = results['nextPageToken']
+            self.storage_util.set_token_in_local(next_token)
+        else:
+            self.pages_exhausted = True
         return page_channels
 
     def get_urls(self):
         complete_channels = {}
-        for _ in range(self.PAGES):
+        for _ in range(self.pages):
+            if self.pages_exhausted:
+                break
             page_channels = self.__get_page_channels()
             complete_channels.update(page_channels)
         return complete_channels
