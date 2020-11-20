@@ -31,6 +31,10 @@ def __get_duration_in_seconds(file):
     return duration_in_seconds
 
 
+def __get_duration_in_minutes(duration_in_seconds):
+    return round(duration_in_seconds / 60, 3)
+
+
 def get_media_info(file, source, language, source_url, license_urls, media_url):
     duration_in_seconds = __get_duration_in_seconds(file)
     media_info = {'duration': __get_duration_in_minutes(duration_in_seconds),
@@ -44,31 +48,44 @@ def get_media_info(file, source, language, source_url, license_urls, media_url):
     return media_info, duration_in_seconds
 
 
-def __get_duration_in_minutes(duration_in_seconds):
-    return round(duration_in_seconds / 60, 3)
+def is_url_start_with_cc(url):
+    creative_common_url_patterns = ["https://creativecommons.org/publicdomain/mark",
+                                    "https://creativecommons.org/publicdomain/zero",
+                                    "https://creativecommons.org/licenses/by"]
+    return any(cc_pattern in url for cc_pattern in creative_common_url_patterns)
 
 
-def extract_license_urls(urls, all_a_tags, response):
+def check_for_cc_in_urls(urls): # not tested yet
     license_urls = set()
     for url in urls:
         url = url.rstrip().lstrip()
-        if url.startswith("https://creativecommons.org/publicdomain/mark") or url.startswith(
-                "https://creativecommons.org/publicdomain/zero") or url.startswith(
-            "https://creativecommons.org/licenses/by"):
+        if is_url_start_with_cc(url):
             license_urls.add(url)
+    return license_urls
+
+
+def is_license_terms_in_text(text):
+    license_terms = ["terms", "license", "copyright",
+                     "usage policy", "conditions",
+                     "website policies", "website policy"]
+    return any(license_term in text for license_term in license_terms)
+
+
+def extract_license_urls(urls, all_a_tags, response):  # not tested yet
+    license_urls = check_for_cc_in_urls(urls)
     if len(license_urls) == 0:
         for a_tag in all_a_tags:
             texts = a_tag.xpath('text()').extract()
             for text in texts:
                 text = text.lower()
-                if "terms" in text or "license" in text or "copyright" in text or "usage policy" in text or "conditions" in text or "website policies" in text or "website policy" in text:
+                if is_license_terms_in_text(text):
                     for link in a_tag.xpath('@href').extract():
                         license_urls.add(response.urljoin(link))
     return list(license_urls)
 
 
-def is_unwanted_words_present(word_to_ignore, url):
-    for word in word_to_ignore:
+def is_unwanted_words_present(words_to_ignore, url):
+    for word in words_to_ignore:
         if word in url.lower():
             return True
     return False
@@ -96,7 +113,9 @@ def is_unwanted_wiki(language_code, url):
     url = sanitize(url)
     if "wikipedia.org" in url or "wikimedia.org" in url:
         url = url.replace("https://", "").replace("http://", "")
-        if not url.startswith("en") or not url.startswith(language_code) or not url.startswith("wiki"):
+        if url.startswith("en") or url.startswith(language_code) or url.startswith("wiki"):
+            return False
+        else:
             return True
     return False
 
