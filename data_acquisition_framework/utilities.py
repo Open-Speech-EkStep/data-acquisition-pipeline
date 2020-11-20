@@ -1,4 +1,4 @@
-import moviepy.editor
+from moviepy import editor
 from tinytag import TinyTag
 
 from data_acquisition_framework.configs.paths import download_path
@@ -21,14 +21,19 @@ def get_file_format(file):
     return file_format
 
 
-def get_media_info(file, source, language, source_url, license_urls, media_url):
+def __get_duration_in_seconds(file):
     file_format = get_file_format(file)
     if file_format == 'mp4':
-        video = moviepy.editor.VideoFileClip(file)
+        video = editor.VideoFileClip(file)
         duration_in_seconds = int(video.duration)
     else:
         duration_in_seconds = get_mp3_duration_in_seconds(file)
-    media_info = {'duration': duration_in_seconds / 60,
+    return duration_in_seconds
+
+
+def get_media_info(file, source, language, source_url, license_urls, media_url):
+    duration_in_seconds = __get_duration_in_seconds(file)
+    media_info = {'duration': __get_duration_in_minutes(duration_in_seconds),
                   'raw_file_name': file.replace(download_path, ""),
                   'name': None, 'gender': None,
                   'source_url': media_url,
@@ -37,6 +42,10 @@ def get_media_info(file, source, language, source_url, license_urls, media_url):
                   "language": language,
                   'source_website': source_url}
     return media_info, duration_in_seconds
+
+
+def __get_duration_in_minutes(duration_in_seconds):
+    return round(duration_in_seconds / 60, 3)
 
 
 def extract_license_urls(urls, all_a_tags, response):
