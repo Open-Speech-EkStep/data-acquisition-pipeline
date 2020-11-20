@@ -5,9 +5,9 @@ from unittest.mock import patch, MagicMock
 
 import pandas as pd
 
-from data_acquisition_framework.configs.paths import channels_path
+from data_acquisition_framework.configs.paths import channels_path, archives_base_path
 from data_acquisition_framework.services.youtube_util import YoutubeUtil, remove_rejected_video, \
-    check_dataframe_validity, create_channel_file_for_file_mode
+    check_dataframe_validity, create_channel_file_for_file_mode, get_gender, get_speaker, get_video_batch
 
 
 class TestYoutubeUtil(TestCase):
@@ -350,7 +350,7 @@ class TestYoutubeUtil(TestCase):
             result_data = f.read().rstrip()
             self.assertEqual('sfgsft', result_data)
 
-        os.system("rm "+file_path)
+        os.system("rm " + file_path)
         os.system("rm -rf " + channels_path)
 
     @patch('data_acquisition_framework.services.youtube_util.file_speaker_gender_column', 'gender')
@@ -381,3 +381,134 @@ class TestYoutubeUtil(TestCase):
 
         os.system("rm " + file_path)
         os.system("rm -rf " + channels_path)
+
+    @patch('data_acquisition_framework.services.youtube_util.file_speaker_name_column', 'name')
+    @patch('data_acquisition_framework.services.youtube_util.file_url_name_column', 'url')
+    def test_get_speaker(self):
+        data = [
+            ["male", 'tester', 'sfgsft']
+        ]
+        scraped_data = pd.DataFrame(data, columns=['gender', 'name', 'url'])
+        video_id = "sfgsft"
+        expected = "tester"
+
+        result = get_speaker(scraped_data, video_id)
+
+        self.assertEqual(expected, result)
+
+    def test_get_speaker_raise_key_error(self):
+        data = [
+            ["male", 'tester', 'sfgsft']
+        ]
+        scraped_data = pd.DataFrame(data, columns=['gender', 'name', 'url'])
+        video_id = "sfgsft"
+
+        with self.assertRaises(KeyError):
+            get_speaker(scraped_data, video_id)
+
+    @patch('data_acquisition_framework.services.youtube_util.file_speaker_name_column', 'name')
+    @patch('data_acquisition_framework.services.youtube_util.file_url_name_column', 'url')
+    def test_get_speaker_return_empty_for_video_id_not_found(self):
+        data = [
+            ["male", 'tester', 'sfgssft']
+        ]
+        scraped_data = pd.DataFrame(data, columns=['gender', 'name', 'url'])
+        video_id = "sfgsft"
+
+        result = get_speaker(scraped_data, video_id)
+
+        self.assertEqual("", result)
+
+    @patch('data_acquisition_framework.services.youtube_util.file_speaker_gender_column', 'gender')
+    @patch('data_acquisition_framework.services.youtube_util.file_url_name_column', 'url')
+    def test_get_gender(self):
+        data = [
+            ["male", 'tester', 'sfgsft']
+        ]
+        scraped_data = pd.DataFrame(data, columns=['gender', 'name', 'url'])
+        video_id = "sfgsft"
+        expected = "male"
+
+        result = get_gender(scraped_data, video_id)
+
+        self.assertEqual(expected, result)
+
+    def test_get_gender_raise_key_error(self):
+        data = [
+            ["male", 'tester', 'sfgsft']
+        ]
+        scraped_data = pd.DataFrame(data, columns=['gender', 'name', 'url'])
+        video_id = "sfgsft"
+
+        with self.assertRaises(KeyError):
+            get_gender(scraped_data, video_id)
+
+    @patch('data_acquisition_framework.services.youtube_util.file_speaker_gender_column', 'gender')
+    @patch('data_acquisition_framework.services.youtube_util.file_url_name_column', 'url')
+    def test_get_gender_return_empty_for_video_id_not_found(self):
+        data = [
+            ["male", 'tester', 'sfgssft']
+        ]
+        scraped_data = pd.DataFrame(data, columns=['gender', 'name', 'url'])
+        video_id = "sfgsft"
+
+        result = get_gender(scraped_data, video_id)
+
+        self.assertEqual("", result)
+
+    @patch('data_acquisition_framework.services.youtube_util.batch_num', 2)
+    def test_get_video_batch_read_success(self):
+        if not os.path.exists(channels_path):
+            os.system("mkdir " + channels_path)
+        if not os.path.exists(archives_base_path):
+            os.system("mkdir " + archives_base_path)
+        channel_name = "test"
+        os.system("mkdir " + archives_base_path + channel_name)
+        os.system("touch " + archives_base_path + channel_name + "/archive.txt")
+        channel_file_path = channels_path + channel_name + ".txt"
+        video_ids = ['dsfasdfsdf', 'sdfdsfdsf', 'adfsafsdf', 'adfasfdf']
+        with open(channel_file_path, 'w') as f:
+            f.writelines("{0}\n".format(video_id) for video_id in video_ids)
+
+        videos = get_video_batch(channel_name, channel_name + ".txt")
+        self.assertEqual(['dsfasdfsdf', 'sdfdsfdsf'], videos)
+
+        with open(archives_base_path + channel_name + "/archive.txt", 'w') as f:
+            f.writelines("youtube {0}\n".format(video_id) for video_id in ['dsfasdfsdf', 'sdfdsfdsf'])
+
+        videos = get_video_batch(channel_name, channel_name + ".txt")
+        self.assertEqual(['adfsafsdf', 'adfasfdf'], videos)
+
+        os.system("rm -rf " + channels_path)
+        os.system("rm -rf " + archives_base_path)
+
+    @patch('data_acquisition_framework.services.youtube_util.batch_num', 2)
+    def test_get_video_batch_read_archive_not_present(self):
+        if not os.path.exists(channels_path):
+            os.system("mkdir " + channels_path)
+        if os.path.exists(archives_base_path):
+            os.system("rm -rf " + archives_base_path)
+        channel_name = "test"
+        channel_file_path = channels_path + channel_name + ".txt"
+        video_ids = ['dsfasdfsdf', 'sdfdsfdsf', 'adfsafsdf', 'adfasfdf']
+        with open(channel_file_path, 'w') as f:
+            f.writelines("{0}\n".format(video_id) for video_id in video_ids)
+
+        with self.assertRaises(FileNotFoundError):
+            get_video_batch(channel_name, channel_name + ".txt")
+
+        os.system("rm -rf " + channels_path)
+        os.system("rm -rf " + archives_base_path)
+
+    @patch('data_acquisition_framework.services.youtube_util.batch_num', 2)
+    def test_get_video_batch_read_channel_file_not_present(self):
+        if os.path.exists(channels_path):
+            os.system("rm -rf"+channels_path)
+
+        channel_name = "test"
+
+        with self.assertRaises(FileNotFoundError):
+            get_video_batch(channel_name, channel_name + ".txt")
+
+        os.system("rm -rf " + channels_path)
+        os.system("rm -rf " + archives_base_path)

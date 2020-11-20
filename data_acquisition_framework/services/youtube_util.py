@@ -31,6 +31,7 @@ def get_video_batch(source, source_file):
         channel_archive = pd.read_csv(archive_file_name, delimiter=' ', header=None, encoding='utf-8')[1]
     except EmptyDataError:
         channel_archive = pd.DataFrame(columns=[1])
+
     video_batch = channel_videos[
         channel_videos.merge(channel_archive, left_on=0, right_on=1, how='left')[1].isnull()].head(
         batch_num)
@@ -63,11 +64,17 @@ def create_channel_file_for_file_mode(source_file, file_url_column):
 
 
 def get_speaker(scraped_data, video_id):
-    return scraped_data[scraped_data[file_url_name_column] == video_id].iloc[0][file_speaker_name_column]
+    matched_video_id_row = scraped_data[scraped_data[file_url_name_column] == video_id]
+    if len(matched_video_id_row) == 0:
+        return ""
+    return str(matched_video_id_row.iloc[0][file_speaker_name_column]).lower()
 
 
 def get_gender(scraped_data, video_id):
-    return str(scraped_data[scraped_data[file_url_name_column] == video_id].iloc[0][file_speaker_gender_column]).lower()
+    matched_video_id_row = scraped_data[scraped_data[file_url_name_column] == video_id]
+    if len(matched_video_id_row) == 0:
+        return ""
+    return str(matched_video_id_row.iloc[0][file_speaker_gender_column]).lower()
 
 
 class YoutubeUtil:
