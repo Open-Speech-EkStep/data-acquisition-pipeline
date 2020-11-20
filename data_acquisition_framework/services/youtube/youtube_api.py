@@ -74,9 +74,13 @@ class YoutubeChannelCollector:
         self.max_results = num_results
         self.pages = num_pages
         self.rel_language = config["language_code"]
-        words_to_include = "|".join(config["keywords"""])
-        self.keywords = ['in', config["language"], words_to_include, '-song']
+        self.__set_keywords(config)
         self.pages_exhausted = False
+
+    def __set_keywords(self, config):
+        words_to_include = "|".join(config["keywords"])
+        words_to_ignore = "|".join(["-" + word_to_ignore for word_to_ignore in config["words_to_ignore"]])
+        self.keywords = ['in', config["language"], words_to_include, words_to_ignore]
 
     def __calculate_pages(self, max_results):
         if max_results <= self.MAX_PAGE_RESULT:

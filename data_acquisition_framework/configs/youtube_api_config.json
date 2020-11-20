@@ -6,5 +6,9 @@
         "speech",
         "talk"
     ],
-    "max_results": 3
+    "words_to_ignore":[
+        "song",
+        "music"
+    ],
+    "max_results": 2
 }

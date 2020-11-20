@@ -48,7 +48,7 @@ class TestYoutubeApiUtils(TestCase):
 
         self.assertEqual(expected_video_ids, actual_video_ids)
 
-    # More tests for get_videos can be added
+    # More tests can be added
 
     def test_get_channels(self):
         self.youtube_api_utils.get_channels()
@@ -73,6 +73,10 @@ class TestYoutubeChannelCollector(TestCase):
                 "key_one",
                 "key_two",
             ],
+            "words_to_ignore": [
+                "ignore_one",
+                "ignore_two"
+            ],
             "max_results": 40
         }
         mock_load_config.return_value = self.test_config
@@ -87,8 +91,11 @@ class TestYoutubeChannelCollector(TestCase):
         self.assertEqual(40, self.youtube_channel_collector.max_results)
         self.assertEqual(1, self.youtube_channel_collector.pages)
         self.assertEqual(self.test_config["language_code"], self.youtube_channel_collector.rel_language)
-        self.assertEqual(['in', self.test_config["language"], "|".join(self.test_config["keywords"]), '-song'],
+        self.assertEqual(['in', self.test_config["language"],
+                          "|".join(self.test_config["keywords"]),
+                          "|".join(["-" + word_to_ignore for word_to_ignore in self.test_config["words_to_ignore"]])],
                          self.youtube_channel_collector.keywords)
+        self.assertEqual(False, self.youtube_channel_collector.pages_exhausted)
 
     def test_get_urls_having_next_page_token(self):
         test_id_one = 'abcd'
@@ -133,3 +140,5 @@ class TestYoutubeChannelCollector(TestCase):
         self.mock_storage_util.return_value.get_token_from_local.assert_called_once()
         self.mock_storage_util.return_value.set_token_in_local.assert_not_called()
         self.assertEqual(expected_channels_collection, actual_collections)
+
+    # More tests can be added

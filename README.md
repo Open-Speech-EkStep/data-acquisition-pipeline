@@ -162,6 +162,10 @@ Note:
     "speech",
     "talk"
 ],
+"words_to_ignore":[                               The words that are to be ignored in youtube API query
+    "song",
+    "music"
+],
 "max_results": 20                                 Maximum number of channels or results that is required.
 ```
 #### Web Crawl Configuration
