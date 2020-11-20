@@ -3,14 +3,14 @@
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-from scrapy import signals
-from scrapy.http import Response
-import os
 import json
+import os
+
+from scrapy import signals
 # useful for handling different item types with a single interface
-from itemadapter import is_item, ItemAdapter
 from scrapy.exceptions import IgnoreRequest
 from scrapy.linkextractors import IGNORED_EXTENSIONS
+
 
 class DataAcquisitionFrameworkSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
@@ -125,7 +125,7 @@ class CrawlerDownloaderMiddleware:
         self.visited_urls = []
         web_crawl_config_path = os.path.dirname(os.path.realpath(__file__)) + "/web_crawl_config.json"
         self.bing_archive_path = os.path.dirname(os.path.realpath(__file__)) + "/bing_archive.txt"
-        with open(web_crawl_config_path,'r') as f:
+        with open(web_crawl_config_path, 'r') as f:
             config = json.load(f)
             self.word_to_ignore = config["word_to_ignore"]
             self.extensions_to_ignore = set(config["extensions_to_ignore"] + IGNORED_EXTENSIONS)
@@ -153,7 +153,7 @@ class CrawlerDownloaderMiddleware:
         for word in self.word_to_ignore:
             if word.lower() in request.url.lower():
                 raise IgnoreRequest()
-        
+
         for ext in self.extensions_to_ignore:
             if request.url.lower().endswith(ext):
                 raise IgnoreRequest()
@@ -171,7 +171,7 @@ class CrawlerDownloaderMiddleware:
         # - or raise IgnoreRequest
         try:
             self.visited_urls.remove(response.url)
-        except:
+        except ValueError:
             spider.logger.info("%s url not found" % response.url)
         return response
 

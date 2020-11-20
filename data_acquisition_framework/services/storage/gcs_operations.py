@@ -58,6 +58,3 @@ def check_blob(bucket_name, file_prefix):
     stats = storage.Blob(bucket=bucket, name=file_prefix).exists(storage_client)
     return stats
 
-
-if __name__ == "__main__":
-    pass
