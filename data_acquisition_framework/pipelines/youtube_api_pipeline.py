@@ -40,12 +40,15 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
         self.batch_download(item)
         return item
 
+    def video_batch_exists(self, batch_list):
+        last_video_batch_count = len(batch_list)
+        logging.info(str("Attempt to download videos with batch size of {0}".format(
+            last_video_batch_count)))
+        return last_video_batch_count > 0
+
     def batch_download(self, item):
         batch_list = self.create_download_batch(item)
-        last_video_batch_count = len(batch_list)
-        while last_video_batch_count > 0:
-            logging.info(str("Attempt to download videos with batch size of {0}".format(
-                last_video_batch_count)))
+        while self.video_batch_exists(batch_list):
             try:
                 self.download_files(item, batch_list)
             except Exception as e:
@@ -53,7 +56,6 @@ class YoutubeApiPipeline(DataAcquisitionPipeline):
             finally:
                 self.upload_files_to_storage(item)
             batch_list = self.create_download_batch(item)
-            last_video_batch_count = len(batch_list)
         logging.info(str("Last Batch has no more videos to be downloaded,so finishing downloads..."))
         logging.info(
             str("Total Uploaded files for this run was : {0}".format(self.batch_count)))

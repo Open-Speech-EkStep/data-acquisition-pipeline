@@ -19,7 +19,8 @@ class TestYoutubeAPIBuilder(TestCase):
     @patch('data_acquisition_framework.services.youtube.youtube_api.build')
     def testGetYoutubeObject(self, mock_build):
         self.youtube_api_builder.get_youtube_object()
-        mock_build.assert_called_once_with('youtube', 'v3', developerKey=self.test_youtube_api_key, cache_discovery=False)
+        mock_build.assert_called_once_with('youtube', 'v3', developerKey=self.test_youtube_api_key,
+                                           cache_discovery=False)
 
     def tearDown(self):
         del os.environ['youtube_api_key']
