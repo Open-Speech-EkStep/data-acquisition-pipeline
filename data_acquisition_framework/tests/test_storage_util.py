@@ -10,7 +10,7 @@ from data_acquisition_framework.services.storage_util import StorageUtil, archiv
 
 class TestStorageUtil(TestCase):
 
-    @patch('data_acquisition_framework.services.storage_util.load_storage_config')
+    @patch('data_acquisition_framework.services.storage_util.load_config_file')
     def setUp(self, mock_load_storage_config):
         data = {
             "bucket": "ekstepspeechrecognition-dev",
@@ -72,7 +72,7 @@ class TestStorageUtil(TestCase):
         mock_check_blob.assert_called_once_with(self.storage_config['bucket'], file_to_check)
         self.assertTrue(result)
 
-    @patch('data_acquisition_framework.services.storage_util.load_storage_config')
+    @patch('data_acquisition_framework.services.storage_util.load_config_file')
     def test_get_archive_file_bucket_path_with_language(self, storage_config_mock):
         source = "test"
         language = "tamil"

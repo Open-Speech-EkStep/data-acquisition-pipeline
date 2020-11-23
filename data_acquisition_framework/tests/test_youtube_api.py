@@ -1,23 +1,43 @@
 import os
+import unittest
 from unittest import TestCase
 from unittest.mock import patch
 
-from data_acquisition_framework.services.youtube.youtube_api import YoutubeApiUtils, YoutubeChannelCollector
+from data_acquisition_framework.services.youtube.youtube_api import YoutubeApiUtils, YoutubeChannelCollector, \
+    YoutubeApiBuilder
+
+
+class TestYoutubeAPIBuilder(TestCase):
+    def setUp(self):
+        self.test_youtube_api_key = 'sampleyoutubeapikey'
+        os.environ['youtube_api_key'] = self.test_youtube_api_key
+        self.youtube_api_builder = YoutubeApiBuilder()
+
+    def testInit(self):
+        self.assertEqual(self.test_youtube_api_key, self.youtube_api_builder.youtube_api_key)
+
+    @patch('data_acquisition_framework.services.youtube.youtube_api.build')
+    def testGetYoutubeObject(self, mock_build):
+        self.youtube_api_builder.get_youtube_object()
+        mock_build.assert_called_once_with('youtube', 'v3', developerKey=self.test_youtube_api_key, cache_discovery=False)
+
+    def tearDown(self):
+        del os.environ['youtube_api_key']
 
 
 class TestYoutubeApiUtils(TestCase):
     @patch('data_acquisition_framework.services.youtube.youtube_api.YoutubeChannelCollector')
-    @patch('data_acquisition_framework.services.youtube.youtube_api.build')
-    def setUp(self, mock_build, mock_youtube_channel_collector):
+    @patch('data_acquisition_framework.services.youtube.youtube_api.YoutubeApiBuilder.get_youtube_object')
+    def setUp(self, mock_get_youtube_object, mock_youtube_channel_collector):
         test_youtube_api_key = 'sampleyoutubeapikey'
         os.environ["youtube_api_key"] = test_youtube_api_key
         self.youtube_api_utils = YoutubeApiUtils()
-        self.mock_build = mock_build
+        self.mock_get_youtube_object = mock_get_youtube_object
         self.mock_youtube_channel_collector = mock_youtube_channel_collector
 
     def test_get_license_info_for_cc_video(self):
         video_id = 'abcdef'
-        self.mock_build.return_value.videos.return_value.list.return_value.execute.return_value = {
+        self.mock_get_youtube_object.return_value.videos.return_value.list.return_value.execute.return_value = {
             "items": [{"status": {"license": "creativeCommon"}}]}
 
         license_value = self.youtube_api_utils.get_license_info(video_id)
@@ -26,7 +46,7 @@ class TestYoutubeApiUtils(TestCase):
 
     def test_get_license_info_for_sy_video(self):
         video_id = 'abcdef'
-        self.mock_build.return_value.videos.return_value.list.return_value.execute.return_value = {
+        self.mock_get_youtube_object.return_value.videos.return_value.list.return_value.execute.return_value = {
             "items": [{"status": {"license": "standardYoutube"}}]}
 
         license_value = self.youtube_api_utils.get_license_info(video_id)
@@ -39,7 +59,7 @@ class TestYoutubeApiUtils(TestCase):
         video_id_two = 'jeursn'
         video_id_three = 'uwnchaq23e'
         expected_video_ids = [video_id_one, video_id_two, video_id_three]
-        self.mock_build.return_value.search.return_value.list.return_value.execute.return_value = {
+        self.mock_get_youtube_object.return_value.search.return_value.list.return_value.execute.return_value = {
             "items": [{"id": {"videoId": video_id_one}},
                       {"id": {"videoId": video_id_two}},
                       {"id": {"videoId": video_id_three}}]}
@@ -56,15 +76,15 @@ class TestYoutubeApiUtils(TestCase):
 
     def tearDown(self):
         self.youtube_api_utils = None
-        self.mock_build = None
+        self.mock_get_youtube_object = None
         del os.environ["youtube_api_key"]
 
 
 class TestYoutubeChannelCollector(TestCase):
-    @patch('data_acquisition_framework.services.youtube.youtube_api.build')
+    @patch('data_acquisition_framework.services.youtube.youtube_api.YoutubeApiBuilder.get_youtube_object')
     @patch('data_acquisition_framework.services.youtube.youtube_api.StorageUtil')
-    @patch('data_acquisition_framework.services.youtube.youtube_api.load_youtube_api_config')
-    def setUp(self, mock_load_config, mock_storage_util, mock_build):
+    @patch('data_acquisition_framework.services.youtube.youtube_api.load_config_file')
+    def setUp(self, mock_load_config, mock_storage_util, mock_get_youtube_object):
         self.mock_storage_util = mock_storage_util
         self.test_config = {
             "language": "test_language",
@@ -80,11 +100,11 @@ class TestYoutubeChannelCollector(TestCase):
             "max_results": 40
         }
         mock_load_config.return_value = self.test_config
-        self.mock_build = mock_build
-        self.youtube_channel_collector = YoutubeChannelCollector(self.mock_build.return_value)
+        self.mock_get_youtube_object = mock_get_youtube_object
+        self.youtube_channel_collector = YoutubeChannelCollector(self.mock_get_youtube_object.return_value)
 
     def test_init(self):
-        self.assertEqual(self.mock_build.return_value, self.youtube_channel_collector.youtube)
+        self.assertEqual(self.mock_get_youtube_object.return_value, self.youtube_channel_collector.youtube)
         self.assertEqual(self.mock_storage_util.return_value, self.youtube_channel_collector.storage_util)
         self.assertEqual("channel", self.youtube_channel_collector.TYPE)
         self.assertEqual(50, self.youtube_channel_collector.MAX_PAGE_RESULT)
@@ -104,10 +124,11 @@ class TestYoutubeChannelCollector(TestCase):
         test_channel_one = 'Test Channel One'
         test_channel_two = 'Test Channel Two'
         test_channel_three = 'Test Channel Three'
-        expected_channels_collection = {'https://www.youtube.com/channel/' + test_id_one: test_channel_one,
-                                        'https://www.youtube.com/channel/' + test_id_two: test_channel_two,
-                                        'https://www.youtube.com/channel/' + test_id_three: test_channel_three}
-        self.mock_build.return_value.search.return_value.list.return_value.execute.return_value = {
+        channel_prefix_url = 'https://www.youtube.com/channel/'
+        expected_channels_collection = {channel_prefix_url + test_id_one: test_channel_one,
+                                        channel_prefix_url + test_id_two: test_channel_two,
+                                        channel_prefix_url + test_id_three: test_channel_three}
+        self.mock_get_youtube_object.return_value.search.return_value.list.return_value.execute.return_value = {
             "items": [{"snippet": {"channelId": test_id_one, "channelTitle": test_channel_one}},
                       {"snippet": {"channelId": test_id_two, "channelTitle": test_channel_two}},
                       {"snippet": {"channelId": test_id_three, "channelTitle": test_channel_three}},
@@ -126,10 +147,11 @@ class TestYoutubeChannelCollector(TestCase):
         test_channel_one = 'Test Channel One'
         test_channel_two = 'Test Channel Two'
         test_channel_three = 'Test Channel Three'
-        expected_channels_collection = {'https://www.youtube.com/channel/' + test_id_one: test_channel_one,
-                                        'https://www.youtube.com/channel/' + test_id_two: test_channel_two,
-                                        'https://www.youtube.com/channel/' + test_id_three: test_channel_three}
-        self.mock_build.return_value.search.return_value.list.return_value.execute.return_value = {
+        channel_prefix_url = 'https://www.youtube.com/channel/'
+        expected_channels_collection = {channel_prefix_url + test_id_one: test_channel_one,
+                                        channel_prefix_url + test_id_two: test_channel_two,
+                                        channel_prefix_url + test_id_three: test_channel_three}
+        self.mock_get_youtube_object.return_value.search.return_value.list.return_value.execute.return_value = {
             "items": [{"snippet": {"channelId": test_id_one, "channelTitle": test_channel_one}},
                       {"snippet": {"channelId": test_id_two, "channelTitle": test_channel_two}},
                       {"snippet": {"channelId": test_id_three, "channelTitle": test_channel_three}},
@@ -142,3 +164,7 @@ class TestYoutubeChannelCollector(TestCase):
         self.assertEqual(expected_channels_collection, actual_collections)
 
     # More tests can be added
+
+
+if __name__ == '__main__':
+    unittest.main()

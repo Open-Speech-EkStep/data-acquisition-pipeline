@@ -4,7 +4,7 @@ import logging
 import os
 
 from data_acquisition_framework.configs.paths import archives_path, download_path, channels_path, archives_base_path
-from data_acquisition_framework.services.loader_util import load_storage_config
+from data_acquisition_framework.services.loader_util import load_config_file
 from data_acquisition_framework.services.storage.gcs_operations import set_gcs_credentials, upload_blob, download_blob, \
     check_blob
 
@@ -12,7 +12,7 @@ from data_acquisition_framework.services.storage.gcs_operations import set_gcs_c
 class StorageUtil:
 
     def __init__(self):
-        storage_config = load_storage_config()
+        storage_config = load_config_file("storage_config.json")
         self.channel_blob_path = storage_config['channel_blob_path']
         self.bucket = storage_config['bucket']
         self.archive_blob_path = storage_config['archive_blob_path']
@@ -143,7 +143,6 @@ class StorageUtil:
         with open(file_path, 'r') as f:
             count = len(f.read().splitlines())
         return count
-
 
     def get_media_paths(self):
         return glob.glob(download_path + '*.mp4')

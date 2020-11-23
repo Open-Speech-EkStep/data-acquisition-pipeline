@@ -2,7 +2,7 @@ import os
 
 from googleapiclient.discovery import build
 
-from data_acquisition_framework.services.loader_util import load_youtube_api_config
+from data_acquisition_framework.services.loader_util import load_config_file
 from data_acquisition_framework.services.storage_util import StorageUtil
 
 
@@ -69,7 +69,7 @@ class YoutubeChannelCollector:
         self.TYPE = "channel"
         self.MAX_PAGE_RESULT = 50
 
-        config = load_youtube_api_config()
+        config = load_config_file("youtube_api_config.json")
         num_pages, num_results = self.__calculate_pages(config["max_results"])
         self.max_results = num_results
         self.pages = num_pages
