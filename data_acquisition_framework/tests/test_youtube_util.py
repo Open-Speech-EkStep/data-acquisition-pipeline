@@ -213,7 +213,8 @@ class TestYoutubeUtil(TestCase):
             self.assertEqual('file', mode)
             self.assertEqual('test.txt', channel_file)
             self.assertTrue(expected_scraped_data.equals(data_scrap))
-
+        self.mock_storage_util.return_value.download.assert_called()
+        self.mock_storage_util.return_value.check.assert_called()
         os.system("rm -rf " + channels_path)
         os.system("rm test.csv")
 
