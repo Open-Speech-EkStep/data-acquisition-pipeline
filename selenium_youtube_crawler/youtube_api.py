@@ -1,9 +1,8 @@
-import json
 import os
 
 import pandas as pd
 from googleapiclient.discovery import build
-
+import json
 
 class YoutubeApiBuilder:
 
@@ -61,7 +60,7 @@ class YoutubePlaylistCollector:
 
     def youtube_extract(self):
         token = self.getToken()
-        results = self.youtube.search().list(part="id,snippet", type=self.TYPE, q=(' ').join(
+        results = self.youtube.search().list(part="id,snippet", type=self.TYPE, q=' '.join(
             self.KEYWORDS), maxResults=self.MAX_RESULTS, relevanceLanguage=self.REL_LANGUAGE, pageToken=token).execute()
         nextToken = results['nextPageToken']
         self.setNextToken(nextToken)
@@ -116,10 +115,11 @@ class YoutubePlaylistCollector:
         for url, name in urls.items():
             pairs.append((name, url))
         df = pd.DataFrame(pairs, columns=['Channel Name', 'Url'])
-        df.to_csv('channels1.csv')
+        df.to_csv('channels.csv')
 
     def __next_page(self, token, channel_id):
-        res = self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='any', maxResults=50,
+        res = self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='any',
+                                         maxResults=50,
                                          pageToken=token).execute()
         if 'nextPageToken' in res.keys():
             next_page_token = res['nextPageToken']
@@ -142,5 +142,10 @@ class YoutubePlaylistCollector:
 if __name__ == "__main__":
     with open('config.json', 'r') as f:
         config = json.load(f)
-        # YoutubePlaylistCollector(config).get_channel_name_and_urls()
-        YoutubePlaylistCollector(config).generate_playlist_files("playlists")
+        YoutubePlaylistCollector(config).get_channel_name_and_urls()
+    # YoutubePlaylistCollector(config).generate_playlist_files("playlists")
+    # no_keywords = pd.read_csv('channels_tamil_with_empty_keywords.csv', encoding='utf-8')
+    # with_keywords = pd.read_csv('channels_tamil_with_keywords.csv', encoding='utf-8')
+    #
+    # video_batch = with_keywords.merge(no_keywords, on='Url')
+    # print(video_batch)

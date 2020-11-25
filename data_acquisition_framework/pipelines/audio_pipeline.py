@@ -31,16 +31,16 @@ class AudioPipeline(FilesPipeline):
 
     def process_item(self, item, spider):
         if type(item) is LicenseItem:
-            if item["key_name"] is "html_page":
+            if item["key_name"] == "html_page":
                 file_name = "license_{0}.txt".format(item["source"])
                 self.storage_util.write_license_to_local(file_name, item['content'])
                 self.storage_util.upload_license(file_name, item["source"], item["language"])
-            elif item["key_name"] is "creativecommons":
+            elif item["key_name"] == "creativecommons":
                 file_name = "license_{0}.txt".format(item["source"])
                 content = "creative commons => " + item["file_urls"][0]
                 self.storage_util.write_license_to_local(file_name, content)
                 self.storage_util.upload_license(file_name, item["source"], item["language"])
-            elif item["key_name"] is "document":
+            elif item["key_name"] == "document":
                 return super().process_item(item, spider)
         else:
             return super().process_item(item, spider)
