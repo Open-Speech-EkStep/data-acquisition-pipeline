@@ -17,6 +17,7 @@ from data_acquisition_framework.services.youtube.youtube_dl import YoutubeDL
 
 def remove_rejected_video(file_name, video_id):
     os.system("sed '/{0}/d' {1}>b.txt && mv b.txt {1}".format(video_id, channels_path + file_name))
+    logging.info(str("Video Id {0} removed from channel and won't be downloaded".format(video_id)))
 
 
 def get_video_batch(source, source_file):

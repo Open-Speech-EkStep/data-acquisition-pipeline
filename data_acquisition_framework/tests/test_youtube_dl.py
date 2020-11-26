@@ -31,8 +31,25 @@ class TestYoutubeDL(TestCase):
             mock_subprocess.run.assert_called_once()
             mock_check_and_log.assert_called_once_with(test_output)
 
-    def test_check_and_log_download_output(self):
+    def test_check_and_log_without_error(self):
+        test_output = CompletedProcess(args='', returncode=1, stdout=b'Download success')
+        flag = self.youtube_dl_service.check_and_log_download_output(test_output)
+        self.assertFalse(flag)
+
+    def test_check_and_log_raises_exit(self):
         test_output = CompletedProcess(args='', returncode=1, stdout=b'',
-                                       stderr=b'ERROR:Incomplete YouTube ID testid. URL https://www.youtube.com/watch?v=testid looks truncated.\n')
+                                       stderr=b'ERROR:": HTTP Error 429"\n')
+        with self.assertRaises(SystemExit):
+            self.youtube_dl_service.check_and_log_download_output(test_output)
+
+    def test_check_and_log_with_yt_errors(self):
+        test_output = CompletedProcess(args='', returncode=1, stdout=b'',
+                                       stderr=b'HTTP Error 404: Not Found"\n')
+        flag = self.youtube_dl_service.check_and_log_download_output(test_output)
+        self.assertTrue(flag)
+
+    def test_check_and_log_with_other_errors(self):
+        test_output = CompletedProcess(args='', returncode=1, stdout=b'',
+                                       stderr=b'ERROR:Incomplete YouTube ID testid.\n')
         flag = self.youtube_dl_service.check_and_log_download_output(test_output)
         self.assertTrue(flag)
