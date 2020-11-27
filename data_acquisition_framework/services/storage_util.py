@@ -122,8 +122,7 @@ class StorageUtil:
     def get_videos_file_path_in_bucket(self, source_name):
         return self.channel_blob_path + '/' + self.scraped_data_blob_path + '/' + source_name + '.csv'
 
-    @staticmethod
-    def clear_required_directories():
+    def clear_required_directories(self):
         if os.path.exists(download_path):
             os.system('rm -rf ' + download_path)
         else:

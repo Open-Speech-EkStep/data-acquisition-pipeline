@@ -39,7 +39,7 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
         return spider
 
     def parse(self, response, **kwargs):
-        StorageUtil.clear_required_directories()
+        self.storage_util.clear_required_directories()
         self.storage_util.get_token_from_bucket()
         for mode, channel_file_name, file_mode_data in self.youtube_util.validate_mode_and_get_result():
             channel_id = channel_file_name.split("__")[0]
