@@ -2,8 +2,9 @@ import logging
 import os
 
 import scrapy
+from scrapy import signals
 
-from data_acquisition_framework.services.youtube_util import YoutubeUtil
+from data_acquisition_framework.services.youtube_util import YoutubeUtil, is_youtube_api_mode
 from ..items import YoutubeItem
 from ..services.storage_util import StorageUtil
 
@@ -36,11 +37,20 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
             **kwargs
         )
         spider._set_crawler(crawler)
+        crawler.signals.connect(spider.spider_opened, signal=signals.spider_opened)
+        crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
         return spider
 
-    def parse(self, response, **kwargs):
+    def spider_opened(self):
         self.storage_util.clear_required_directories()
-        self.storage_util.get_token_from_bucket()
+        if is_youtube_api_mode():
+            self.storage_util.get_token_from_bucket()
+
+    def spider_closed(self):
+        if is_youtube_api_mode():
+            self.storage_util.upload_token_to_bucket()
+
+    def parse(self, response, **kwargs):
         for mode, channel_file_name, file_mode_data in self.youtube_util.validate_mode_and_get_result():
             channel_id = channel_file_name.split("__")[0]
             channel_name = channel_file_name.replace(channel_id + "__", "").replace('.txt', '')
@@ -53,4 +63,3 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
                 channel_id=channel_id,
                 filename=channel_file_name,
                 filemode_data=file_mode_data)
-        self.storage_util.upload_token_to_bucket()

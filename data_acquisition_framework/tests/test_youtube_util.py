@@ -7,7 +7,8 @@ import pandas as pd
 
 from data_acquisition_framework.configs.paths import channels_path, archives_base_path
 from data_acquisition_framework.services.youtube_util import YoutubeUtil, remove_rejected_video, \
-    check_dataframe_validity, create_channel_file_for_file_mode, get_gender, get_speaker, get_video_batch
+    check_dataframe_validity, create_channel_file_for_file_mode, get_gender, get_speaker, get_video_batch, \
+    is_channel_from_config, is_youtube_api_mode
 
 
 class TestYoutubeUtil(TestCase):
@@ -456,6 +457,34 @@ class TestYoutubeUtil(TestCase):
         result = get_gender(scraped_data, video_id)
 
         self.assertEqual("", result)
+
+    @patch('data_acquisition_framework.services.youtube_util.channel_url_dict', {'http://youtube.com': 'Channel Name'})
+    @patch('data_acquisition_framework.services.youtube_util.mode', 'channel')
+    def test_is_youtube_api_mode_for_mode_channel_with_dict(self):
+        self.assertFalse(is_youtube_api_mode())
+
+    @patch('data_acquisition_framework.services.youtube_util.channel_url_dict', {})
+    @patch('data_acquisition_framework.services.youtube_util.mode', 'file')
+    def test_is_youtube_api_mode_for_mode_file_without_dict(self):
+        self.assertFalse(is_youtube_api_mode())
+
+    @patch('data_acquisition_framework.services.youtube_util.channel_url_dict', {})
+    @patch('data_acquisition_framework.services.youtube_util.mode', 'channel')
+    def test_is_youtube_api_mode_for_mode_channel_without_dict(self):
+        self.assertTrue(is_youtube_api_mode())
+
+    @patch('data_acquisition_framework.services.youtube_util.channel_url_dict', {'http://youtube.com': 'Channel Name'})
+    @patch('data_acquisition_framework.services.youtube_util.mode', 'file')
+    def test_is_youtube_api_mode_for_mode_file_with_dict(self):
+        self.assertFalse(is_youtube_api_mode())
+
+    @patch('data_acquisition_framework.services.youtube_util.channel_url_dict', {'http://youtube.com': 'Channel Name'})
+    def test_is_channel_from_config_true(self):
+        self.assertTrue(is_channel_from_config())
+
+    @patch('data_acquisition_framework.services.youtube_util.channel_url_dict', {})
+    def test_is_channel_from_config_false(self):
+        self.assertFalse(is_channel_from_config())
 
     @patch('data_acquisition_framework.services.youtube_util.batch_num', 2)
     def test_get_video_batch_read_success(self):

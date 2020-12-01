@@ -78,6 +78,14 @@ def get_gender(scraped_data, video_id):
     return str(matched_video_id_row.iloc[0][file_speaker_gender_column]).lower()
 
 
+def is_channel_from_config():
+    return len(channel_url_dict) != 0
+
+
+def is_youtube_api_mode():
+    return (not is_channel_from_config()) and mode == 'channel'
+
+
 class YoutubeUtil:
     def __init__(self):
         self.t_duration = 0
@@ -156,7 +164,7 @@ class YoutubeUtil:
             yield mode, channel_file.replace(channels_path, ''), scraped_data
 
     def get_channels_from_source(self):
-        if len(channel_url_dict) != 0:
+        if is_channel_from_config():
             source_channel_dict = channel_url_dict
         else:
             source_channel_dict = self.get_channels()
