@@ -1,14 +1,9 @@
-import json
-import os
+from data_acquisition_framework.services.loader_util import load_config_file
 
 
 class MediaMetadata:
     def __init__(self):
-        current_path = os.path.dirname(os.path.realpath(__file__))
-        config_file = os.path.join(current_path, '..', "configs", "config.json")
-        with open(config_file, 'r') as file:
-            config_json = json.load(file)["downloader"]
-        self.config_json = config_json
+        self.config_json = load_config_file('config.json')['downloader']
 
     def create_metadata(self, media_info):
         metadata = {'raw_file_name': media_info['raw_file_name'],
