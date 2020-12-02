@@ -1,13 +1,15 @@
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
 import os
-import json
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 
 import geckodriver_autoinstaller
+from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
+
+from loader_util import read_archive, read_config
 
 geckodriver_autoinstaller.install()
 
@@ -17,18 +19,15 @@ class GoogleCrawler:
     def __init__(self, config_path):
         self.archive = []
         self.links_count = 0
-        if os.path.exists('archive.txt'):
-            with open('archive.txt', 'r') as f:
-                self.archive = f.read().splitlines()
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-            self.language = config["language"]
-            self.language_code = config["language_code"]
-            self.max_pages = config["max_pages"]
-            self.word_to_ignore = config["words_to_ignore"]
-            self.extensions_to_ignore = config["extensions_to_ignore"]
-            self.keywords = config["keywords"]
-            self.headless = config['headless']
+        self.archive = read_archive()
+        config = read_config(config_path)
+        self.language = config["language"]
+        self.language_code = config["language_code"] if config["language_code"] != "" else "en"
+        self.max_pages = config["max_pages"]
+        self.word_to_ignore = config["words_to_ignore"]
+        self.extensions_to_ignore = config["extensions_to_ignore"]
+        self.keywords = config["keywords"]
+        self.headless = config['headless']
 
     def is_present_in_archive(self, url):
         url = self.sanitize(url)
@@ -53,17 +52,34 @@ class GoogleCrawler:
         url = self.sanitize(url)
         if "wikipedia.org" in url or "wikimedia.org" in url:
             url = url.replace("https://", "").replace("http://", "")
-            if not url.startswith("en") or not url.startswith(self.language_code) or not url.startswith("wiki"):
+            if not url.startswith("en") and not url.startswith(self.language_code) and not url.startswith("wiki"):
                 return True
-        return False
+            else:
+                return False
+        return True
 
     def extract_and_move_next(self, browser, current_page):
         try:
             WebDriverWait(browser, 20).until(EC.presence_of_element_located((By.CLASS_NAME, "yuRUbf")))
-        except:
+        except TimeoutException:
             print("Load failed")
             return
         link_elements = browser.find_elements_by_class_name('yuRUbf')
+        file_name = 'urls.txt'
+        self.extract_links(link_elements, file_name)
+        self.move_to_next_page(browser, current_page)
+
+    def move_to_next_page(self, browser, current_page):
+        try:
+            next_btn = browser.find_element_by_id("pnnext")
+            next_btn.click()
+            current_page += 1
+            if current_page < self.max_pages:
+                self.extract_and_move_next(browser, current_page)
+        except Exception:
+            print("Can't move to next page! Not Found")
+
+    def extract_links(self, link_elements, file_name):
         for link_element in link_elements:
             a_element = link_element.find_element_by_tag_name("a")
             link = a_element.get_attribute('href')
@@ -72,18 +88,10 @@ class GoogleCrawler:
                 continue
             self.links_count += 1
             self.archive.append(link + "\n")
-            with open('urls.txt', 'a') as f:
+            with open(file_name, 'a') as f:
                 f.write(link + "\n")
-        try:
-            next_btn = browser.find_element_by_id("pnnext")
-            next_btn.click()
-            current_page += 1
-            if current_page < self.max_pages:
-                self.extract_and_move_next(browser, current_page)
-        except:
-            pass
 
-    def crawl(self):
+    def crawl(self, archive_file_name):
         options = Options()
         options.headless = self.headless
         browser = webdriver.Firefox(options=options)
@@ -98,7 +106,7 @@ class GoogleCrawler:
             self.extract_and_move_next(browser, start_page)
 
         print("Extracted %s urls" % str(self.links_count))
-        with open('archive.txt', 'w') as f:
+        with open(archive_file_name, 'w') as f:
             f.writelines(self.archive)
         browser.quit()
 
@@ -106,4 +114,4 @@ class GoogleCrawler:
 if __name__ == "__main__":
     config_file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.json")
     google_crawler = GoogleCrawler(config_file_path)
-    google_crawler.crawl()
+    google_crawler.crawl('archive.txt')
