@@ -2,7 +2,7 @@ import json
 from unittest import TestCase
 from unittest.mock import mock_open, patch
 
-from selenium_youtube_crawler.loader_util import load_config_file
+from selenium_youtube_crawler.yt_loader_util import load_config_file
 
 
 class TestLoadConfig(TestCase):

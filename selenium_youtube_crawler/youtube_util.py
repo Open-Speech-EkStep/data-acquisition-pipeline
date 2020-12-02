@@ -5,7 +5,7 @@ import pandas as pd
 import tamil
 from googleapiclient.discovery import build
 
-from loader_util import load_config_file
+from yt_loader_util import load_config_file
 
 
 class YoutubeApiBuilder:

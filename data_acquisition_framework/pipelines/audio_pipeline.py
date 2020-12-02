@@ -5,6 +5,7 @@ from contextlib import suppress
 import pandas as pd
 from itemadapter import ItemAdapter
 from scrapy import Request
+from scrapy.exceptions import DropItem
 from scrapy.pipelines.files import FilesPipeline
 
 from data_acquisition_framework.configs.paths import download_path, archives_base_path
@@ -35,13 +36,19 @@ class AudioPipeline(FilesPipeline):
                 file_name = "license_{0}.txt".format(item["source"])
                 self.storage_util.write_license_to_local(file_name, item['content'])
                 self.storage_util.upload_license(file_name, item["source"], item["language"])
+                raise DropItem()
             elif item["key_name"] == "creativecommons":
                 file_name = "license_{0}.txt".format(item["source"])
                 content = "creative commons => " + item["file_urls"][0]
                 self.storage_util.write_license_to_local(file_name, content)
                 self.storage_util.upload_license(file_name, item["source"], item["language"])
+                raise DropItem()
             elif item["key_name"] == "document":
                 return super().process_item(item, spider)
+            else:
+                exception_message = "Invalid key_name used for license item {}".format(item["key_name"])
+                logging.info(exception_message)
+                raise DropItem(exception_message)
         else:
             return super().process_item(item, spider)
 
@@ -77,7 +84,7 @@ class AudioPipeline(FilesPipeline):
             logging.info(str("***File {0} uploaded ***".format(file)))
         except Exception as exception:
             logging.error(exception)
-            os.remove(file)
+            os.remove(media_file_path)
         return duration_in_seconds
 
     def upload_license_to_bucket(self, item, media_file_path):

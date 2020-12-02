@@ -2,11 +2,15 @@ import os
 from unittest import TestCase
 from unittest.mock import patch
 
-from data_acquisition_framework.configs.paths import download_path
+from scrapy import Request
+from scrapy.exceptions import DropItem
+
+from data_acquisition_framework.configs.paths import download_path, archives_base_path
+from data_acquisition_framework.items import Media, LicenseItem
 from data_acquisition_framework.pipelines.audio_pipeline import AudioPipeline
 
 
-class Test(TestCase):
+class TestAudioPipeline(TestCase):
 
     # have to test if downloads folder is created if not present
     @patch('data_acquisition_framework.pipelines.audio_pipeline.MediaMetadata')
@@ -16,6 +20,11 @@ class Test(TestCase):
         self.audio_pipeline = AudioPipeline("file://" + current_path)
         self.mock_storage_util = mock_storage_util.return_value
         self.mock_media_metadata = mock_media_metadata.return_value
+        self.assertTrue(os.path.exists(download_path))
+
+    def tearDown(self):
+        if os.path.exists(download_path):
+            os.system("rm -rf "+download_path)
 
     def test_file_path_with_special_chars(self):
         class Request:
@@ -35,17 +44,167 @@ class Test(TestCase):
         expected_file_name = "test.mp4"
         self.assertEqual(expected_file_name, file_name)
 
-    # super has to tested
-    def test_process_item(self):
-        pass
-        # item = Media()
-        #
-        # self.audio_pipeline.process_item(item, None)
-        #
-        # self.assertTrue(self.mock_files_pipeline.called)
+    def test_process_item_for_license_with_key_html_page(self):
+        item = LicenseItem(file_urls=[],
+                           key_name="html_page",
+                           source='newsonair.gov.in',
+                           language='Gujarati',
+                           content="<body>hello world</body>")
 
-    def test_item_completed(self):
-        pass
+        file_name = "license_{0}.txt".format(item["source"])
+        with self.assertRaises(DropItem):
+            self.audio_pipeline.process_item(item, None)
+
+        self.mock_storage_util.write_license_to_local.assert_called_once_with(file_name, item["content"])
+        self.mock_storage_util.upload_license.assert_called_once_with(file_name, item["source"], item["language"])
+
+    def test_process_item_for_license_with_key_creative_commons(self):
+        item = LicenseItem(file_urls=['https://test.com/license.html'],
+                           key_name="creativecommons",
+                           source='newsonair.gov.in',
+                           language='Gujarati')
+        content = "creative commons => " + item["file_urls"][0]
+        file_name = "license_{0}.txt".format(item["source"])
+        with self.assertRaises(DropItem):
+            self.audio_pipeline.process_item(item, None)
+
+        self.mock_storage_util.write_license_to_local.assert_called_once_with(file_name, content)
+        self.mock_storage_util.upload_license.assert_called_once_with(file_name, item["source"], item["language"])
+
+    @patch("data_acquisition_framework.pipelines.audio_pipeline.FilesPipeline.process_item")
+    def test_process_item_for_license_with_key_document(self, mock_process_item):
+        item = LicenseItem(
+            key_name="document"
+        )
+        expected = "process"
+        mock_process_item.return_value = expected
+
+        result = self.audio_pipeline.process_item(item, None)
+
+        mock_process_item.assert_called_once()
+        self.assertEqual(expected, result)
+
+    def test_process_item_for_license_with_invalid_key(self):
+        item = LicenseItem(file_urls=['https://test.com/license.html'],
+                           key_name="tester",
+                           source='newsonair.gov.in',
+                           language='Gujarati')
+
+        with self.assertRaises(DropItem):
+            self.audio_pipeline.process_item(item, None)
+
+    @patch("data_acquisition_framework.pipelines.audio_pipeline.FilesPipeline.process_item")
+    def test_process_item_for_non_license_item(self, mock_process_item):
+        item = Media()
+        expected = "process"
+        mock_process_item.return_value = expected
+
+        result = self.audio_pipeline.process_item(item, None)
+
+        mock_process_item.assert_called_once()
+        self.assertEqual(expected, result)
+
+    def test_item_completed_for_success_download_path_with_audio_file_present(self):
+        item = Media(
+            title='Money-Talk-MT-2020317215621.mp3',
+            file_urls=['https://newsonair.gov.in/Money-Talk-MT-2020317215621.mp3'],
+            source='newsonair.com',
+            license_urls=['http://newsonair.com/Website-Policy.aspx'],
+            language='Gujarati',
+            source_url='http://newsonair.com/regional-audio.aspx'
+        )
+        duration = 60
+        os.system("touch {}{}".format(download_path, item['title']))
+        results = [(True,
+                    {
+                        'url': 'https://newsonair.gov.in/Money-Talk-MT-2020317215621.mp3',
+                        'path': 'Money-Talk-MT-2020317215621.mp3', 'checksum': 'a0a7e4c5aed4cde3c01e1de359cf323a',
+                        'status': 'downloaded'
+                    })]
+
+        with patch.object(self.audio_pipeline, 'upload_file_to_storage') as mock_upload_file_to_storage:
+            with patch.object(self.audio_pipeline, 'upload_license_to_bucket') as mock_upload_license_to_bucket:
+                mock_upload_file_to_storage.return_value = duration
+                result_from_method = self.audio_pipeline.item_completed(results, item, "")
+                mock_upload_file_to_storage.assert_called_once_with(item["title"], item, download_path + item["title"],
+                                                                    item["file_urls"][0])
+                mock_upload_license_to_bucket.assert_not_called()
+                item['files'] = [results[0][1]]
+                item['duration'] = duration
+                self.assertEqual(item, result_from_method)
+        os.system("rm -rf " + download_path)
+
+    def test_item_completed_for_success_download_path_with_license_file_present(self):
+        item = LicenseItem(file_urls=['http://newsonair.com/Website-Policy.pdf'], key_name="creativecommons",
+                           source='newsonair.gov.in',
+                           language='Gujarati')
+        os.system("touch {}{}".format(download_path, 'Website-Policy.pdf'))
+        results = [(True,
+                    {
+                        'url': 'http://newsonair.com/Website-Policy.pdf',
+                        'path': 'Website-Policy.pdf', 'checksum': 'a0a7e4c5aed4cde3c01e1de359cf323a',
+                        'status': 'downloaded'
+                    })]
+
+        with patch.object(self.audio_pipeline, 'upload_file_to_storage') as mock_upload_file_to_storage:
+            with patch.object(self.audio_pipeline, 'upload_license_to_bucket') as mock_upload_license_to_bucket:
+                result_from_method = self.audio_pipeline.item_completed(results, item, "")
+                mock_upload_file_to_storage.assert_not_called()
+                mock_upload_license_to_bucket.assert_called_once_with(item, download_path + "Website-Policy.pdf")
+                item['files'] = [results[0][1]]
+                self.assertEqual(item, result_from_method)
+
+        os.system("rm -rf " + download_path)
+
+    def test_item_completed_for_success_download_path_with_file_not_present(self):
+        item = Media(
+            title='Money-Talk-MT-2020317215621.mp3',
+            file_urls=['https://newsonair.gov.in/Money-Talk-MT-2020317215621.mp3'],
+            source='newsonair.com',
+            license_urls=['http://newsonair.com/Website-Policy.aspx'],
+            language='Gujarati',
+            source_url='http://newsonair.com/regional-audio.aspx'
+        )
+        if os.path.exists(download_path):
+            os.system("rm -rf {}".format(download_path))
+            os.system("mkdir {}".format(download_path))
+
+        results = [(True,
+                    {
+                        'url': 'https://newsonair.gov.in/Money-Talk-MT-2020317215621.mp3',
+                        'path': 'Money-Talk-MT-2020317215621.mp3', 'checksum': 'a0a7e4c5aed4cde3c01e1de359cf323a',
+                        'status': 'downloaded'
+                    })]
+
+        with patch.object(self.audio_pipeline, 'upload_file_to_storage') as mock_upload_file_to_storage:
+            with patch.object(self.audio_pipeline, 'upload_license_to_bucket') as mock_upload_license_to_bucket:
+                result_from_method = self.audio_pipeline.item_completed(results, item, "")
+                mock_upload_file_to_storage.assert_not_called()
+                mock_upload_license_to_bucket.assert_not_called()
+                item['files'] = [results[0][1]]
+                item['duration'] = 0
+                self.assertEqual(item, result_from_method)
+
+        os.system("rm -rf " + download_path)
+
+    def test_item_completed_for_failed_download(self):
+        item = Media(
+            title='Money-Talk-MT-2020317215621.mp3',
+            file_urls=['https://newsonair.gov.in/Money-Talk-MT-2020317215621.mp3'],
+            source='newsonair.com',
+            license_urls=['http://newsonair.com/Website-Policy.aspx'],
+            language='Gujarati',
+            source_url='http://newsonair.com/regional-audio.aspx'
+        )
+
+        results = []
+        with patch.object(self.audio_pipeline, 'upload_file_to_storage') as mock_upload_file_to_storage:
+            with patch.object(self.audio_pipeline, 'upload_license_to_bucket') as mock_upload_license_to_bucket:
+                output = self.audio_pipeline.item_completed(results, item, "")
+                mock_upload_file_to_storage.assert_not_called()
+                mock_upload_license_to_bucket.assert_not_called()
+
+        self.assertEqual(item, output)
 
     def test_upload_file_to_storage_with_no_exception(self):
         source = 'test'
@@ -74,16 +233,16 @@ class Test(TestCase):
         file = 't.mp4'
         media_file_path = download_path + file
         url = 'http://test.com/t.mp4'
-        os.system("touch "+file)
+        os.system("touch " + media_file_path)
 
-        def throw_exception():
+        def throw_exception(a, b, c):
             raise FileNotFoundError()
 
         with patch.object(self.audio_pipeline, 'extract_metadata') as mock_extract_metadata:
             mock_extract_metadata.side_effect = throw_exception
-            self.assertTrue(os.path.exists(file))
+            self.assertTrue(os.path.exists(media_file_path))
             self.audio_pipeline.upload_file_to_storage(file, item, media_file_path, url)
-            self.assertFalse(os.path.exists(file))
+            self.assertFalse(os.path.exists(media_file_path))
 
     def test_upload_license_to_bucket(self):
         source = 'test'
@@ -95,8 +254,76 @@ class Test(TestCase):
 
         self.mock_storage_util.upload_license.assert_called_once_with(media_file_path, source, language)
 
-    def test_get_media_requests(self):
-        pass
+    @patch('data_acquisition_framework.pipelines.audio_pipeline.ItemAdapter')
+    def test_get_media_requests_with_empty_archive(self, mock_item_adapter):
+        urls = ['https://newsonair.gov.in/Regional-Aurangabad-Urdu-0840-202012210939.mp3']
+        if not os.path.exists(archives_base_path):
+            os.system("mkdir " + archives_base_path)
+        mock_item_adapter.return_value.get.return_value = urls
+        item = {
+            "source": "test",
+            "language": "ta",
+            "FILES_URLS_FIELD": urls
+        }
+        self.mock_storage_util.retrieve_archive_from_local.return_value = []
+        expected = [Request(urls[0])]
+
+        results = self.audio_pipeline.get_media_requests(item, "")
+
+        for index, result in enumerate(results):
+            self.assertEqual(result.url, expected[index].url)
+            self.assertEqual(result.headers.to_string(), expected[index].headers.to_string())
+
+        self.mock_storage_util.retrieve_archive_from_bucket.assert_called_once_with(item['source'], item['language'])
+        self.mock_storage_util.retrieve_archive_from_local.assert_called_once_with(item['source'])
+        mock_item_adapter.assert_called_once_with(item)
+
+    @patch('data_acquisition_framework.pipelines.audio_pipeline.ItemAdapter')
+    def test_get_media_requests_with_filled_archive(self, mock_item_adapter):
+        urls = ['https://newsonair.gov.in/Regional-Aurangabad-Urdu-0840-202012210939.mp3']
+        if not os.path.exists(archives_base_path):
+            os.system("mkdir " + archives_base_path)
+        mock_item_adapter.return_value.get.return_value = urls
+        item = {
+            "source": "test",
+            "language": "ta",
+            "FILES_URLS_FIELD": urls
+        }
+        self.mock_storage_util.retrieve_archive_from_local.return_value = urls
+
+        results = self.audio_pipeline.get_media_requests(item, "")
+
+        self.assertTrue(len(results) == 0)
+
+        self.mock_storage_util.retrieve_archive_from_bucket.assert_called_once_with(item['source'], item['language'])
+        self.mock_storage_util.retrieve_archive_from_local.assert_called_once_with(item['source'])
+        mock_item_adapter.assert_called_once_with(item)
+
+    @patch('data_acquisition_framework.pipelines.audio_pipeline.ItemAdapter')
+    def test_get_media_requests_with_source_already_in_class_object_and_folder_present(self, mock_item_adapter):
+        urls = ['https://newsonair.gov.in/Regional-Aurangabad-Urdu-0840-202012210939.mp3']
+        self.audio_pipeline.archive_list["test"] = urls
+        if not os.path.exists(archives_base_path):
+            os.system("mkdir " + archives_base_path)
+            os.system("mkdir {}/test".format(archives_base_path))
+        else:
+            os.system("mkdir {}/test".format(archives_base_path))
+        mock_item_adapter.return_value.get.return_value = urls
+        item = {
+            "source": "test",
+            "language": "ta",
+            "FILES_URLS_FIELD": urls
+        }
+
+        results = self.audio_pipeline.get_media_requests(item, "")
+
+        self.mock_storage_util.retrieve_archive_from_bucket.assert_not_called()
+        self.mock_storage_util.retrieve_archive_from_local.assert_not_called()
+        self.assertEqual(self.audio_pipeline.archive_list, {"test": urls})
+        self.assertTrue(len(results) == 0)
+        mock_item_adapter.assert_called_once_with(item)
+
+        os.system("rm -rf " + archives_base_path)
 
     def test_is_download_success_return_true(self):
         item = {'files': ['sadfd']}
