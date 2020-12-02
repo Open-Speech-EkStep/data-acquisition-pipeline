@@ -12,6 +12,11 @@ def read_archive():
 
 
 def read_config(config_path):
-    with open(config_path, 'r') as f:
-        config = json.load(f)
-    return config
+    try:
+        with open(config_path, 'r') as f:
+            try:
+                return json.load(f)
+            except ValueError:
+                raise ValueError('{} is not a valid JSON.'.format(config_path))
+    except IOError:
+        raise IOError('file {} does not exist.'.format(config_path))
