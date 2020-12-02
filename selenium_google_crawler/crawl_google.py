@@ -104,6 +104,6 @@ class GoogleCrawler:
 
 
 if __name__ == "__main__":
-    config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.json")
-    google_crawler = GoogleCrawler(config_path)
+    config_file_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "config.json")
+    google_crawler = GoogleCrawler(config_file_path)
     google_crawler.crawl()

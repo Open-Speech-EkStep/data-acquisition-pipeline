@@ -1,15 +1,12 @@
 {
-    "language" : "gujarati",
-    "language_code": "gu",
+    "language" : "kannada",
+    "language_code": "kn",
     "keywords":[
-        "gujaraticomedy",
-        "gujaratinews",
-        "gujaratimovies",
-        "gujaratitalks",
-        "gujaratispeeches"
+        "kannadanews",
+        "kannadatalks"
     ],
     "words_to_ignore":[],
-    "max_results": 3,
+    "max_results": 1,
     "bucket_name": "ekstepspeechrecognition-dev",
     "bucket_path":  "scrapydump/refactor_test",
     "input_type":"YOUTUBE_API"

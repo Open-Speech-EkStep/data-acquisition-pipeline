@@ -29,6 +29,7 @@ def check_blob(bucket_name, file_prefix):
     stats = storage.Blob(bucket=bucket, name=file_prefix).exists(storage_client)
     return stats
 
+
 def upload_blob(bucket_name, source_file_name, destination_blob_name):
     """Uploads a file to the bucket."""
     # bucket_name = "your-bucket-name"
@@ -44,10 +45,11 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
         )
     )
 
-def set_gcs_credentials():
+
+def set_gcs_credentials(creds_path):
     print("Setting GOOGLE_APPLICATION_CREDENTIALS ....")
 
-    with open("./../credentials.json",'r') as file:
+    with open(creds_path, 'r') as file:
         gcs_credentials = json.load(file)["Credentials"]
     json_object = json.dumps(gcs_credentials, indent=4)
 

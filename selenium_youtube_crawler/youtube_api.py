@@ -145,7 +145,7 @@ if __name__ == "__main__":
         YoutubePlaylistCollector(config).get_channel_name_and_urls()
     # YoutubePlaylistCollector(config).generate_playlist_files("playlists")
     # no_keywords = pd.read_csv('channels_tamil_with_empty_keywords.csv', encoding='utf-8')
-    # with_keywords = pd.read_csv('channels_tamil_with_keywords.csv', encoding='utf-8')
+    # with_keywords = pd.read_csv('channels_tamil_with_keywordss.csv', encoding='utf-8')
     #
     # video_batch = with_keywords.merge(no_keywords, on='Url')
     # print(video_batch)

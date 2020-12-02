@@ -1,9 +1,10 @@
 import moviepy.editor
 import pandas as pd
 
+
 def get_config():
     return {
-        'mode': 'complete',                           
+        'mode': 'complete',
         'audio_id': None,
         'cleaned_duration': None,
         'num_of_speakers': None,
@@ -25,6 +26,7 @@ def get_config():
         'speaker_gender': None,
         'speaker_name': None
     }
+
 
 def create_metadata(video_info, yml):
     metadata = {'raw_file_name': video_info['raw_file_name'],
@@ -53,20 +55,22 @@ def create_metadata(video_info, yml):
                 'purpose': yml['purpose']}
     return metadata
 
+
 def create_metadata_for_audio(video_info, yml, source):
     metadata = create_metadata(video_info, yml)
     metadata["source"] = source
     return metadata
 
+
 def extract_metadata(file_dir, file, url, source):
     duration_in_seconds = 0
     video_info = {}
     video_duration = 0
-    FILE_FORMAT = file.split('.')[-1]
-    meta_file_name = file.replace(FILE_FORMAT, "csv")
+    file_format = file.split('.')[-1]
+    meta_file_name = file.replace(file_format, "csv")
     source_url = url
-    if FILE_FORMAT == 'mp4':
-        video = moviepy.editor.VideoFileClip(file_dir+"/"+file)
+    if file_format == 'mp4':
+        video = moviepy.editor.VideoFileClip(file_dir + "/" + file)
         duration_in_seconds = int(video.duration)
         video_duration = duration_in_seconds / 60
     video_info['duration'] = video_duration
@@ -76,5 +80,5 @@ def extract_metadata(file_dir, file, url, source):
     video_info['source_url'] = source_url
     metadata = create_metadata_for_audio(video_info, get_config(), source)
     metadata_df = pd.DataFrame([metadata])
-    metadata_df.to_csv(file_dir+"/"+meta_file_name, index=False)
+    metadata_df.to_csv(file_dir + "/" + meta_file_name, index=False)
     return duration_in_seconds
