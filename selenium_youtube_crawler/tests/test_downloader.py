@@ -142,8 +142,10 @@ class DownloaderTest(TestCase):
         file_name = "test.mp4"
         csv_name = "test.csv"
         os.system("mkdir " + self.file_dir)
+        os.system("touch {0}/{1}".format(self.file_dir, file_name))
         os.system("touch {0}/{1}".format(self.file_dir, csv_name))
-        os.system("touch {0}/{1}".format(self.file_dir, csv_name))
+        self.assertTrue(os.path.exists(self.file_dir + "/" + file_name))
+        self.assertTrue(os.path.exists(self.file_dir + "/" + csv_name))
 
         self.downloader.clean_up_files(file_name, csv_name)
 
