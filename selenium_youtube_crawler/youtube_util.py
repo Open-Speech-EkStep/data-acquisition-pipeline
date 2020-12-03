@@ -77,6 +77,8 @@ class YoutubeApiUtils:
         return playlist_collection
 
     def generate_playlist_files(self, folder):
+        if not os.path.exists(folder):
+            os.system('mkdir ' + folder)
         playlist_collection = self.get_playlist_collection()
         for playlist, video_ids in playlist_collection.items():
             with open(folder + "/" + playlist + ".txt", 'w') as f:
@@ -204,4 +206,4 @@ class YoutubeChannelCollector:
 
 
 if __name__ == "__main__":
-    YoutubeApiUtils().extract_video_info_for_channels()
+    YoutubeApiUtils().generate_playlist_files('playlists')

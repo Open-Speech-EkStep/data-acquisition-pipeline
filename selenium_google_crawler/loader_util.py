@@ -13,7 +13,7 @@ def read_archive():
 
 def read_config(config_path):
     try:
-        with open(config_path, 'r') as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             try:
                 return json.load(f)
             except ValueError:

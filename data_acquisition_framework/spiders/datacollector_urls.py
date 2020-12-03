@@ -9,7 +9,7 @@ import scrapy
 import scrapy.settings
 from scrapy import signals
 
-from data_acquisition_framework.services.loader_util import load_web_crawl_config
+from data_acquisition_framework.services.loader_util import load_config_file
 from ..items import Media, LicenseItem
 from ..services.storage_util import StorageUtil
 from ..utilities import is_unwanted_words_present, is_unwanted_wiki, write, is_extension_present, \
@@ -38,7 +38,7 @@ class UrlSearchSpider(scrapy.Spider):
         super().__init__(*args, **kwargs)
         StorageUtil().set_gcs_creds(str(kwargs["my_setting"]).replace("'", ""))
         self.total_duration_in_seconds = 0
-        config = load_web_crawl_config()
+        config = load_config_file('web_crawl_config.json')
         self.language = config["language"]
         self.language_code = config["language_code"]
         self.max_seconds = config["max_hours"] * 3600

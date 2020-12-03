@@ -85,6 +85,8 @@ class GoogleCrawler:
             link = a_element.get_attribute('href')
             if self.is_present_in_archive(link) or self.is_unwanted_present(link) or self.is_unwanted_extension_present(
                     link) or self.is_unwanted_wiki(link):
+                with open("ignored.txt",'a') as f:
+                    f.write(link + "\n")
                 continue
             self.links_count += 1
             self.archive.append(link + "\n")

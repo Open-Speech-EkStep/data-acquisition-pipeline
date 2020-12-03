@@ -15,7 +15,8 @@ from ..services.storage_util import StorageUtil
 from ..utilities import extract_license_urls, is_unwanted_words_present, is_unwanted_extension_present, \
     is_extension_present, is_unwanted_wiki, write
 
-from data_acquisition_framework.services.loader_util import load_web_crawl_config
+from data_acquisition_framework.services.loader_util import load_config_file
+
 
 class BingSearchSpider(scrapy.Spider):
     name = "datacollector_bing"
@@ -43,7 +44,7 @@ class BingSearchSpider(scrapy.Spider):
         StorageUtil().set_gcs_creds(str(kwargs["my_setting"]).replace("\'", ""))
         self.total_duration_in_seconds = 0
         self.web_crawl_config = os.path.dirname(os.path.realpath(__file__)) + "/../configs/web_crawl_config.json"
-        config = load_web_crawl_config()
+        config = load_config_file('web_crawl_config.json')
         self.config = config
         self.language = config["language"]
         self.language_code = config["language_code"]

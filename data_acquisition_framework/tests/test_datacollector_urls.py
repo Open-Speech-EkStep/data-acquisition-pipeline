@@ -10,8 +10,8 @@ from data_acquisition_framework.spiders.datacollector_urls import UrlSearchSpide
 class TestUrlSearchSpider(TestCase):
 
     @patch('data_acquisition_framework.spiders.datacollector_urls.StorageUtil')
-    @patch('data_acquisition_framework.spiders.datacollector_bing.load_web_crawl_config')
-    def setUp(self, mock_load_web_crawl_config, mock_storage_util):
+    @patch('data_acquisition_framework.spiders.datacollector_bing.load_config_file')
+    def setUp(self, mock_load_config_file, mock_storage_util):
         self.mock_config = {
             "language": "Gujarati",
             "language_code": "gu",
@@ -35,7 +35,7 @@ class TestUrlSearchSpider(TestCase):
             "enable_hours_restriction": "NO",
             "max_hours": 1
         }
-        mock_load_web_crawl_config.return_value = self.mock_config
+        mock_load_config_file.return_value = self.mock_config
         self.mock_storage_util = mock_storage_util
         self.data_collector_urls = UrlSearchSpider(my_setting="")
 
