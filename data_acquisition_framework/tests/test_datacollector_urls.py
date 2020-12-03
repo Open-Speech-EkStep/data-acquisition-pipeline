@@ -11,7 +11,7 @@ from data_acquisition_framework.spiders.datacollector_urls import UrlSearchSpide
 class TestUrlSearchSpider(TestCase):
 
     @patch('data_acquisition_framework.spiders.datacollector_urls.StorageUtil')
-    @patch('data_acquisition_framework.spiders.datacollector_bing.load_config_file')
+    @patch('data_acquisition_framework.spiders.datacollector_urls.load_config_file')
     def setUp(self, mock_load_config_file, mock_storage_util):
         self.mock_config = {
             "language": "Gujarati",
@@ -20,15 +20,9 @@ class TestUrlSearchSpider(TestCase):
                 "songs download",
                 "kavita download"
             ],
-            "word_to_ignore": [
-
-            ],
-            "extensions_to_ignore": [
-
-            ],
-            "extensions_to_include": [
-
-            ],
+            "word_to_ignore": [],
+            "extensions_to_ignore": [],
+            "extensions_to_include": [],
             "pages": 10,
             "depth": 2,
             "continue_page": "NO",
@@ -39,6 +33,18 @@ class TestUrlSearchSpider(TestCase):
         mock_load_config_file.return_value = self.mock_config
         self.mock_storage_util = mock_storage_util
         self.data_collector_urls = UrlSearchSpider(my_setting="")
+
+    def test_init(self):
+        self.mock_storage_util.return_value.set_gcs_creds.assert_called_once_with("")
+        self.assertEqual(0, self.data_collector_urls.total_duration_in_seconds)
+        self.assertEqual(self.mock_config['language'], self.data_collector_urls.language)
+        self.assertEqual(self.mock_config['language_code'], self.data_collector_urls.language_code)
+        self.assertEqual(self.mock_config['max_hours'] * 3600, self.data_collector_urls.max_seconds)
+        self.assertEqual(self.mock_config['depth'], self.data_collector_urls.depth)
+        self.assertEqual(self.mock_config['extensions_to_include'], self.data_collector_urls.extensions_to_include)
+        self.assertEqual(self.mock_config['extensions_to_ignore'], self.data_collector_urls.extensions_to_ignore)
+        self.assertEqual(self.mock_config['word_to_ignore'], self.data_collector_urls.word_to_ignore)
+        self.assertFalse(self.data_collector_urls.enable_hours_restriction)
 
     def test_item_scraped_if_item_is_none(self):
         self.data_collector_urls.item_scraped(None, None, self.data_collector_urls)

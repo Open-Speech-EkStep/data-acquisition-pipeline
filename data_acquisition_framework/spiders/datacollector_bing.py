@@ -111,13 +111,14 @@ class BingSearchSpider(scrapy.Spider):
     def filter_unwanted_urls(self, response, urls):
         write("base_url.txt", response.url)
         search_result_urls = []
-        write("results.txt", "%s results = [\n" % response.url)
+        output_file = "results.txt"
+        write("%s" % output_file, "%s results = [\n" % response.url)
         for url in urls:
-            if url.startswith("http:") or url.startswith("https:"):
-                if "go.microsoft.com" not in url and "microsofttranslator.com" not in url:
-                    search_result_urls.append(url)
-                    write("results.txt", url + "\n")
-        write("results.txt", "\n]\n")
+            if (url.startswith("http:") or url.startswith(
+                    "https:")) and "go.microsoft.com" not in url and "microsofttranslator.com" not in url:
+                search_result_urls.append(url)
+                write(output_file, url + "\n")
+        write(output_file, "\n]\n")
         return search_result_urls
 
     def parse(self, response, depth):
