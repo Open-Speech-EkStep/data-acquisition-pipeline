@@ -1,10 +1,10 @@
-import concurrent.futures
+import html
 import html
 import json
+import logging
 import os
 import re
 from urllib.parse import urlparse
-import logging
 
 import scrapy
 import scrapy.settings
@@ -93,19 +93,11 @@ class BingSearchSpider(scrapy.Spider):
             json.dump(self.config, web_crawl_config_file, indent=4)
 
     def parse_search_page(self, response, page_number, keyword):
-        urls = response.css('a::attr(href)').getall()
+        response_css = response.css('a::attr(href)')
+        urls = response_css.getall()
         search_result_urls = self.filter_unwanted_urls(response, urls)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            future_to_url = {executor.submit(self.get_request_for_search_result, url): url for url in
-                             search_result_urls}
-            for future in concurrent.futures.as_completed(future_to_url):
-                url = future_to_url[future]
-                try:
-                    data = future.result()
-                    if data is not None:
-                        yield data
-                except Exception as exc:
-                    logging.error('%r generated an exception: %s' % (url, exc))
+        for url in search_result_urls:
+            yield self.get_request_for_search_result(url)
         page = page_number * 10
         formatted_url = "https://www.bing.com/search?q={0}&first={1}".format(keyword, page)
         page_number += 1
@@ -152,7 +144,7 @@ class BingSearchSpider(scrapy.Spider):
 
             try:
                 urlparse(url)
-            except:
+            except Exception:
                 continue
 
             if is_unwanted_words_present(self.word_to_ignore, url) or is_unwanted_wiki(self.language_code, url):

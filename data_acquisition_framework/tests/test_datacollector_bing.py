@@ -57,11 +57,104 @@ class TestBingSearchSpider(TestCase):
         self.data_collector_bing.item_scraped({'duration': 10}, None, self.data_collector_bing)
         self.assertEqual(self.data_collector_bing.total_duration_in_seconds, 10)
 
-    def test_start_requests_with_no_continued(self):
-        self.fail()
+    @patch('data_acquisition_framework.spiders.datacollector_bing.json.dump')
+    @patch('data_acquisition_framework.spiders.datacollector_bing.open')
+    def test_start_requests_with_no_continued(self, mock_open, mock_json_dump):
+        mock_open_file = mock_open.return_value.__enter__.return_value
 
-    def test_parse_search_page(self):
-        self.fail()
+        keywords = ["news", "talks"]
+        language = "tamil"
+        self.data_collector_bing.is_continued = False
+        self.data_collector_bing.config["keywords"] = keywords
+        self.data_collector_bing.language = language
+        keywords = [language + "+" + keyword.replace(" ", "+") for keyword in keywords]
+        urls = ["https://www.bing.com/search?q={0}".format(keyword) for keyword in keywords]
+
+        results = self.data_collector_bing.start_requests()
+
+        count = 0
+        for result in results:
+            self.assertTrue(isinstance(result, scrapy.Request))
+            self.assertEqual(urls[count], result.url)
+            self.assertEqual(self.data_collector_bing.parse_search_page, result.callback)
+            self.assertEqual(dict(page_number=1, keyword=keywords[count]), result.cb_kwargs)
+            count += 1
+
+        self.assertTrue(count > 0)
+        mock_open.assert_called_once_with(self.data_collector_bing.web_crawl_config, 'w')
+        mock_json_dump.assert_called_once_with(self.data_collector_bing.config, mock_open_file, indent=4)
+
+    @patch('data_acquisition_framework.spiders.datacollector_bing.json.dump')
+    @patch('data_acquisition_framework.spiders.datacollector_bing.open')
+    def test_start_requests_with_continued(self, mock_open, mock_json_dump):
+        mock_open_file = mock_open.return_value.__enter__.return_value
+        start_page = 20
+        keywords = ["news", "talks"]
+        language = "tamil"
+        self.data_collector_bing.is_continued = True
+        self.data_collector_bing.config["last_visited"] = 20
+        self.data_collector_bing.config["keywords"] = keywords
+        self.data_collector_bing.language = language
+        keywords = [language + "+" + keyword.replace(" ", "+") for keyword in keywords]
+        urls = ["https://www.bing.com/search?q={0}&first={1}".format(keyword, start_page) for keyword in keywords]
+
+        results = self.data_collector_bing.start_requests()
+
+        count = 0
+        for result in results:
+            self.assertTrue(isinstance(result, scrapy.Request))
+            self.assertEqual(urls[count], result.url)
+            self.assertEqual(self.data_collector_bing.parse_search_page, result.callback)
+            self.assertEqual(dict(page_number=1, keyword=keywords[count]), result.cb_kwargs)
+            count += 1
+
+        self.assertTrue(count == 2)
+        mock_open.assert_called_once_with(self.data_collector_bing.web_crawl_config, 'w')
+        mock_json_dump.assert_called_once_with(self.data_collector_bing.config, mock_open_file, indent=4)
+
+    @patch('data_acquisition_framework.spiders.datacollector_bing.write')
+    def test_parse_search_page(self, write_mock):
+        url = "http://bing.com/q=audios"
+        urls = [
+            "https://test.com/audios",
+            "mail://test.com",
+            "http://test2.com/audios",
+            "https://go.microsoft.com/test",
+            "https://microsofttranslator.com/test"
+        ]
+
+        css_return = MagicMock()
+        response = MagicMock()
+        response.url = url
+        response.css.return_value = css_return
+        css_return.getall.return_value = urls
+        keyword = "tamil+news"
+        self.data_collector_bing.pages = 2
+        expected = [urls[0], urls[2]]
+
+        with patch.object(self.data_collector_bing, 'filter_unwanted_urls') as mock_filter:
+            mock_filter.return_value = expected
+
+            results = self.data_collector_bing.parse_search_page(response, 1, keyword)
+
+            count = 0
+            for result in results:
+                self.assertTrue(isinstance(result, scrapy.Request))
+                if count == 0 or count == 1:
+                    self.assertEqual(expected[count], result.url)
+                    self.assertEqual(self.data_collector_bing.parse, result.callback)
+                    self.assertEqual(dict(depth=1), result.cb_kwargs)
+                else:
+                    self.assertEqual("https://www.bing.com/search?q={0}&first={1}".format(keyword, 10), result.url)
+                    self.assertEqual(self.data_collector_bing.parse_search_page, result.callback)
+                    self.assertEqual(dict(page_number=2, keyword=keyword), result.cb_kwargs)
+                count += 1
+
+            mock_filter.assert_called_once_with(response, urls)
+            response.css.assert_called_once_with('a::attr(href)')
+            css_return.getall.assert_called_once()
+
+        self.assertTrue(count == 3)
 
     def test_get_request_for_search_result(self):
         url = "http://test.com/test.mp4"

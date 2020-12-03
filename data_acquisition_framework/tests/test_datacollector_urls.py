@@ -1,5 +1,6 @@
+from concurrent import futures
 from unittest import TestCase
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, call
 
 import scrapy
 
@@ -47,8 +48,36 @@ class TestUrlSearchSpider(TestCase):
         self.data_collector_urls.item_scraped({'duration': 10}, None, self.data_collector_urls)
         self.assertEqual(self.data_collector_urls.total_duration_in_seconds, 10)
 
-    def test_start_requests(self):
-        self.fail()
+    @patch('data_acquisition_framework.spiders.datacollector_urls.as_completed')
+    @patch('data_acquisition_framework.spiders.datacollector_urls.concurrent.futures.ThreadPoolExecutor')
+    @patch('data_acquisition_framework.spiders.datacollector_urls.open')
+    def test_start_requests(self, mock_open, mock_thread_pool_executor, mock_as_completed):
+        urls_path_open_mock = mock_open.return_value.__enter__.return_value
+        mock_executor = mock_thread_pool_executor.return_value.__enter__.return_value
+
+        result1 = MagicMock(spec=futures.Future)
+        result1.result.return_value = None
+        result2 = MagicMock(spec=futures.Future)
+        result2.result.return_value = "hello"
+        mock_executor.submit.side_effect = [result1, result2]
+
+        urls = ["https://test.com.test.mp4", "https://test2.com/test2.mp4"]
+        urls_path_open_mock.read.return_value = "\n".join(urls)
+
+        mock_as_completed.return_value = [result1, result2]
+
+        results = self.data_collector_urls.start_requests()
+        count = 0
+        for data in results:
+            count += 1
+            self.assertEqual("hello", data)
+        self.assertEqual(1, count)
+        urls_path_open_mock.read.assert_called_once()
+        mock_open.assert_called_once()
+        mock_executor.submit.assert_has_calls([call(self.data_collector_urls.parse_results_url, url) for url in urls])
+        mock_as_completed.assert_called_once_with({result1: urls[0], result2: urls[1]})
+        result1.result.assert_called_once()
+        result2.result.assert_called_once()
 
     def test_parse_results_url(self):
         url = "http://test.com/test.mp4"

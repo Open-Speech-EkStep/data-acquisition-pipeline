@@ -1,4 +1,5 @@
 import concurrent.futures
+from concurrent.futures import as_completed
 import html
 import logging
 import os
@@ -70,12 +71,13 @@ class UrlSearchSpider(scrapy.Spider):
     def start_requests(self):
         urls_path = os.path.dirname(os.path.realpath(__file__)) + "/../urls.txt"
         with open(urls_path, "r") as f:
+            urls = f.read().splitlines()
             with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
                 future_to_url = {
                     executor.submit(self.parse_results_url, url): url
-                    for url in f.readlines()
+                    for url in urls
                 }
-                for future in concurrent.futures.as_completed(future_to_url):
+                for future in as_completed(future_to_url):
                     url = future_to_url[future]
                     try:
                         data = future.result()
