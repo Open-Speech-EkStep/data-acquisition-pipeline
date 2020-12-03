@@ -10,12 +10,11 @@ import scrapy
 import scrapy.settings
 from scrapy import signals
 
+from data_acquisition_framework.services.loader_util import load_config_file
 from ..items import Media, LicenseItem
 from ..services.storage_util import StorageUtil
 from ..utilities import extract_license_urls, is_unwanted_words_present, is_unwanted_extension_present, \
     is_extension_present, is_unwanted_wiki, write
-
-from data_acquisition_framework.services.loader_util import load_config_file
 
 
 class BingSearchSpider(scrapy.Spider):
@@ -125,27 +124,23 @@ class BingSearchSpider(scrapy.Spider):
         if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
             return
         base_url = response.url
-        a_urls = response.css('a::attr(href)').getall()
-        source_urls = response.css('source::attr(src)').getall()
-        audio_tag_urls = response.css("audio::attr(src)").getall()
-
-        urls = a_urls + source_urls + audio_tag_urls
-        source_domain = base_url[base_url.index("//") + 2:].split('/')[0]
-        if source_domain.startswith("www."):
-            source_domain = source_domain.replace("www.", "")
+        a_urls, urls = self.extract_media_urls(response)
+        source_domain = self.extract_source_domain(base_url)
         all_a_tags = response.xpath('//a')
         license_urls = extract_license_urls(a_urls, all_a_tags, response)
         license_extracted = False
-
         for url in urls:
+            # untestable yet
             if self.enable_hours_restriction and (self.total_duration_in_seconds >= self.max_seconds):
-                return
+                return None
 
             url = response.urljoin(url)
-
             try:
-                urlparse(url)
-            except Exception:
+                url_scheme = urlparse(url).scheme
+                if url_scheme != "http" and url_scheme != "https":
+                    continue
+            except Exception as exc:
+                print(exc)
                 continue
 
             if is_unwanted_words_present(self.word_to_ignore, url) or is_unwanted_wiki(self.language_code, url):
@@ -169,9 +164,21 @@ class BingSearchSpider(scrapy.Spider):
 
             if is_unwanted_extension_present(self.extensions_to_ignore, url) or depth >= self.depth:
                 continue
-
             # if not matched any of above, traverse to next
             yield scrapy.Request(url, callback=self.parse, cb_kwargs=dict(depth=(depth + 1)))
+
+    def extract_source_domain(self, base_url):
+        source_domain = base_url[base_url.index("//") + 2:].split('/')[0]
+        if source_domain.startswith("www."):
+            source_domain = source_domain.replace("www.", "")
+        return source_domain
+
+    def extract_media_urls(self, response):
+        a_urls = response.css('a::attr(href)').getall()
+        source_urls = response.css('source::attr(src)').getall()
+        audio_tag_urls = response.css("audio::attr(src)").getall()
+        urls = a_urls + source_urls + audio_tag_urls
+        return a_urls, urls
 
     def extract_license(self, license_urls, source_domain):
         for license_url in license_urls:

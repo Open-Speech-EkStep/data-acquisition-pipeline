@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock, call
 
 import scrapy
 
-from data_acquisition_framework.items import LicenseItem
+from data_acquisition_framework.items import LicenseItem, Media
 from data_acquisition_framework.spiders.datacollector_bing import BingSearchSpider
 
 
@@ -190,8 +190,153 @@ class TestBingSearchSpider(TestCase):
              call("results.txt", "\n]\n")])
         self.assertEqual(expected, filtered_urls)
 
-    def test_parse(self):
-        self.fail()
+    def test_parse_with_hours_restriction_enabled_and_crossed_limit(self):
+        self.data_collector_bing.enable_hours_restriction = True
+        self.data_collector_bing.total_duration_in_seconds = 2000
+        self.data_collector_bing.max_seconds = 20
+
+        with patch.object(self.data_collector_bing, 'extract_media_urls') as mock_extract_media_urls:
+            self.data_collector_bing.parse(None, 1)
+            mock_extract_media_urls.assert_not_called()
+
+    def test_extract_source_domain_with_www(self):
+        domain = "test.com"
+        base_url = "https://%s/test.html" % domain
+
+        source_domain = self.data_collector_bing.extract_source_domain(base_url)
+
+        self.assertEqual(domain, source_domain)
+
+    def test_extract_source_domain_without_www(self):
+        domain = "test.com"
+        base_url = "https://www.%s/test.html" % domain
+
+        source_domain = self.data_collector_bing.extract_source_domain(base_url)
+
+        self.assertEqual(domain, source_domain)
+
+    def test_extract_media_urls(self):
+        response = MagicMock()
+        a_tag_urls = ["https://test.com/1.mp4", "https://test.com/2.mp4"]
+        source_urls = ["https://test.com/4.mp4", "https://test.com/5.mp4"]
+        audio_tag_urls = ["https://test.com/6.mp4", "https://test.com/6.mp4"]
+        expected_urls = a_tag_urls + source_urls + audio_tag_urls
+        css_return_mock = MagicMock()
+        response.css.return_value = css_return_mock
+        css_return_mock.getall.side_effect = [a_tag_urls, source_urls, audio_tag_urls]
+
+        a_urls, urls = self.data_collector_bing.extract_media_urls(response)
+        pairs = [('a', 'href'), ('source', 'src'), ('audio', 'src')]
+        call_strings = ["{}::attr({})".format(tag, attribute) for tag, attribute in pairs]
+        calls = [call(call_strings[0]), call().getall(),
+                 call(call_strings[1]), call().getall(),
+                 call(call_strings[2]), call().getall()]
+        response.css.assert_has_calls(calls)
+        self.assertEqual(a_tag_urls, a_urls)
+        self.assertEqual(expected_urls, urls)
+
+    @patch('data_acquisition_framework.spiders.datacollector_bing.extract_license_urls')
+    def test_parse_without_hours_restriction_with_depth_one(self, mock_extract_license_urls):
+        self.data_collector_bing.enable_hours_restriction = False
+        self.data_collector_bing.depth = 1
+        self.data_collector_bing.extensions_to_include = [".mp4"]
+        self.data_collector_bing.extensions_to_ignore = [".pdf"]
+
+        def url_join(url):
+            return url
+
+        response = MagicMock()
+        response.url = "https://test.com/helloworld"
+        response.xpath.return_value = []
+        response.urljoin.side_effect = url_join
+        license_urls = ["https://test.com/license.html"]
+        mock_extract_license_urls.return_value = license_urls
+        urls = [
+            "https://test.com/a.mp4",
+            "https://test.com/a.pdf",
+            "mail://test",
+            "https://test.com/a.html"
+        ]
+
+        with patch.object(self.data_collector_bing, 'extract_media_urls') as mock_extract_media_urls:
+            with patch.object(self.data_collector_bing, 'extract_source_domain') as mock_extract_source_domain:
+                with patch.object(self.data_collector_bing, 'extract_license') as mock_extract_license:
+                    license_item = LicenseItem(file_urls=license_urls, key_name="creativecommons", source="test.com",
+                                               language=self.data_collector_bing.language)
+                    mock_extract_license.return_value = [license_item]
+                    mock_extract_media_urls.return_value = [], urls
+                    mock_extract_source_domain.return_value = "test.com"
+
+                    results = self.data_collector_bing.parse(response, 1)
+
+                    count = 0
+                    for result in results:
+                        if count == 0:
+                            self.assertTrue(isinstance(result, LicenseItem))
+                            self.assertEqual(license_urls, result['file_urls'])
+                            self.assertEqual('creativecommons', result['key_name'])
+                            self.assertEqual('Gujarati', result['language'])
+                            self.assertEqual('test.com', result['source'])
+                        else:
+                            self.assertTrue(isinstance(result, Media))
+                            self.assertEqual(['https://test.com/a.mp4'], result['file_urls'])
+                            self.assertEqual(license_urls, result['license_urls'])
+                            self.assertEqual('Gujarati', result['language'])
+                            self.assertEqual('test.com', result['source'])
+                            self.assertEqual(response.url, result['source_url'])
+                            self.assertEqual('a.mp4', result['title'])
+                        count += 1
+
+                    self.assertTrue(count == 2)
+
+    @patch('data_acquisition_framework.spiders.datacollector_bing.extract_license_urls')
+    def test_parse_without_hours_restriction_with_depth_two(self, mock_extract_license_urls):
+        self.data_collector_bing.enable_hours_restriction = False
+        self.data_collector_bing.depth = 2
+        self.data_collector_bing.extensions_to_include = [".mp4"]
+        self.data_collector_bing.extensions_to_ignore = [".pdf"]
+
+        def url_join(url):
+            return url
+
+        response = MagicMock()
+        response.url = "https://test.com/helloworld"
+        response.xpath.return_value = []
+        response.urljoin.side_effect = url_join
+        license_urls = ["https://test.com/license.html"]
+        mock_extract_license_urls.return_value = license_urls
+        urls = [
+            "https://test.com/a.html",
+            "https://test.com/a.pdf",
+            "mail://test",
+            "https://test.com/b.html"
+        ]
+        expected = [urls[0], urls[3]]
+
+        with patch.object(self.data_collector_bing, 'extract_media_urls') as mock_extract_media_urls:
+            with patch.object(self.data_collector_bing, 'extract_source_domain') as mock_extract_source_domain:
+                with patch.object(self.data_collector_bing, 'extract_license') as mock_extract_license:
+                    license_item = LicenseItem(file_urls=license_urls, key_name="creativecommons", source="test.com",
+                                               language=self.data_collector_bing.language)
+                    mock_extract_license.return_value = [license_item]
+                    mock_extract_media_urls.return_value = [], urls
+                    mock_extract_source_domain.return_value = "test.com"
+
+                    results = self.data_collector_bing.parse(response, 1)
+
+                    count = 0
+                    for result in results:
+                        if isinstance(result, LicenseItem) or isinstance(result, Media):
+                            self.fail()
+
+                        self.assertTrue(isinstance(result, scrapy.Request))
+                        self.assertEqual(expected[count], result.url)
+                        self.assertEqual(self.data_collector_bing.parse, result.callback)
+                        self.assertEqual(dict(depth=2), result.cb_kwargs)
+
+                        count += 1
+
+                    self.assertTrue(count == 2)
 
     def test_extract_license_for_creative_common(self):
         url = 'https://creativecommons.org/v2/license'
