@@ -219,8 +219,9 @@ class TestYoutubeUtil(TestCase):
         os.system("rm -rf " + channels_path)
         os.system("rm test.csv")
 
+    @patch('data_acquisition_framework.services.youtube_util.logging')
     @patch('data_acquisition_framework.services.youtube_util.mode', 'file')
-    def test_validate_mode_and_get_result_for_file_mode_if_file_is_not_in_bucket(self):
+    def test_validate_mode_and_get_result_for_file_mode_if_file_is_not_in_bucket(self, mock_logging):
         if os.path.exists(channels_path):
             os.system("rm -rf " + channels_path)
 
@@ -264,8 +265,9 @@ class TestYoutubeUtil(TestCase):
 
         os.system("rm -rf " + channels_path)
 
+    @patch('data_acquisition_framework.services.youtube_util.logging')
     @patch('data_acquisition_framework.services.youtube_util.mode', 'playlist')
-    def test_validate_mode_and_get_result_for_invalid_mode(self):
+    def test_validate_mode_and_get_result_for_invalid_mode(self, mock_logging):
 
         for mode, channel_file, _ in self.youtube_util.validate_mode_and_get_result():
             self.fail()
@@ -284,10 +286,11 @@ class TestYoutubeUtil(TestCase):
         except KeyError:
             self.fail()
 
+    @patch('data_acquisition_framework.services.youtube_util.logging')
     @patch('data_acquisition_framework.services.youtube_util.file_speaker_gender_column', 'gender')
     @patch('data_acquisition_framework.services.youtube_util.file_speaker_name_column', 'name')
     @patch('data_acquisition_framework.services.youtube_util.file_url_name_column', 'url')
-    def test_check_dataframe_validity_url_column_not_recognizable(self):
+    def test_check_dataframe_validity_url_column_not_recognizable(self, mock_logging):
         data = [
             ["male", 'tester', 'https://www.youtube.com/watch?v=sfgsft']
         ]
@@ -298,10 +301,11 @@ class TestYoutubeUtil(TestCase):
 
         self.assertRaises(KeyError, method_to_call)
 
+    @patch('data_acquisition_framework.services.youtube_util.logging')
     @patch('data_acquisition_framework.services.youtube_util.file_speaker_gender_column', 'gender')
     @patch('data_acquisition_framework.services.youtube_util.file_speaker_name_column', 'name')
     @patch('data_acquisition_framework.services.youtube_util.file_url_name_column', 'url')
-    def test_check_dataframe_validity_name_column_not_recognizable(self):
+    def test_check_dataframe_validity_name_column_not_recognizable(self, mock_logging):
         data = [
             ["male", 'tester', 'https://www.youtube.com/watch?v=sfgsft']
         ]
@@ -312,10 +316,11 @@ class TestYoutubeUtil(TestCase):
 
         self.assertRaises(KeyError, method_to_call)
 
+    @patch('data_acquisition_framework.services.youtube_util.logging')
     @patch('data_acquisition_framework.services.youtube_util.file_speaker_gender_column', 'gender')
     @patch('data_acquisition_framework.services.youtube_util.file_speaker_name_column', 'name')
     @patch('data_acquisition_framework.services.youtube_util.file_url_name_column', 'url')
-    def test_check_dataframe_validity_gender_column_not_recognizable(self):
+    def test_check_dataframe_validity_gender_column_not_recognizable(self, mock_logging):
         data = [
             ["male", 'tester', 'https://www.youtube.com/watch?v=sfgsft']
         ]
@@ -533,7 +538,7 @@ class TestYoutubeUtil(TestCase):
     @patch('data_acquisition_framework.services.youtube_util.batch_num', 2)
     def test_get_video_batch_read_channel_file_not_present(self):
         if os.path.exists(channels_path):
-            os.system("rm -rf"+channels_path)
+            os.system("rm -rf" + channels_path)
 
         channel_name = "test"
 

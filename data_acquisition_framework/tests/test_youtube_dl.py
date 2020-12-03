@@ -36,19 +36,22 @@ class TestYoutubeDL(TestCase):
         flag = self.youtube_dl_service.check_and_log_download_output(test_output)
         self.assertFalse(flag)
 
-    def test_check_and_log_raises_exit(self):
+    @patch('data_acquisition_framework.services.youtube.youtube_dl.logging')
+    def test_check_and_log_raises_exit(self, mock_logging):
         test_output = CompletedProcess(args='', returncode=1, stdout=b'',
                                        stderr=b'ERROR:": HTTP Error 429"\n')
         with self.assertRaises(SystemExit):
             self.youtube_dl_service.check_and_log_download_output(test_output)
 
-    def test_check_and_log_with_yt_errors(self):
+    @patch('data_acquisition_framework.services.youtube.youtube_dl.logging')
+    def test_check_and_log_with_yt_errors(self, mock_logging):
         test_output = CompletedProcess(args='', returncode=1, stdout=b'',
                                        stderr=b'HTTP Error 404: Not Found"\n')
         flag = self.youtube_dl_service.check_and_log_download_output(test_output)
         self.assertTrue(flag)
 
-    def test_check_and_log_with_other_errors(self):
+    @patch('data_acquisition_framework.services.youtube.youtube_dl.logging')
+    def test_check_and_log_with_other_errors(self, mock_logging):
         test_output = CompletedProcess(args='', returncode=1, stdout=b'',
                                        stderr=b'ERROR:Incomplete YouTube ID testid.\n')
         flag = self.youtube_dl_service.check_and_log_download_output(test_output)

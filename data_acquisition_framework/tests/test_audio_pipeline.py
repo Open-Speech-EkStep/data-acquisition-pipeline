@@ -226,7 +226,8 @@ class TestAudioPipeline(TestCase):
                                                                                            language)
         self.mock_storage_util.upload_archive_to_bucket.assert_called_once_with(source, language)
 
-    def test_upload_file_to_storage_with_exception(self):
+    @patch('data_acquisition_framework.pipelines.audio_pipeline.logging')
+    def test_upload_file_to_storage_with_exception(self, mock_logging):
         source = 'test'
         language = 'Tamil'
         item = {'source': source, 'language': language}
