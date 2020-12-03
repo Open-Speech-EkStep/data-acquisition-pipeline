@@ -19,15 +19,9 @@ class TestBingSearchSpider(TestCase):
                 "songs download",
                 "kavita download"
             ],
-            "word_to_ignore": [
-
-            ],
-            "extensions_to_ignore": [
-
-            ],
-            "extensions_to_include": [
-
-            ],
+            "word_to_ignore": [],
+            "extensions_to_ignore": [],
+            "extensions_to_include": [],
             "pages": 10,
             "depth": 2,
             "continue_page": "NO",
@@ -38,6 +32,22 @@ class TestBingSearchSpider(TestCase):
         mock_load_config_file.return_value = self.mock_config
         self.mock_storage_util = mock_storage_util
         self.data_collector_bing = BingSearchSpider(my_setting="")
+
+    def test_init(self):
+        self.mock_storage_util.return_value.set_gcs_creds.assert_called_once_with("")
+        self.assertEqual(0, self.data_collector_bing.total_duration_in_seconds)
+        self.assertEqual(self.mock_config, self.data_collector_bing.config)
+        self.assertEqual(self.mock_config['language'], self.data_collector_bing.language)
+        self.assertEqual(self.mock_config['language_code'], self.data_collector_bing.language_code)
+        self.assertEqual(self.mock_config['max_hours'] * 3600, self.data_collector_bing.max_seconds)
+        self.assertEqual(self.mock_config['max_hours'], self.data_collector_bing.max_hours)
+        self.assertEqual(self.mock_config['depth'], self.data_collector_bing.depth)
+        self.assertEqual(self.mock_config['pages'], self.data_collector_bing.pages)
+        self.assertEqual(self.mock_config['extensions_to_include'], self.data_collector_bing.extensions_to_include)
+        self.assertEqual(self.mock_config['extensions_to_ignore'], self.data_collector_bing.extensions_to_ignore)
+        self.assertEqual(self.mock_config['word_to_ignore'], self.data_collector_bing.word_to_ignore)
+        self.assertFalse(self.data_collector_bing.is_continued)
+        self.assertFalse(self.data_collector_bing.enable_hours_restriction)
 
     def test_item_scraped_if_item_is_none(self):
         self.data_collector_bing.item_scraped(None, None, self.data_collector_bing)
