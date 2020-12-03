@@ -1,15 +1,15 @@
 import concurrent.futures
 import html
-import json
+import logging
 import os
 import re
 from urllib.parse import urlparse
-import logging
 
 import scrapy
 import scrapy.settings
 from scrapy import signals
 
+from data_acquisition_framework.services.loader_util import load_web_crawl_config
 from ..items import Media, LicenseItem
 from ..services.storage_util import StorageUtil
 from ..utilities import is_unwanted_words_present, is_unwanted_wiki, write, is_extension_present, \
@@ -38,19 +38,15 @@ class UrlSearchSpider(scrapy.Spider):
         super().__init__(*args, **kwargs)
         StorageUtil().set_gcs_creds(str(kwargs["my_setting"]).replace("'", ""))
         self.total_duration_in_seconds = 0
-        config_path = (
-                os.path.dirname(os.path.realpath(__file__)) + "/../configs/web_crawl_config.json"
-        )
-        with open(config_path, "r") as f:
-            config = json.load(f)
-            self.language = config["language"]
-            self.language_code = config["language_code"]
-            self.max_seconds = config["max_hours"] * 3600
-            self.word_to_ignore = config["word_to_ignore"]
-            self.extensions_to_include = config["extensions_to_include"]
-            self.extensions_to_ignore = config["extensions_to_ignore"]
-            self.enable_hours_restriction = config["enable_hours_restriction"].lower() == "yes"
-            self.depth = config["depth"]
+        config = load_web_crawl_config()
+        self.language = config["language"]
+        self.language_code = config["language_code"]
+        self.max_seconds = config["max_hours"] * 3600
+        self.word_to_ignore = config["word_to_ignore"]
+        self.extensions_to_include = config["extensions_to_include"]
+        self.extensions_to_ignore = config["extensions_to_ignore"]
+        self.enable_hours_restriction = config["enable_hours_restriction"].lower() == "yes"
+        self.depth = config["depth"]
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
@@ -173,7 +169,10 @@ class UrlSearchSpider(scrapy.Spider):
             text = text.rstrip().lstrip()
             text = text.replace("\r\n", "")
             text = re.sub(' +', ' ', text)
-            content = content + "\n" + text
+            if len(content) == 0:
+                content = text
+            else:
+                content = content + "\n" + text
             if "creativecommons" in text:
                 is_creative_commons = True
                 break

@@ -15,6 +15,7 @@ from ..services.storage_util import StorageUtil
 from ..utilities import extract_license_urls, is_unwanted_words_present, is_unwanted_extension_present, \
     is_extension_present, is_unwanted_wiki, write
 
+from data_acquisition_framework.services.loader_util import load_web_crawl_config
 
 class BingSearchSpider(scrapy.Spider):
     name = "datacollector_bing"
@@ -42,20 +43,19 @@ class BingSearchSpider(scrapy.Spider):
         StorageUtil().set_gcs_creds(str(kwargs["my_setting"]).replace("\'", ""))
         self.total_duration_in_seconds = 0
         self.web_crawl_config = os.path.dirname(os.path.realpath(__file__)) + "/../configs/web_crawl_config.json"
-        with open(self.web_crawl_config, 'r') as f:
-            config = json.load(f)
-            self.config = config
-            self.language = config["language"]
-            self.language_code = config["language_code"]
-            self.max_seconds = config["max_hours"] * 3600
-            self.depth = config["depth"]
-            self.pages = config["pages"]
-            self.max_hours = config["max_hours"]
-            self.extensions_to_include = config["extensions_to_include"]
-            self.word_to_ignore = config["word_to_ignore"]
-            self.extensions_to_ignore = config["extensions_to_ignore"]
-            self.is_continued = config["continue_page"].lower() == "yes"
-            self.enable_hours_restriction = config["enable_hours_restriction"].lower() == "yes"
+        config = load_web_crawl_config()
+        self.config = config
+        self.language = config["language"]
+        self.language_code = config["language_code"]
+        self.max_seconds = config["max_hours"] * 3600
+        self.depth = config["depth"]
+        self.pages = config["pages"]
+        self.max_hours = config["max_hours"]
+        self.extensions_to_include = config["extensions_to_include"]
+        self.word_to_ignore = config["word_to_ignore"]
+        self.extensions_to_ignore = config["extensions_to_ignore"]
+        self.is_continued = config["continue_page"].lower() == "yes"
+        self.enable_hours_restriction = config["enable_hours_restriction"].lower() == "yes"
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
@@ -202,7 +202,10 @@ class BingSearchSpider(scrapy.Spider):
             text = text.rstrip().lstrip()
             text = text.replace("\r\n", "")
             text = re.sub(' +', ' ', text)
-            content = content + "\n" + text
+            if len(content) == 0:
+                content = text
+            else:
+                content = content + "\n" + text
             if "creativecommons" in text:
                 is_creative_commons = True
                 break

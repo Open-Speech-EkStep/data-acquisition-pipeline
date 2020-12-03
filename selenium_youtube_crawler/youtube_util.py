@@ -100,8 +100,8 @@ class YoutubeApiUtils:
             for video_id in videos:
                 title, licence = self.get_video_info(video_id)
                 video_url = "https://www.youtube.com/watch?v=" + video_id
-                is_kannada_present = self.is_kannada_present(title)
-                data.append([title, video_url, is_kannada_present, licence])
+                is_tamil_present = self.is_tamil_present(title)
+                data.append([title, video_url, is_tamil_present, licence])
             df = pd.DataFrame(data, columns=['Video Title', 'Video url', 'is_tamil_present', 'is_creative_common'])
             df.to_csv(name.replace(" ", "_") + "_" + channel_id + '.csv')
 

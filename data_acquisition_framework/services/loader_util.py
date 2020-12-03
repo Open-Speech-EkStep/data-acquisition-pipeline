@@ -13,3 +13,11 @@ def load_config_file(file_name):
                 raise ValueError('{} is not a valid JSON.'.format(file_name))
     except IOError:
         raise IOError('file {} does not exist.'.format(file_name))
+
+
+def load_web_crawl_config():
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    web_crawl_config = os.path.join(current_path, '..', "configs", "web_crawl_config.json")
+    with open(web_crawl_config, 'r') as f:
+        config = json.load(f)
+    return config
