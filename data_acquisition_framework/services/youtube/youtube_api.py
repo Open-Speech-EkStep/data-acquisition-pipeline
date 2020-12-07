@@ -106,7 +106,13 @@ class YoutubeChannelCollector:
         page_channels = {}
         for item in results['items']:
             title = item['snippet']['channelTitle']
-            title = title.replace(',', '_').replace('/', '_').replace('\\', '_').replace('.', '_').replace('$', '_')
+            title = title.replace("'", "") \
+                .replace(" ", "_") \
+                .replace(',', '_') \
+                .replace('/', '_') \
+                .replace('\\', '_') \
+                .replace('.', '_') \
+                .replace('$', '_')
             page_channels['https://www.youtube.com/channel/' +
                           item['snippet']['channelId']] = title
         if 'nextPageToken' in results:

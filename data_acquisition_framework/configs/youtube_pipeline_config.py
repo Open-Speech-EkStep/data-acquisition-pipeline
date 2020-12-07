@@ -1,7 +1,7 @@
-mode = 'channel'  # [channel,file]
+mode = 'file'  # [channel,file]
 
 # Common configurations
-source_name = 'DEMO'  # Scraped Data file name(CSV)
+source_name = 'kannada_videos_cc_1'  # Scraped Data file name(CSV)
 batch_num = 1  # keep batch small on free tier
 
 # Channel mode configurations

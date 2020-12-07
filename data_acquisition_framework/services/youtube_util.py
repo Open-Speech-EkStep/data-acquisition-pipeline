@@ -60,7 +60,22 @@ def create_channel_file_for_file_mode(source_file, file_url_column):
     df[file_url_column] = df[file_url_column].apply(lambda x: str(x).replace("https://youtu.be/", ""))
     if not os.path.exists(channels_path):
         os.system("mkdir " + channels_path)
-    df[file_url_column].to_csv(channels_path + source_file.replace(".csv", ".txt"), index=False, header=None)
+    if 'channel_name' in df.columns:
+        channel_value_map = {}
+        for ind in df.index:
+            row = df.iloc[ind]
+            if row['channel_name'] != "":
+                if row['channel_name'] in channel_value_map:
+                    channel_value_map[row['channel_name']].append(row[file_url_column])
+                else:
+                    channel_value_map[row['channel_name']] = [row[file_url_column]]
+        for key, value in channel_value_map.items():
+            source_channel_file = channels_path + key + '.txt'
+            with open(source_channel_file, 'w') as channel_file:
+                for video_id in value:
+                    channel_file.write(video_id + "\n")
+    else:
+        df[file_url_column].to_csv(channels_path + source_file.replace(".csv", ".txt"), index=False, header=None)
     return df
 
 
