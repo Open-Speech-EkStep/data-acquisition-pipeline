@@ -33,7 +33,7 @@ class YoutubeApiUtils:
             return 'Standard Youtube'
 
     def __youtube_call_for_video_ids(self, channel_id, token):
-        return self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='any',
+        return self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='creativeCommon',
                                           maxResults=50,
                                           pageToken=token).execute()
 
@@ -48,12 +48,15 @@ class YoutubeApiUtils:
     def get_videos(self, channel_id):
         token = ''
         complete_video_ids = []
-        while True:
-            token, result = self.__next_page(token, channel_id)
-            for item in result['items']:
-                complete_video_ids.append(item['id']['videoId'])
-            if token == '':
-                break
+        res = self.__youtube_call_for_video_ids(channel_id, token)
+        for item in res['items']:
+            complete_video_ids.append(item['id']['videoId'])
+        # while True:
+        #     token, result = self.__next_page(token, channel_id)
+        #     for item in result['items']:
+        #         complete_video_ids.append(item['id']['videoId'])
+        #     if token == '':
+        #         break
         return complete_video_ids
 
     def get_channels(self):
@@ -79,7 +82,7 @@ class YoutubeChannelCollector:
 
     def __set_keywords(self, config):
         words_to_include = "|".join(config["keywords"])
-        words_to_ignore = "|".join(["-" + word_to_ignore for word_to_ignore in config["words_to_ignore"]])
+        words_to_ignore = " ".join(["-" + word_to_ignore for word_to_ignore in config["words_to_ignore"]])
         self.keywords = ['in', config["language"], words_to_include, words_to_ignore]
 
     def __calculate_pages(self, max_results):
@@ -102,8 +105,10 @@ class YoutubeChannelCollector:
         results = self.__youtube_api_call_for_channel_search(token)
         page_channels = {}
         for item in results['items']:
+            title = item['snippet']['channelTitle']
+            title = title.replace(',', '_').replace('/', '_').replace('\\', '_').replace('.', '_').replace('$', '_')
             page_channels['https://www.youtube.com/channel/' +
-                          item['snippet']['channelId']] = item['snippet']['channelTitle']
+                          item['snippet']['channelId']] = title
         if 'nextPageToken' in results:
             next_token = results['nextPageToken']
             self.storage_util.set_token_in_local(next_token)

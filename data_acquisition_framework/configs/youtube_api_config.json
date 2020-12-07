@@ -1,14 +1,24 @@
 {
-    "language" : "gujarati",
-    "language_code": "gu",
+    "language" : "tamil",
+    "language_code": "ta",
     "keywords":[
-        "audio",
+        "news",
         "speech",
-        "talk"
+        "talks",
+        "poetry",
+        "stories"
     ],
     "words_to_ignore":[
         "song",
-        "music"
+        "music",
+        "tech",
+        "physics",
+        "maths",
+        "lecture",
+        "comedy",
+        "tiktok",
+        "funny",
+        "jukebox"
     ],
-    "max_results": 2
+    "max_results": 100
 }

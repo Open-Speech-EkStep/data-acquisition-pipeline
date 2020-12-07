@@ -121,7 +121,8 @@ class YoutubeUtil:
                     remove_rejected_video(file_name, video_id)
 
     def get_license_info(self, video_id):
-        return self.youtube_api_service.get_license_info(video_id)
+        # return self.youtube_api_service.get_license_info(video_id)
+        return "Creative Commons"
 
     def get_channels(self):
         return self.youtube_api_service.get_channels()
