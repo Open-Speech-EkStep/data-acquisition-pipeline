@@ -79,7 +79,7 @@ class YoutubeChannelCollector:
 
     def __set_keywords(self, config):
         words_to_include = "|".join(config["keywords"])
-        words_to_ignore = "|".join(["-" + word_to_ignore for word_to_ignore in config["words_to_ignore"]])
+        words_to_ignore = " ".join(["-" + word_to_ignore for word_to_ignore in config["words_to_ignore"]])
         self.keywords = ['in', config["language"], words_to_include, words_to_ignore]
 
     def __calculate_pages(self, max_results):
