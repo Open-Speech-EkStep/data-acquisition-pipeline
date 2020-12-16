@@ -21,3 +21,4 @@ This crawler can be configured by modified the parameter values of config.json.
     4. extensions_to_ignore - used to ignore having given extensions.
     5. max_pages - maximum number of pages that can fetched for a single keyword(maximum but not exact number of pages; can be lesser as well).
     6. headless - run browser in headless mode (true/false)
+    7. language_code - code of the language mentioned(eg: for hindi, the code is 'hi')

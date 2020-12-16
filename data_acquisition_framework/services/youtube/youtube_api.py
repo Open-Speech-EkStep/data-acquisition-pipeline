@@ -33,8 +33,9 @@ class YoutubeApiUtils:
             return 'Standard Youtube'
 
     def __youtube_call_for_video_ids(self, channel_id, token):
-        return self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='creativeCommon',
+        return self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='any',
                                           maxResults=50,
+                                          eventType="completed",
                                           pageToken=token).execute()
 
     def __next_page(self, token, channel_id):
@@ -48,15 +49,15 @@ class YoutubeApiUtils:
     def get_videos(self, channel_id):
         token = ''
         complete_video_ids = []
-        res = self.__youtube_call_for_video_ids(channel_id, token)
-        for item in res['items']:
-            complete_video_ids.append(item['id']['videoId'])
-        # while True:
-        #     token, result = self.__next_page(token, channel_id)
-        #     for item in result['items']:
-        #         complete_video_ids.append(item['id']['videoId'])
-        #     if token == '':
-        #         break
+        # res = self.__youtube_call_for_video_ids(channel_id, token)
+        # for item in res['items']:
+        #     complete_video_ids.append(item['id']['videoId'])
+        while True:
+            token, result = self.__next_page(token, channel_id)
+            for item in result['items']:
+                complete_video_ids.append(item['id']['videoId'])
+            if token == '':
+                break
         return complete_video_ids
 
     def get_channels(self):

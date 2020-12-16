@@ -127,9 +127,9 @@ class TestYoutubeChannelCollector(TestCase):
         test_id_one = 'abcd'
         test_id_two = 'efgh'
         test_id_three = 'ijkl'
-        test_channel_one = 'Test Channel One'
-        test_channel_two = 'Test Channel Two'
-        test_channel_three = 'Test Channel Three'
+        test_channel_one = 'Test_Channel_One'
+        test_channel_two = 'Test_Channel_Two'
+        test_channel_three = 'Test_Channel_Three'
         channel_prefix_url = 'https://www.youtube.com/channel/'
         self.channel_search = self.mock_get_youtube_object.return_value.search.return_value.list.return_value.execute
         self.channel_search.return_value = {
@@ -151,7 +151,7 @@ class TestYoutubeChannelCollector(TestCase):
         self.assertEqual(self.test_config["language_code"], self.youtube_channel_collector.rel_language)
         self.assertEqual(['in', self.test_config["language"],
                           "|".join(self.test_config["keywords"]),
-                          "|".join(["-" + word_to_ignore for word_to_ignore in self.test_config["words_to_ignore"]])],
+                          " ".join(["-" + word_to_ignore for word_to_ignore in self.test_config["words_to_ignore"]])],
                          self.youtube_channel_collector.keywords)
         self.assertEqual(False, self.youtube_channel_collector.pages_exhausted)
 
@@ -163,6 +163,7 @@ class TestYoutubeChannelCollector(TestCase):
 
         self.assertEqual(2, self.mock_storage_util.return_value.get_token_from_local.call_count)
         self.assertEqual(2, self.mock_storage_util.return_value.set_token_in_local.call_count)
+
         self.assertEqual(self.expected_channels_collection, actual_collections)
 
     def test_get_urls_not_having_next_page_token(self):

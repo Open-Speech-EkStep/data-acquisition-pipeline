@@ -2,6 +2,8 @@ import logging
 import os
 import subprocess
 
+import youtube_dl
+
 
 class YoutubeDL:
     def __init__(self):
@@ -12,20 +14,37 @@ class YoutubeDL:
                           "HTTP Error 404: Not Found"]
         self.HTTP_ERROR = "HTTP Error 429"
 
-    def get_videos(self, channel_url, match_title_string, reject_title_string):
-        command = self.youtube_call + ' {0} --flat-playlist --get-id --match-title "{1}" --reject-title "{2}"'.format(
-            channel_url, match_title_string, reject_title_string)
+    def get_videos(self, url):
+        command = self.youtube_call + ' {0} --get-id'.format(url)
         downloaded_output = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         video_list = downloaded_output.stdout.decode("utf-8").rstrip().lstrip().split("\n")
         return video_list
 
-    def youtube_download(self, video_id, archive_path, download_path):
+    def get_license_info(self, url):
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'outtmpl': 'tmp/%(id)s.%(ext)s',
+            'noplaylist': True,
+            'quiet': True,
+            'prefer_ffmpeg': True,
+            'audioformat': 'wav',
+            'forceduration': True
+        }
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            dict_meta = ydl.extract_info(
+                url,
+                download=False)
+            return dict_meta['license']
+
+    def youtube_download(self, video_id, archive_path, download_path, retry_count=0):
         command = self.youtube_call + ' -f "best[ext=mp4][filesize<1024M]" -o "{2}%(duration)sfile-id%(id)s.%(ext)s" ' \
                                       '"https://www.youtube.com/watch?v={0}" --download-archive {1} --proxy "" ' \
                                       '--abort-on-error'.format(video_id, archive_path,
                                                                 download_path)
         downloader_output = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         remove_video_flag = self.check_and_log_download_output(downloader_output)
+        if remove_video_flag and retry_count < 3:
+            return self.youtube_download(video_id, archive_path, download_path, retry_count + 1)
         return remove_video_flag, video_id
 
     def check_and_log_download_output(self, downloader_output):
@@ -45,3 +64,9 @@ class YoutubeDL:
         for _ in formatted_output:
             logging.info(str(_))
         return remove_video_flag
+
+
+if __name__ == '__main__':
+    dl = YoutubeDL()
+    remove, _id = dl.youtube_download('RQIijwlnRoc', '.archive.txt', '.')
+    print(remove, _id)

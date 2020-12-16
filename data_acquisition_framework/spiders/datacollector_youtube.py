@@ -54,7 +54,7 @@ class DatacollectorYoutubeSpider(scrapy.Spider):
         for mode, channel_file_name, file_mode_data in self.youtube_util.validate_mode_and_get_result():
             channel_id = channel_file_name.split("__")[0]
             channel_name = channel_file_name.replace(channel_id + "__", "").replace('.txt', '')
-            if mode == "file" and not channel_id.endswith(".txt"):
+            if mode == "file":
                 channel_id = None
             logging.info(
                 str("Channel {0}".format(channel_file_name)))

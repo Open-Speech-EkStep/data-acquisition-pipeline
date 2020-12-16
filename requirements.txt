@@ -1,4 +1,4 @@
-youtube-dl==2020.9.20
+youtube-dl
 google-cloud-core==1.4.3
 google-cloud-storage==1.31.2
 gswrap==0.0.2
