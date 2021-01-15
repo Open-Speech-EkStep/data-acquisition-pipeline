@@ -16,9 +16,7 @@ youtube_service_to_use = YoutubeService.YOUTUBE_DL
 
 # "https://www.youtube.com/channel/UC2XEzs5R1mn2wTKgtjuMxiQ": "sadhgurukannada_non_cc",
 # Channel mode configurations
-channel_url_dict = {
-    "https://www.youtube.com/channel/UCv42Sr32nbg4H169n-i0HBA": 'Tamil test'
-}
+channel_url_dict = {}
 
 # File Mode configurations
 file_speaker_gender_column = 'speaker_gender'

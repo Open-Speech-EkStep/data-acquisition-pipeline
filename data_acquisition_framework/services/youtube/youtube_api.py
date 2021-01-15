@@ -177,7 +177,7 @@ class YoutubeChannelCollector:
 
 
 if __name__ == '__main__':
-    os.environ["youtube_api_key"] = 'AIzaSyDmNg0_tpy42tD2z7xRAcrBTlu56RikIKs'
+    os.environ["youtube_api_key"] = '<api key here>'
     youtube = YoutubeApiBuilder().get_youtube_object()
     channel_collector = YoutubeChannelCollector(youtube)
     result = channel_collector.get_cc_video_channels()
