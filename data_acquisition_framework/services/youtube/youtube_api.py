@@ -161,13 +161,14 @@ class YoutubeChannelCollector:
                           channel_id] = title
         if 'nextPageToken' in results:
             next_token = results['nextPageToken']
+            self.storage_util.set_token_in_local(next_token)
         else:
             self.pages_exhausted = True
         return page_channels, next_token
 
     def get_cc_video_channels(self):
         complete_channels = {}
-        token = ''
+        token = self.storage_util.get_token_from_local()
         for _ in range(self.pages):
             if self.pages_exhausted:
                 break
