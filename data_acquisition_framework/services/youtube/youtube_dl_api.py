@@ -29,15 +29,19 @@ class YoutubeDL:
         }
         videos_list = []
         ydl = youtube_dl.YoutubeDL(ydl_opts)
-        with ydl:
-            dict_meta = ydl.extract_info(
-                url,
-                download=False)
-            videos = dict_meta['entries']
-            for video in videos[0]['entries']:
-                if "license" in video and video['license'] is not None and 'Creative Commons' in video['license']:
-                    videos_list.append(video['id'])
-
+        logging.info("Fetching cc_videos for " + url)
+        try:
+            with ydl:
+                dict_meta = ydl.extract_info(
+                    url,
+                    download=False)
+                videos = dict_meta['entries']
+                for video in videos[0]['entries']:
+                    if "license" in video and video['license'] is not None and 'Creative Commons' in video['license']:
+                        videos_list.append(video['id'])
+        except Exception as exc:
+            logging.error(exc)
+        logging.info("{} has {} videos".format(url, len(videos_list)))
         return videos_list
 
     def get_license_info(self, url):
