@@ -2,7 +2,7 @@ from subprocess import CompletedProcess
 from unittest import TestCase
 from unittest.mock import patch, call
 
-from data_acquisition_framework.services.youtube.youtube_dl import YoutubeDL
+from data_acquisition_framework.services.youtube.youtube_dl_api import YoutubeDL
 
 
 class TestYoutubeDL(TestCase):

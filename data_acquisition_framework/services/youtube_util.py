@@ -10,10 +10,10 @@ from pandas.io.common import EmptyDataError
 from data_acquisition_framework.configs.paths import archives_path, channels_path, download_path
 from data_acquisition_framework.configs.youtube_pipeline_config import batch_num, file_url_name_column, \
     file_speaker_name_column, file_speaker_gender_column, mode, source_name, channel_url_dict, license_column, \
-    youtube_service_to_use, YoutubeService
+    youtube_service_to_use, YoutubeService, only_creative_commons
 from data_acquisition_framework.services.storage_util import StorageUtil
 from data_acquisition_framework.services.youtube.youtube_api import YoutubeApiUtils
-from data_acquisition_framework.services.youtube.youtube_dl import YoutubeDL
+from data_acquisition_framework.services.youtube.youtube_dl_api import YoutubeDL
 
 
 def remove_rejected_video(file_name, video_id):
@@ -135,7 +135,10 @@ class YoutubeUtil:
 
             if not is_downloaded:
                 if youtube_service_to_use == YoutubeService.YOUTUBE_DL:
-                    videos_list = self.youtube_dl_service.get_videos(channel_url)
+                    if only_creative_commons:
+                        videos_list = self.youtube_dl_service.get_cc_videos(channel_url)
+                    else:
+                        videos_list = self.youtube_dl_service.get_videos(channel_url)
                 else:
                     videos_list = self.youtube_api_service.get_videos(channel_id)
                 tmp_videos_list = []
@@ -165,6 +168,8 @@ class YoutubeUtil:
         return self.youtube_api_service.get_license_info(video_id)
 
     def get_channels(self):
+        if only_creative_commons:
+            return self.youtube_api_service.get_cc_video_channels()
         return self.youtube_api_service.get_channels()
 
     def get_video_info(self, file, channel_name, filemode_data, channel_id):
@@ -178,7 +183,10 @@ class YoutubeUtil:
             if licence == "":
                 licence = self.get_license_info(video_id)
         else:
-            licence = self.get_license_info(video_id)
+            if only_creative_commons:
+                licence = "Creative Commons"
+            else:
+                licence = self.get_license_info(video_id)
 
         video_info = {'duration': video_duration, 'source': channel_name,
                       'raw_file_name': file.replace(download_path, ""),

@@ -32,6 +32,9 @@ class YoutubeApiUtils:
         else:
             return 'Standard Youtube'
 
+    def get_cc_video_channels(self):
+        return self.channel_collector.get_cc_video_channels()
+
     def __youtube_call_for_video_ids(self, channel_id, token):
         return self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='any',
                                           maxResults=50,
@@ -131,3 +134,51 @@ class YoutubeChannelCollector:
             page_channels = self.__get_page_channels()
             complete_channels.update(page_channels)
         return complete_channels
+
+    def youtube_api_call_for_cc_video_search(self, token):
+        return self.youtube.search().list(part="id,snippet", type='video', q=' '.join(
+            self.keywords), maxResults=self.max_results, relevanceLanguage=self.rel_language,
+                                          videoLicense='creativeCommon',
+                                          pageToken=token).execute()
+
+    def __get_page_cc_videos(self, token):
+        results = self.youtube_api_call_for_cc_video_search(token)
+        page_channels = {}
+        next_token = None
+        for item in results['items']:
+            title = item['snippet']['channelTitle']
+            title = title.replace("'", "") \
+                .replace(" ", "_") \
+                .replace(',', '_') \
+                .replace('/', '_') \
+                .replace('\\', '_') \
+                .replace('.', '_') \
+                .replace('$', '_')
+            channel_id = item['snippet']['channelId']
+            if channel_id == 'UCmyKnNRH0wH-r8I-ceP-dsg' or channel_id =='UCcTKQnC3lRA4aira95_a1pw':
+                continue
+            page_channels['https://www.youtube.com/channel/' +
+                          channel_id] = title
+        if 'nextPageToken' in results:
+            next_token = results['nextPageToken']
+        else:
+            self.pages_exhausted = True
+        return page_channels, next_token
+
+    def get_cc_video_channels(self):
+        complete_channels = {}
+        token = ''
+        for _ in range(self.pages):
+            if self.pages_exhausted:
+                break
+            page_channels, token = self.__get_page_cc_videos(token)
+            complete_channels.update(page_channels)
+        return complete_channels
+
+
+if __name__ == '__main__':
+    os.environ["youtube_api_key"] = 'AIzaSyDmNg0_tpy42tD2z7xRAcrBTlu56RikIKs'
+    youtube = YoutubeApiBuilder().get_youtube_object()
+    channel_collector = YoutubeChannelCollector(youtube)
+    result = channel_collector.get_cc_video_channels()
+    print(result)

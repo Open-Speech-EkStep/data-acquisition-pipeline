@@ -7,19 +7,17 @@ class YoutubeService(Enum):
 
 
 mode = 'channel'  # [channel,file]
+only_creative_commons = True
 
 # Common configurations
 source_name = 'kannada_videos_cc_3'  # Scraped Data file name(CSV)
-batch_num = 1  # keep batch small on free tier
+batch_num = 5  # keep batch small on free tier
 youtube_service_to_use = YoutubeService.YOUTUBE_DL
 
 # "https://www.youtube.com/channel/UC2XEzs5R1mn2wTKgtjuMxiQ": "sadhgurukannada_non_cc",
 # Channel mode configurations
 channel_url_dict = {
-    "https://www.youtube.com/channel/UCPMDhcBogBPsrGQWf5qnArg": "Tech in Kannada",
-    "https://www.youtube.com/channel/UClNEDHT_Zo9OJJp2v512vCg": "Knowledge_is_Spherical",
-    "https://www.youtube.com/channel/UCst7dIH10mMvu_PVpXMr7Hw": "Unbox_karnataka",
-    "https://www.youtube.com/channel/UCZFpWf46GbSQULyE-6T1U4g": "Director_Satishkumar_-_Kannada"
+    "https://www.youtube.com/channel/UCv42Sr32nbg4H169n-i0HBA": 'Tamil test'
 }
 
 # File Mode configurations
