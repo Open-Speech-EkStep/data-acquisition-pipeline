@@ -2,7 +2,7 @@ import logging
 import os
 import subprocess
 import json
-
+import time
 import youtube_dl
 
 
@@ -22,10 +22,15 @@ class YoutubeDL:
         return video_list
 
     def get_cc_videos(self, url):
+        try:
+            time.sleep(3)
+        except:
+            pass
         ydl_opts = {
             'outtmpl': 'tmp/%(id)s.%(ext)s',
             'quiet': True,
-            'no_color': True
+            'no_color': True,
+            'ignoreerrors': 'True',
         }
         videos_list = []
         ydl = youtube_dl.YoutubeDL(ydl_opts)
