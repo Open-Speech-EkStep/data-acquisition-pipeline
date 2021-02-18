@@ -5,8 +5,7 @@ from concurrent.futures import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import pandas as pd
-from pandas.io.common import EmptyDataError
-
+from pandas.errors import EmptyDataError
 from data_acquisition_framework.configs.paths import archives_path, channels_path, download_path
 from data_acquisition_framework.configs.youtube_pipeline_config import batch_num, file_url_name_column, \
     file_speaker_name_column, file_speaker_gender_column, mode, source_name, channel_url_dict, license_column, \
@@ -136,7 +135,11 @@ class YoutubeUtil:
             if not is_downloaded:
                 if youtube_service_to_use == YoutubeService.YOUTUBE_DL:
                     if only_creative_commons:
-                        videos_list = self.youtube_dl_service.get_cc_videos(channel_url)
+                        tmps_videos_list = self.youtube_dl_service.get_videos(channel_url)
+                        videos_list = []
+                        for video in tmps_videos_list:
+                            if 'Creative Commons' == self.youtube_api_service.get_license_info(video):
+                                videos_list.append(video)
                     else:
                         videos_list = self.youtube_dl_service.get_videos(channel_url)
                 else:

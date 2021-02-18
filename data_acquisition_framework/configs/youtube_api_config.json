@@ -1,6 +1,6 @@
 {
-    "language" : "tamil",
-    "language_code": "ta",
+    "language" : "Kannada",
+    "language_code": "kn",
     "keywords":[
         "news",
         "speech",
@@ -20,5 +20,5 @@
         "funny",
         "jukebox"
     ],
-    "max_results": 50
+    "max_results": 100
 }

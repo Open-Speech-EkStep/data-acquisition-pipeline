@@ -3,7 +3,7 @@ google-cloud-core==1.4.3
 google-cloud-storage==1.31.2
 gswrap==0.0.2
 moviepy==1.0.3
-pandas==0.25.3
+pandas==1.2.1
 pandas_datareader==0.9.0
 itemadapter==0.1.1
 tinytag==1.4.0

@@ -211,7 +211,8 @@ class TestYoutubeUtil(TestCase):
         self.assertEqual(license_info, result)
         self.mock_yt_api_utils.return_value.get_license_info.assert_called_once_with(video_id)
 
-    def test_get_channels(self):
+    @patch('data_acquisition_framework.services.youtube_util.only_creative_commons', False)
+    def test_get_channels_every_license(self):
         channels = {"https://youtube.com/channel/1231243432432": "test1",
                     "https://youtube.com/channel/32423423432": "test2"}
         self.mock_yt_api_utils.return_value.get_channels.return_value = channels
@@ -220,6 +221,17 @@ class TestYoutubeUtil(TestCase):
 
         self.assertEqual(channels, result)
         self.mock_yt_api_utils.return_value.get_channels.assert_called_once()
+
+    @patch('data_acquisition_framework.services.youtube_util.only_creative_commons', True)
+    def test_get_channels_only_creative_commons(self):
+        channels = {"https://youtube.com/channel/1231243432432": "test1",
+                    "https://youtube.com/channel/32423423432": "test2"}
+        self.mock_yt_api_utils.return_value.get_cc_video_channels.return_value = channels
+
+        result = self.youtube_util.get_channels()
+
+        self.assertEqual(channels, result)
+        self.mock_yt_api_utils.return_value.get_cc_video_channels.assert_called_once()
 
     @patch('data_acquisition_framework.services.youtube_util.mode', 'channel')
     def test_get_video_info_for_channel_mode(self):
@@ -280,11 +292,13 @@ class TestYoutubeUtil(TestCase):
     def test_get_channel_from_source_with_dict_empty(self):
         channels = {"https://youtube.com/channel/sdfdsf34545": "test1",
                     "https://youtube.com/channel/sadfds444555": "test2"}
-        self.mock_yt_api_utils.return_value.get_channels.return_value = channels
 
         with patch.object(self.youtube_util, 'create_channel_file') as create_channel_file_mock:
-            self.youtube_util.get_channels_from_source()
-            create_channel_file_mock.assert_called_once_with(channels)
+            with patch.object(self.youtube_util, 'get_channels') as get_channels_mock:
+                get_channels_mock.return_value = channels
+                self.youtube_util.get_channels_from_source()
+                create_channel_file_mock.assert_called_once_with(channels)
+                get_channels_mock.assert_called_once()
 
     @patch('data_acquisition_framework.services.youtube_util.mode', 'file')
     @patch('data_acquisition_framework.services.youtube_util.file_speaker_gender_column', 'gender')

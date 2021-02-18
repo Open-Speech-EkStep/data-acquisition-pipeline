@@ -135,6 +135,7 @@ https://www.youtube.com/watch?v=o82HIOgozi8,John_Doe,male
 "source_name": "DEMO",                              This is the name of source you are downloading
 batch_num = 1                                       Number of videos to be downloaded as batches
 youtube_service_to_use = YoutubeService.YOUTUBE_DL  This field is to choose which service to use for getting video information
+only_creative_commons = False                       Should Download only creative commons(True, False)
 ```
 Possible values for youtube_service_to_use: (YoutubeService.YOUTUBE_DL, YoutubeService.YOUTUBE_API)
 * file mode configurations in [youtube_pipeline_config.py](https://github.com/Open-Speech-EkStep/data-acquisition-pipeline/blob/master/data_acquisition_framework/configs/youtube_pipeline_config.py) 

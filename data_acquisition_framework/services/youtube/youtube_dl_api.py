@@ -23,7 +23,7 @@ class YoutubeDL:
 
     def get_cc_videos(self, url):
         try:
-            time.sleep(3)
+            time.sleep(20)
         except:
             pass
         ydl_opts = {
