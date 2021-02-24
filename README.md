@@ -1,3 +1,22 @@
+# Data Collection Pipeline
+### It is a part of [Vakyansh's](https://open-speech-ekstep.github.io/mkdocs/) to enable smart crawling of the web to scrape relevant audio data to train models.
+
+This is downloading framework that is extensible and allows the user to add new source without much code changes. For each new source user need to write a scrapy spider script and rest of downloading and meta file creation is handled by repective pipelines. And if required user can add their custom pipelines. This framework automatically transfer the downloaded data to a Google cloud bucket automatically. For more info on writing scrapy spider and pipeline one can refer to the [documentation](https://docs.scrapy.org/en/latest/intro/tutorial.html). 
+
+
+<!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
+[![All Contributors](https://img.shields.io/badge/all_contributors-12-orange.svg?style=flat-square)](#contributors-)
+<!-- ALL-CONTRIBUTORS-BADGE:END -->
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](code-of-conduct.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-380/)
+[![Scrapy 2.4.0](https://img.shields.io/badge/scrapy-2.4.0-green)](https://scrapy.org/)
+[![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
+
+
+If you like our data collection pipeline_, ⭐ the project to support its development!_
+
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
 
