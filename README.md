@@ -9,10 +9,14 @@ This is downloading framework that is extensible and allows the user to add new 
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v1.4%20adopted-ff69b4.svg)](code-of-conduct.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-380/)
-[![Scrapy 2.4.0](https://img.shields.io/badge/scrapy-2.4.0-green)](https://scrapy.org/)
 [![Code Style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
+<br></br>
+[![Python 3.8](https://img.shields.io/badge/python-3.8-blue.svg)](https://www.python.org/downloads/release/python-380/)
+[![Scrapy 2.4.0](https://img.shields.io/badge/scrapy-2.4.0-green)](https://scrapy.org/)
+[![youtube-dl 2020.9.20](https://img.shields.io/badge/youtube--dl-2020.9.20-red)](https://ytdl-org.github.io/youtube-dl/)
+[![TinnyTag 1.4.0](https://img.shields.io/badge/tinytag-1.4.0-orange)](https://github.com/devsnd/tinytag)
+
 
 
 If you like our data collection pipeline_, ⭐ the project to support its development!_
