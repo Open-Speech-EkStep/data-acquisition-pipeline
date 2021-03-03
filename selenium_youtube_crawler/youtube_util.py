@@ -206,4 +206,6 @@ class YoutubeChannelCollector:
 
 
 if __name__ == "__main__":
+    if not os.path.exists("playlists"):
+        os.system("mkdir playlists")
     YoutubeApiUtils().generate_playlist_files('playlists')

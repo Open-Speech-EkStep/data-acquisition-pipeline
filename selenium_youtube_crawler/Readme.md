@@ -4,6 +4,8 @@ This crawler can be used to crawl youtube videos and upload them to google cloud
 
 This crawler can be configured by modified the parameter values of config.json.
 
+Read the note before proceeding with running this service.
+
 ## Steps:
 
     1. Run pip install -r requirements.txt.
@@ -22,14 +24,17 @@ This crawler can be configured by modified the parameter values of config.json.
     8. input_type - type of input to crawler.. values = [FILE or YOUTUBE_API]
 
 ## Note:
-    1. If input_type is file, then create a folder named playlists and add files with channel name as filename and channel videos ids as file content.
-    
-    eg. playlist/Tamil_Channel.txt having content
-            
-        lajvqyWWfnk
-        sbOsG0ytCQg
-            
+1. If input_type is file, videos for channels have to be given in a local folder.There are two ways to do this:
+    - Create a folder named `playlists` and add files with channel name as filename and channel videos ids as file content.
+        ```
+        eg. playlists/Tamil_Channel.txt having content
+                
+            lajvqyWWfnk
+            sbOsG0ytCQg
+        ```
+    - To automatically generate this content(configure the config.json file for your requirements), Run the following command:
+        ```
+            python youtube_util.py
+        ```    
 
-    2. If input_type is YOUTUBE_API, then create a .env file with youtube search api key as below:
-    
-        youtube_api_key=<your api key>
+2. If input_type is `YOUTUBE_API`, then create a `.youtube_api_key` file in this folder and get API KEY from google developer console and put it in this file.

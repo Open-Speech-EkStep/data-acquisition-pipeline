@@ -1,14 +1,15 @@
 import os
 from concurrent import futures
 from unittest import TestCase
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 
 import pandas as pd
 
 from data_acquisition_framework.configs.paths import channels_path, archives_base_path
+from data_acquisition_framework.configs.youtube_pipeline_config import YoutubeService
 from data_acquisition_framework.services.youtube_util import YoutubeUtil, remove_rejected_video, \
     check_dataframe_validity, create_channel_file_for_file_mode, get_gender, get_speaker, get_video_batch, \
-    is_channel_from_config, is_youtube_api_mode
+    is_channel_from_config, is_youtube_api_mode, get_license
 
 
 class TestYoutubeUtil(TestCase):
@@ -21,8 +22,10 @@ class TestYoutubeUtil(TestCase):
         self.youtube_util = YoutubeUtil()
         self.mock_yt_api_utils = mock_yt_api_utils
         self.mock_storage_util = mock_storage_util
+        self.mock_yt_dl = mock_yt_dl
 
-    def test_create_channel_file_if_channels_folder_not_present(self):
+    @patch('data_acquisition_framework.services.youtube_util.youtube_service_to_use', YoutubeService.YOUTUBE_DL)
+    def test_create_channel_file_if_channels_folder_not_present_and_not_downloaded_using_youtube_dl(self):
         if os.path.exists(channels_path):
             os.system("rm -rf " + channels_path)
         channel1_id = "2342342ibbj"
@@ -31,34 +34,127 @@ class TestYoutubeUtil(TestCase):
         channel2_name = 'test2'
         channel1_file = channel1_id + '__' + channel1_name + '.txt'
         channel2_file = channel2_id + '__' + channel2_name + '.txt'
+        channel_1_id_name_join = channel1_id + "__" + channel1_name
+        channel_2_id_name_join = channel2_id + "__" + channel2_name
+        self.mock_storage_util.return_value.get_channel_file_upload_path.side_effect = [channel_1_id_name_join,
+                                                                                        channel_2_id_name_join]
+
+        self.mock_yt_dl.return_value.get_videos.return_value = ["afafds", "dsafds"]
+
         expected = [channel1_file, channel2_file]
         source_channel_dict = {("https://youtube.com/channel/%s" % channel1_id): channel1_name,
                                ("https://youtube.com/channel/%s" % channel2_id): channel2_name}
 
+        self.mock_storage_util.return_value.get_videos_of_channel.return_value = False
+
         self.youtube_util.create_channel_file(source_channel_dict)
 
+        self.mock_yt_dl.return_value.get_videos.assert_has_calls([call("https://youtube.com/channel/%s" % channel1_id),
+                                                                  call("https://youtube.com/channel/%s" % channel2_id)])
+        self.assertTrue(os.path.exists(channels_path))
         channel_files = os.listdir(channels_path)
         self.assertEqual(expected, channel_files)
+        self.mock_storage_util.return_value.get_videos_of_channel.assert_has_calls(
+            [call(channel_1_id_name_join), call(channel_2_id_name_join)])
+        self.mock_storage_util.return_value.upload.assert_has_calls(
+            [call(channels_path + channel1_file, channel_1_id_name_join),
+             call(channels_path + channel2_file, channel_2_id_name_join)])
 
         os.system("rm -rf " + channels_path)
 
-    def test_create_channel_file_if_channels_folder_present(self):
-        if not os.path.exists(channels_path):
-            os.system("mkdir " + channels_path)
+    @patch('data_acquisition_framework.services.youtube_util.youtube_service_to_use', YoutubeService.YOUTUBE_API)
+    def test_create_channel_file_if_channels_folder_not_present_and_not_downloaded_using_youtube_api(self):
+        if os.path.exists(channels_path):
+            os.system("rm -rf " + channels_path)
         channel1_id = "2342342ibbj"
         channel1_name = 'test1'
         channel2_id = "2342342ib222"
         channel2_name = 'test2'
         channel1_file = channel1_id + '__' + channel1_name + '.txt'
         channel2_file = channel2_id + '__' + channel2_name + '.txt'
+        channel_1_id_name_join = channel1_id + "__" + channel1_name
+        channel_2_id_name_join = channel2_id + "__" + channel2_name
+        self.mock_storage_util.return_value.get_channel_file_upload_path.side_effect = [channel_1_id_name_join,
+                                                                                        channel_2_id_name_join]
+
+        self.mock_yt_api_utils.return_value.get_videos.return_value = ["afafds", "dsafds"]
+
         expected = [channel1_file, channel2_file]
         source_channel_dict = {("https://youtube.com/channel/%s" % channel1_id): channel1_name,
                                ("https://youtube.com/channel/%s" % channel2_id): channel2_name}
 
+        self.mock_storage_util.return_value.get_videos_of_channel.return_value = False
+
         self.youtube_util.create_channel_file(source_channel_dict)
 
+        self.mock_yt_api_utils.return_value.get_videos.assert_has_calls([call(channel1_id),
+                                                                         call(channel2_id)])
+        self.assertTrue(os.path.exists(channels_path))
         channel_files = os.listdir(channels_path)
         self.assertEqual(expected, channel_files)
+        self.mock_storage_util.return_value.get_videos_of_channel.assert_has_calls(
+            [call(channel_1_id_name_join), call(channel_2_id_name_join)])
+        self.mock_storage_util.return_value.upload.assert_has_calls(
+            [call(channels_path + channel1_file, channel_1_id_name_join),
+             call(channels_path + channel2_file, channel_2_id_name_join)])
+
+        os.system("rm -rf " + channels_path)
+
+    @patch('data_acquisition_framework.services.youtube_util.youtube_service_to_use', YoutubeService.YOUTUBE_DL)
+    def test_create_channel_file_if_channels_folder_not_present_and_downloaded(self):
+        if os.path.exists(channels_path):
+            os.system("rm -rf " + channels_path)
+        channel1_id = "2342342ibbj"
+        channel1_name = 'test1'
+        channel2_id = "2342342ib222"
+        channel2_name = 'test2'
+        channel_1_id_name_join = channel1_id + "__" + channel1_name
+        channel_2_id_name_join = channel2_id + "__" + channel2_name
+
+        source_channel_dict = {("https://youtube.com/channel/%s" % channel1_id): channel1_name,
+                               ("https://youtube.com/channel/%s" % channel2_id): channel2_name}
+
+        self.mock_storage_util.return_value.get_videos_of_channel.return_value = True
+
+        self.youtube_util.create_channel_file(source_channel_dict)
+
+        self.assertTrue(os.path.exists(channels_path))
+
+        self.mock_storage_util.return_value.get_videos_of_channel.assert_has_calls(
+            [call(channel_1_id_name_join), call(channel_2_id_name_join)])
+        self.mock_storage_util.return_value.upload.assert_not_called()
+        self.mock_storage_util.return_value.get_channel_file_upload_path.assert_not_called()
+        self.mock_yt_dl.return_value.get_videos.assert_not_called()
+        self.mock_yt_api_utils.return_value.get_videos.assert_not_called()
+
+        os.system("rm -rf " + channels_path)
+
+    @patch('data_acquisition_framework.services.youtube_util.youtube_service_to_use', YoutubeService.YOUTUBE_DL)
+    def test_create_channel_file_if_channels_folder_present_and_not_downloaded(self):
+        if not os.path.exists(channels_path):
+            os.system("mkdir " + channels_path)
+        channel1_id = "2342342ibbj"
+        channel1_name = 'test1'
+        channel2_id = "2342342ib222"
+        channel2_name = 'test2'
+        channel_1_id_name_join = channel1_id + "__" + channel1_name
+        channel_2_id_name_join = channel2_id + "__" + channel2_name
+
+        source_channel_dict = {("https://youtube.com/channel/%s" % channel1_id): channel1_name,
+                               ("https://youtube.com/channel/%s" % channel2_id): channel2_name}
+
+        self.mock_storage_util.return_value.get_videos_of_channel.return_value = True
+
+        self.youtube_util.create_channel_file(source_channel_dict)
+
+        self.assertTrue(os.path.exists(channels_path))
+
+        self.mock_storage_util.return_value.get_videos_of_channel.assert_has_calls(
+            [call(channel_1_id_name_join), call(channel_2_id_name_join)])
+        self.mock_storage_util.return_value.upload.assert_not_called()
+        self.mock_storage_util.return_value.get_channel_file_upload_path.assert_not_called()
+        self.mock_yt_dl.return_value.get_videos.assert_not_called()
+        self.mock_yt_api_utils.return_value.get_videos.assert_not_called()
 
         os.system("rm -rf " + channels_path)
 
@@ -115,7 +211,8 @@ class TestYoutubeUtil(TestCase):
         self.assertEqual(license_info, result)
         self.mock_yt_api_utils.return_value.get_license_info.assert_called_once_with(video_id)
 
-    def test_get_channels(self):
+    @patch('data_acquisition_framework.services.youtube_util.only_creative_commons', False)
+    def test_get_channels_every_license(self):
         channels = {"https://youtube.com/channel/1231243432432": "test1",
                     "https://youtube.com/channel/32423423432": "test2"}
         self.mock_yt_api_utils.return_value.get_channels.return_value = channels
@@ -124,6 +221,17 @@ class TestYoutubeUtil(TestCase):
 
         self.assertEqual(channels, result)
         self.mock_yt_api_utils.return_value.get_channels.assert_called_once()
+
+    @patch('data_acquisition_framework.services.youtube_util.only_creative_commons', True)
+    def test_get_channels_only_creative_commons(self):
+        channels = {"https://youtube.com/channel/1231243432432": "test1",
+                    "https://youtube.com/channel/32423423432": "test2"}
+        self.mock_yt_api_utils.return_value.get_cc_video_channels.return_value = channels
+
+        result = self.youtube_util.get_channels()
+
+        self.assertEqual(channels, result)
+        self.mock_yt_api_utils.return_value.get_cc_video_channels.assert_called_once()
 
     @patch('data_acquisition_framework.services.youtube_util.mode', 'channel')
     def test_get_video_info_for_channel_mode(self):
@@ -184,11 +292,13 @@ class TestYoutubeUtil(TestCase):
     def test_get_channel_from_source_with_dict_empty(self):
         channels = {"https://youtube.com/channel/sdfdsf34545": "test1",
                     "https://youtube.com/channel/sadfds444555": "test2"}
-        self.mock_yt_api_utils.return_value.get_channels.return_value = channels
 
         with patch.object(self.youtube_util, 'create_channel_file') as create_channel_file_mock:
-            self.youtube_util.get_channels_from_source()
-            create_channel_file_mock.assert_called_once_with(channels)
+            with patch.object(self.youtube_util, 'get_channels') as get_channels_mock:
+                get_channels_mock.return_value = channels
+                self.youtube_util.get_channels_from_source()
+                create_channel_file_mock.assert_called_once_with(channels)
+                get_channels_mock.assert_called_once()
 
     @patch('data_acquisition_framework.services.youtube_util.mode', 'file')
     @patch('data_acquisition_framework.services.youtube_util.file_speaker_gender_column', 'gender')
@@ -460,6 +570,56 @@ class TestYoutubeUtil(TestCase):
         video_id = "sfgsft"
 
         result = get_gender(scraped_data, video_id)
+
+        self.assertEqual("", result)
+
+    @patch('data_acquisition_framework.services.youtube_util.license_column', 'license')
+    @patch('data_acquisition_framework.services.youtube_util.file_url_name_column', 'url')
+    def test_get_license(self):
+        data = [
+            ["male", 'tester', 'sfgsft', 'Creative Commons']
+        ]
+        scraped_data = pd.DataFrame(data, columns=['gender', 'name', 'url', 'license'])
+        video_id = "sfgsft"
+        expected = "Creative Commons"
+
+        result = get_license(scraped_data, video_id)
+
+        self.assertEqual(expected, result)
+
+    def test_get_license_raise_key_error(self):
+        data = [
+            ["male", 'tester', 'sfgsft', 'Creative Commons']
+        ]
+        scraped_data = pd.DataFrame(data, columns=['gender', 'name', 'url', 'license'])
+        video_id = "sfgsft"
+
+        with self.assertRaises(KeyError):
+            get_license(scraped_data, video_id)
+
+    @patch('data_acquisition_framework.services.youtube_util.license_column', 'license')
+    @patch('data_acquisition_framework.services.youtube_util.file_url_name_column', 'url')
+    def test_get_license_return_empty_for_video_id_not_found(self):
+        data = [
+            ["male", 'tester', 'sfgssft', 'Standard Youtube']
+        ]
+        scraped_data = pd.DataFrame(data, columns=['gender', 'name', 'url', 'license'])
+        video_id = "sfgsft"
+
+        result = get_license(scraped_data, video_id)
+
+        self.assertEqual("", result)
+
+    @patch('data_acquisition_framework.services.youtube_util.license_column', 'license')
+    @patch('data_acquisition_framework.services.youtube_util.file_url_name_column', 'url')
+    def test_get_license_return_empty_for_license_column_not_found(self):
+        data = [
+            ["male", 'tester', 'sfgssft']
+        ]
+        scraped_data = pd.DataFrame(data, columns=['gender', 'name', 'url'])
+        video_id = "sfgsft"
+
+        result = get_license(scraped_data, video_id)
 
         self.assertEqual("", result)
 

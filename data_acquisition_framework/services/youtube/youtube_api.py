@@ -1,3 +1,4 @@
+import ast
 import os
 
 from googleapiclient.discovery import build
@@ -26,15 +27,23 @@ class YoutubeApiUtils:
 
     def get_license_info(self, video_id):
         result = self.__youtube_call_for_video_info(video_id)
-        license_value = result['items'][0]['status']['license']
-        if license_value == 'creativeCommon':
-            return 'Creative Commons'
-        else:
+        try:
+            license_value = result['items'][0]['status']['license']
+            if license_value == 'creativeCommon':
+                return 'Creative Commons'
+            else:
+                return 'Standard Youtube'
+        except Exception as exc:
+            print("Error", result,  exc)
             return 'Standard Youtube'
+
+    def get_cc_video_channels(self):
+        return self.channel_collector.get_cc_video_channels()
 
     def __youtube_call_for_video_ids(self, channel_id, token):
         return self.youtube.search().list(part='id', type='video', channelId=channel_id, videoLicense='any',
                                           maxResults=50,
+                                          eventType="completed",
                                           pageToken=token).execute()
 
     def __next_page(self, token, channel_id):
@@ -48,6 +57,9 @@ class YoutubeApiUtils:
     def get_videos(self, channel_id):
         token = ''
         complete_video_ids = []
+        # res = self.__youtube_call_for_video_ids(channel_id, token)
+        # for item in res['items']:
+        #     complete_video_ids.append(item['id']['videoId'])
         while True:
             token, result = self.__next_page(token, channel_id)
             for item in result['items']:
@@ -81,6 +93,8 @@ class YoutubeChannelCollector:
         words_to_include = "|".join(config["keywords"])
         words_to_ignore = " ".join(["-" + word_to_ignore for word_to_ignore in config["words_to_ignore"]])
         self.keywords = ['in', config["language"], words_to_include, words_to_ignore]
+        self.query_keywords = config['keywords']
+        self.keyword_prefix = 'in {}'.format(config['language'])
 
     def __calculate_pages(self, max_results):
         if max_results <= self.MAX_PAGE_RESULT:
@@ -102,8 +116,16 @@ class YoutubeChannelCollector:
         results = self.__youtube_api_call_for_channel_search(token)
         page_channels = {}
         for item in results['items']:
+            title = item['snippet']['channelTitle']
+            title = title.replace("'", "") \
+                .replace(" ", "_") \
+                .replace(',', '_') \
+                .replace('/', '_') \
+                .replace('\\', '_') \
+                .replace('.', '_') \
+                .replace('$', '_')
             page_channels['https://www.youtube.com/channel/' +
-                          item['snippet']['channelId']] = item['snippet']['channelTitle']
+                          item['snippet']['channelId']] = title
         if 'nextPageToken' in results:
             next_token = results['nextPageToken']
             self.storage_util.set_token_in_local(next_token)
@@ -119,3 +141,67 @@ class YoutubeChannelCollector:
             page_channels = self.__get_page_channels()
             complete_channels.update(page_channels)
         return complete_channels
+
+    def youtube_api_call_for_cc_video_search(self, keyword, token):
+        return self.youtube.search().list(part="id,snippet", type='video', q=keyword, maxResults=self.max_results,
+                                          relevanceLanguage=self.rel_language,
+                                          videoLicense='creativeCommon',
+                                          pageToken=token).execute()
+
+    def __get_page_cc_videos(self, keyword, token):
+        results = self.youtube_api_call_for_cc_video_search(keyword + " " + self.keyword_prefix, token)
+        page_channels = {}
+        next_token = None
+        for item in results['items']:
+            title = item['snippet']['channelTitle']
+            title = title.replace("'", "") \
+                .replace(" ", "_") \
+                .replace(',', '_') \
+                .replace('/', '_') \
+                .replace('\\', '_') \
+                .replace('.', '_') \
+                .replace('$', '_')
+            channel_id = item['snippet']['channelId']
+            if channel_id == 'UCmyKnNRH0wH-r8I-ceP-dsg' or channel_id == 'UCcTKQnC3lRA4aira95_a1pw':
+                continue
+            page_channels['https://www.youtube.com/channel/' +
+                          channel_id] = title
+        if 'nextPageToken' in results:
+            next_token = results['nextPageToken']
+            # self.storage_util.set_token_in_local(next_token)
+        else:
+            self.pages_exhausted = True
+        return page_channels, next_token
+
+    def get_cc_video_channels(self):
+        complete_channels = {}
+        token_from_local = self.storage_util.get_token_from_local()
+        if "{" not in token_from_local:
+            token_from_local = "{}"
+        gl_token = ast.literal_eval(token_from_local)
+        tmp_gl_token = {}
+        for keyword in self.query_keywords:
+            if keyword in gl_token:
+                token = gl_token[keyword]
+            else:
+                token = ''
+            for _ in range(self.pages):
+                if self.pages_exhausted:
+                    self.pages_exhausted = False
+                    break
+                page_channels, token = self.__get_page_cc_videos(keyword, token)
+                complete_channels.update(page_channels)
+            tmp_gl_token[keyword] = token
+        self.storage_util.set_token_in_local(str(tmp_gl_token))
+        return complete_channels
+
+
+if __name__ == '__main__':
+    current_path = os.path.dirname(os.path.realpath(__file__))
+    config_file = os.path.join(current_path, '..', "..", "..", '.youtube_api_key')
+    with open(config_file, 'r') as f:
+        os.environ["youtube_api_key"] = f.read()
+    youtube = YoutubeApiBuilder().get_youtube_object()
+    channel_collector = YoutubeChannelCollector(youtube)
+    result = channel_collector.get_cc_video_channels()
+    print(result)

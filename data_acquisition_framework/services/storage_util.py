@@ -14,6 +14,7 @@ class StorageUtil:
     def __init__(self):
         storage_config = load_config_file("storage_config.json")
         self.channel_blob_path = storage_config['channel_blob_path']
+        self.channels_file_blob_path = storage_config['channels_file_blob_path']
         self.bucket = storage_config['bucket']
         self.archive_blob_path = storage_config['archive_blob_path']
         self.scraped_data_blob_path = storage_config['scraped_data_blob_path']
@@ -38,6 +39,11 @@ class StorageUtil:
     def get_archive_file_bucket_path(self, source, language=""):
         return self.channel_blob_path.replace('<language>',
                                               language) + '/' + self.archive_blob_path + '/' + source + '/' + self.archive_file_name
+
+    def get_channel_file_upload_path(self, source, language=""):
+        path = self.channels_file_blob_path + '/' + source + '/videos_list.txt'
+        return self.channel_blob_path.replace('<language>',
+                                              language) + '/' + path
 
     def retrieve_archive_from_bucket(self, source, language=""):
         archive_path = archives_path.replace('<source>', source)
@@ -145,3 +151,12 @@ class StorageUtil:
 
     def get_media_paths(self):
         return glob.glob(download_path + '*.mp4')
+
+    def get_videos_of_channel(self, id_name_join):
+        channel_base_path = self.get_channel_file_upload_path(id_name_join)
+        if self.check(channel_base_path):
+            local_path = channels_path + id_name_join + ".txt"
+            self.download(channel_base_path, local_path)
+            return True
+        else:
+            return False

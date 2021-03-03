@@ -5,14 +5,14 @@ from concurrent.futures import as_completed
 from concurrent.futures.thread import ThreadPoolExecutor
 
 import pandas as pd
-from pandas.io.common import EmptyDataError
-
+from pandas.errors import EmptyDataError
 from data_acquisition_framework.configs.paths import archives_path, channels_path, download_path
 from data_acquisition_framework.configs.youtube_pipeline_config import batch_num, file_url_name_column, \
-    file_speaker_name_column, file_speaker_gender_column, mode, source_name, channel_url_dict
+    file_speaker_name_column, file_speaker_gender_column, mode, source_name, channel_url_dict, license_column, \
+    youtube_service_to_use, YoutubeService, only_creative_commons
 from data_acquisition_framework.services.storage_util import StorageUtil
 from data_acquisition_framework.services.youtube.youtube_api import YoutubeApiUtils
-from data_acquisition_framework.services.youtube.youtube_dl import YoutubeDL
+from data_acquisition_framework.services.youtube.youtube_dl_api import YoutubeDL
 
 
 def remove_rejected_video(file_name, video_id):
@@ -60,7 +60,22 @@ def create_channel_file_for_file_mode(source_file, file_url_column):
     df[file_url_column] = df[file_url_column].apply(lambda x: str(x).replace("https://youtu.be/", ""))
     if not os.path.exists(channels_path):
         os.system("mkdir " + channels_path)
-    df[file_url_column].to_csv(channels_path + source_file.replace(".csv", ".txt"), index=False, header=None)
+    if 'channel_name' in df.columns:
+        channel_value_map = {}
+        for ind in df.index:
+            row = df.iloc[ind]
+            if row['channel_name'] != "":
+                if row['channel_name'] in channel_value_map:
+                    channel_value_map[row['channel_name']].append(row[file_url_column])
+                else:
+                    channel_value_map[row['channel_name']] = [row[file_url_column]]
+        for key, value in channel_value_map.items():
+            source_channel_file = channels_path + key + '.txt'
+            with open(source_channel_file, 'w') as channel_file:
+                for video_id in value:
+                    channel_file.write(video_id + "\n")
+    else:
+        df[file_url_column].to_csv(channels_path + source_file.replace(".csv", ".txt"), index=False, header=None)
     return df
 
 
@@ -69,6 +84,15 @@ def get_speaker(scraped_data, video_id):
     if len(matched_video_id_row) == 0:
         return ""
     return str(matched_video_id_row.iloc[0][file_speaker_name_column]).lower()
+
+
+def get_license(scraped_data, video_id):
+    matched_video_id_row = scraped_data[scraped_data[file_url_name_column] == video_id]
+    if len(matched_video_id_row) == 0:
+        return ""
+    if license_column not in matched_video_id_row:
+        return ""
+    return str(matched_video_id_row.iloc[0][license_column])
 
 
 def get_gender(scraped_data, video_id):
@@ -98,14 +122,36 @@ class YoutubeUtil:
             os.mkdir(channels_path)
 
         for channel_url in source_channel_dict.keys():
-            channel_id = channel_url.split('/')[-1]
             source_channel_dict[channel_url] = str(source_channel_dict[channel_url]).replace(' ', '_')
-            source_channel_file = channels_path + channel_id + '__' + source_channel_dict[channel_url] + '.txt'
+            # if "playlist?list=" in channel_url:
+            #     pass
+            # else:
+            channel_id = channel_url.split('/')[-1]
+            id_name_join = channel_id + '__' + source_channel_dict[channel_url]
+            source_channel_file = channels_path + id_name_join + '.txt'
 
-            videos_list = self.youtube_api_service.get_videos(channel_id)
-            with open(source_channel_file, 'w') as channel_file:
-                for video_id in videos_list:
-                    channel_file.write(video_id + "\n")
+            is_downloaded = self.storage_util.get_videos_of_channel(id_name_join)
+
+            if not is_downloaded:
+                if youtube_service_to_use == YoutubeService.YOUTUBE_DL:
+                    if only_creative_commons:
+                        tmps_videos_list = self.youtube_dl_service.get_videos(channel_url)
+                        videos_list = []
+                        for video in tmps_videos_list:
+                            if 'Creative Commons' == self.youtube_api_service.get_license_info(video):
+                                videos_list.append(video)
+                    else:
+                        videos_list = self.youtube_dl_service.get_videos(channel_url)
+                else:
+                    videos_list = self.youtube_api_service.get_videos(channel_id)
+                tmp_videos_list = []
+                with open(source_channel_file, 'w') as channel_file:
+                    for video_id in videos_list:
+                        if video_id not in tmp_videos_list:
+                            channel_file.write(video_id + "\n")
+                            tmp_videos_list.append(video_id)
+                self.storage_util.upload(source_channel_file,
+                                         self.storage_util.get_channel_file_upload_path(id_name_join))
 
     def download_files(self, channel_name, file_name, batch_list):
         archive_path = archives_path.replace('<source>', channel_name)
@@ -121,9 +167,12 @@ class YoutubeUtil:
                     remove_rejected_video(file_name, video_id)
 
     def get_license_info(self, video_id):
+        # return "Creative Commons"
         return self.youtube_api_service.get_license_info(video_id)
 
     def get_channels(self):
+        if only_creative_commons:
+            return self.youtube_api_service.get_cc_video_channels()
         return self.youtube_api_service.get_channels()
 
     def get_video_info(self, file, channel_name, filemode_data, channel_id):
@@ -132,11 +181,21 @@ class YoutubeUtil:
         channel_url_prefix = 'https://www.youtube.com/channel/'
         source_url = video_url_prefix + video_id
         video_duration = int(file.replace(download_path, "").split('file-id')[0]) / 60
+        if mode == 'file':
+            licence = get_license(filemode_data, video_id)
+            if licence == "":
+                licence = self.get_license_info(video_id)
+        else:
+            if only_creative_commons:
+                licence = "Creative Commons"
+            else:
+                licence = self.get_license_info(video_id)
+
         video_info = {'duration': video_duration, 'source': channel_name,
                       'raw_file_name': file.replace(download_path, ""),
                       'name': get_speaker(filemode_data, video_id) if mode == 'file' else None,
                       'gender': get_gender(filemode_data, video_id) if mode == 'file' else None,
-                      'source_url': source_url, 'license': self.get_license_info(video_id)}
+                      'source_url': source_url, 'license': licence}
         self.t_duration += video_duration
         logging.info('$$$$$$$    ' + str(self.t_duration // 60) + '   $$$$$$$')
         if mode == "channel":

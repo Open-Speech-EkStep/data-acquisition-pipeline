@@ -16,7 +16,8 @@ class TestStorageUtil(TestCase):
             "bucket": "ekstepspeechrecognition-dev",
             "channel_blob_path": "scrapydump/refactor_test",
             "archive_blob_path": "archive",
-            "scraped_data_blob_path": "scraped"
+            "scraped_data_blob_path": "scraped",
+            "channels_file_blob_path": "channels"
         }
         mock_load_storage_config.return_value = data
         self.storage_util = StorageUtil()
@@ -72,19 +73,18 @@ class TestStorageUtil(TestCase):
         mock_check_blob.assert_called_once_with(self.storage_config['bucket'], file_to_check)
         self.assertTrue(result)
 
-    @patch('data_acquisition_framework.services.storage_util.load_config_file')
-    def test_get_archive_file_bucket_path_with_language(self, storage_config_mock):
+    def test_get_archive_file_bucket_path_with_language(self):
         source = "test"
         language = "tamil"
         expected = self.storage_config["channel_blob_path"] + "/" + language + '/' + self.storage_config[
             "archive_blob_path"] + '/' + source + '/' + self.storage_util.archive_file_name
-        config = self.storage_config.copy()
-        config["channel_blob_path"] = config["channel_blob_path"] + "/<language>"
-        storage_config_mock.return_value = config
-        storage_util = StorageUtil()
 
-        path = storage_util.get_archive_file_bucket_path(source, language)
+        tmp_channel_blob_path = self.storage_util.channel_blob_path
+        self.storage_util.channel_blob_path = self.storage_config["channel_blob_path"] + "/<language>"
 
+        path = self.storage_util.get_archive_file_bucket_path(source, language)
+
+        self.storage_util.channel_blob_path = tmp_channel_blob_path
         self.assertEqual(expected, path)
 
     def test_get_archive_file_bucket_path_without_language(self):
@@ -94,6 +94,32 @@ class TestStorageUtil(TestCase):
             "archive_blob_path"] + '/' + source + '/' + self.storage_util.archive_file_name
 
         path = self.storage_util.get_archive_file_bucket_path(source, language)
+
+        self.assertEqual(expected, path)
+
+    def test_get_channel_file_upload_bucket_path_with_language(self):
+        source = "test"
+        language = "tamil"
+        expected = self.storage_config[
+                       'channel_blob_path'] + "/" + language + '/' + self.storage_config[
+                       'channels_file_blob_path'] + '/' + source + '/videos_list.txt'
+
+        tmp_channel_blob_path = self.storage_util.channel_blob_path
+        self.storage_util.channel_blob_path = self.storage_config["channel_blob_path"] + "/<language>"
+
+        path = self.storage_util.get_channel_file_upload_path(source, language)
+
+        self.storage_util.channel_blob_path = tmp_channel_blob_path
+        self.assertEqual(expected, path)
+
+    def test_get_channel_file_upload_bucket_path_without_language(self):
+        source = "test"
+        language = "tamil"
+        expected = self.storage_config[
+                       'channel_blob_path'] + '/' + self.storage_config[
+                       'channels_file_blob_path'] + '/' + source + '/videos_list.txt'
+
+        path = self.storage_util.get_channel_file_upload_path(source, language)
 
         self.assertEqual(expected, path)
 
@@ -372,24 +398,24 @@ class TestStorageUtil(TestCase):
         expected = 2
         channel_file_path = channels_path + file_name
         if not os.path.exists(channels_path):
-            os.system("mkdir "+channels_path)
+            os.system("mkdir " + channels_path)
         with open(channel_file_path, 'w') as f:
-            f.write("ab33cd"+"\n")
+            f.write("ab33cd" + "\n")
             f.write("ccdded")
 
         result = self.storage_util.get_channel_videos_count(file_name)
 
         self.assertEqual(expected, result)
 
-        os.system('rm -rf '+channels_path)
+        os.system('rm -rf ' + channels_path)
 
     def test_get_media_paths(self):
-        file1 = download_path+"file1.mp4"
-        file2 = download_path+"file2.mp4"
+        file1 = download_path + "file1.mp4"
+        file2 = download_path + "file2.mp4"
         if not os.path.exists(download_path):
-            os.system("mkdir "+download_path)
-        os.system("touch "+file1)
-        os.system("touch "+file2)
+            os.system("mkdir " + download_path)
+        os.system("touch " + file1)
+        os.system("touch " + file2)
         expected = [file1, file2]
 
         media_paths = self.storage_util.get_media_paths()
@@ -397,3 +423,35 @@ class TestStorageUtil(TestCase):
         self.assertEqual(expected, media_paths)
 
         os.system("rm -rf " + download_path)
+
+    def test_get_videos_of_channel_when_present_in_bucket(self):
+        with patch.object(self.storage_util, 'get_channel_file_upload_path') as mock_get_channel_file_upload_path:
+            with patch.object(self.storage_util, 'check') as mock_check:
+                with patch.object(self.storage_util, 'download') as mock_download:
+                    mock_check.return_value = True
+                    base_path = "test/test"
+                    mock_get_channel_file_upload_path.return_value = base_path
+
+                    id_name = "324234__hello"
+                    flag = self.storage_util.get_videos_of_channel(id_name)
+
+                    self.assertTrue(flag)
+                    mock_get_channel_file_upload_path.assert_called_once_with(id_name)
+                    mock_check.assert_called_once_with(base_path)
+                    mock_download.assert_called_once_with(base_path, channels_path + id_name + ".txt")
+
+    def test_get_videos_of_channel_when_not_present_in_bucket(self):
+        with patch.object(self.storage_util, 'get_channel_file_upload_path') as mock_get_channel_file_upload_path:
+            with patch.object(self.storage_util, 'check') as mock_check:
+                with patch.object(self.storage_util, 'download') as mock_download:
+                    mock_check.return_value = False
+                    base_path = "test/test"
+                    mock_get_channel_file_upload_path.return_value = base_path
+
+                    id_name = "324234__hello"
+                    flag = self.storage_util.get_videos_of_channel(id_name)
+
+                    self.assertFalse(flag)
+                    mock_get_channel_file_upload_path.assert_called_once_with(id_name)
+                    mock_check.assert_called_once_with(base_path)
+                    mock_download.assert_not_called()
