@@ -152,6 +152,16 @@ class YoutubeUtil:
                             tmp_videos_list.append(video_id)
                 self.storage_util.upload(source_channel_file,
                                          self.storage_util.get_channel_file_upload_path(id_name_join))
+            else:
+                if only_creative_commons:
+                    tmp_videos_list = []
+                    with open(source_channel_file, 'r') as channel_file:
+                        for video_id in channel_file.read().splitlines():
+                            if 'Creative Commons' == self.youtube_api_service.get_license_info(video_id):
+                                tmp_videos_list.append(video_id)
+                    with open(source_channel_file, 'w') as channel_file:
+                        channel_file.writelines([video_id + "\n" for video_id in tmp_videos_list])
+
 
     def download_files(self, channel_name, file_name, batch_list):
         archive_path = archives_path.replace('<source>', channel_name)
