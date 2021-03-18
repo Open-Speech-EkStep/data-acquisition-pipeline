@@ -1,7 +1,7 @@
 # Data Collection Pipeline
-### It is a part of [Vakyansh's](https://open-speech-ekstep.github.io/mkdocs/) to enable smart crawling of the web to scrape relevant audio data to train models.
+### It is a part of [Vakyansh](https://open-speech-ekstep.github.io/mkdocs/) to enable smart crawling of the web to scrape relevant audio data to train models.
 
-This is downloading framework that is extensible and allows the user to add new source without much code changes. For each new source user need to write a scrapy spider script and rest of downloading and meta file creation is handled by repective pipelines. And if required user can add their custom pipelines. This framework automatically transfer the downloaded data to a Google cloud bucket automatically. For more info on writing scrapy spider and pipeline one can refer to the [documentation](https://docs.scrapy.org/en/latest/intro/tutorial.html). 
+This is a downloading framework that is extensible and allows the user to add new source without much code changes. For each new source user need to write a scrapy spider script and rest of downloading and meta file creation is handled by repective pipelines. And if required, user can add their custom pipelines. This framework automatically transfers the downloaded data to a Google cloud bucket. For more info on writing scrapy spider and pipeline one can refer to the [documentation](https://docs.scrapy.org/en/latest/intro/tutorial.html). 
 
 
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
@@ -19,7 +19,7 @@ This is downloading framework that is extensible and allows the user to add new 
 
 
 
-If you like our data collection pipeline_, ⭐ the project to support its development!_
+If you like our data collection pipeline, ⭐ the project to support its development!
 
 <!-- TABLE OF CONTENTS -->
 ## Table of Contents
@@ -57,7 +57,7 @@ If you like our data collection pipeline_, ⭐ the project to support its develo
 
 <!-- ABOUT THE PROJECT -->
 ## About The Project
-This is downloading framework that is extensible and allows the user to add new source without much code changes. For each new source user need to write a scrapy spider script and rest of downloading and meta file creation is handled by repective pipelines. And if required user can add their custom pipelines. This framework automatically transfer the downloaded data to a Google cloud bucket automatically. For more info on writing scrapy spider and pipeline one can refer to the [documentation](https://docs.scrapy.org/en/latest/intro/tutorial.html). 
+This is a downloading framework that is extensible and allows the user to add new source without much code changes. For each new source user need to write a scrapy spider script and rest of downloading and meta file creation is handled by repective pipelines. And if required user can add their custom pipelines. This framework automatically transfers the downloaded data to a Google cloud bucket. For more info on writing scrapy spider and pipeline one can refer to the [documentation](https://docs.scrapy.org/en/latest/intro/tutorial.html). 
 Data Collection Pipeline’s developer documentation is meant for its adopters, developers and contributors.
 
 The developer documentation helps you to get familiar with the bare necessities, giving you a quick and clean approach to get you up and running. If you are looking for ways to customize the workflow, or just breaking things down to build them back up, head to the reference section to dig into the mechanics of Data Collection Pipeline.
