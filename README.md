@@ -1,5 +1,5 @@
 # Data Collection Pipeline
-### It is a part of [Vakyansh](https://open-speech-ekstep.github.io/mkdocs/) to enable smart crawling of the web to scrape relevant audio data to train models.
+### It is a part of [Vakyansh](https://open-speech-ekstep.github.io) to enable smart crawling of the web to scrape relevant audio data to train models.
 
 This is a downloading framework that is extensible and allows the user to add new source without much code changes. For each new source user need to write a scrapy spider script and rest of downloading and meta file creation is handled by repective pipelines. And if required, user can add their custom pipelines. This framework automatically transfers the downloaded data to a Google cloud bucket. For more info on writing scrapy spider and pipeline one can refer to the [documentation](https://docs.scrapy.org/en/latest/intro/tutorial.html). 
 
