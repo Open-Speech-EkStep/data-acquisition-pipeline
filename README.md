@@ -16,7 +16,7 @@ This is a downloading framework that is extensible and allows the user to add ne
 [![Scrapy 2.4.0](https://img.shields.io/badge/scrapy-2.4.0-green)](https://scrapy.org/)
 [![youtube-dl 2020.9.20](https://img.shields.io/badge/youtube--dl-2020.9.20-red)](https://ytdl-org.github.io/youtube-dl/)
 [![TinnyTag 1.4.0](https://img.shields.io/badge/tinytag-1.4.0-orange)](https://github.com/devsnd/tinytag)
-
+[![Gitter](https://badges.gitter.im/Vakyansh/community.svg)](https://gitter.im/Vakyansh/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 
 If you like our data collection pipeline, ⭐ the project to support its development!
